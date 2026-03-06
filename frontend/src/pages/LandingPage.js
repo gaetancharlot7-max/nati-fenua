@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Users, ShoppingBag, Megaphone, Play, Heart, MapPin, MessageCircle, Radio, Sparkles, Check } from 'lucide-react';
+import { ArrowRight, Users, ShoppingBag, Play, Heart, MapPin, MessageCircle, Radio, Sparkles, Camera, Film } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
 // Fenua Logo Component
@@ -27,48 +27,41 @@ const FenuaLogo = ({ size = 'lg' }) => {
 const LandingPage = () => {
   const features = [
     {
-      icon: Users,
-      title: 'Réseau Social',
-      description: 'Photos, vidéos, stories et Reels. Partagez votre vie polynésienne.',
+      icon: Camera,
+      title: 'Photos & Stories',
+      description: 'Partagez vos plus beaux moments polynésiens avec des stories éphémères.',
       color: 'from-[#FF6B35] to-[#FF1493]'
+    },
+    {
+      icon: Film,
+      title: 'Reels & Vidéos',
+      description: 'Créez des vidéos courtes virales style TikTok.',
+      color: 'from-[#FF1493] to-[#9400D3]'
     },
     {
       icon: Radio,
       title: 'Lives en Direct',
-      description: 'Diffusez en direct et connectez-vous en temps réel avec votre communauté.',
-      color: 'from-[#FF1493] to-[#9400D3]'
+      description: 'Diffusez en direct et connectez-vous en temps réel.',
+      color: 'from-[#9400D3] to-[#00CED1]'
     },
     {
       icon: MessageCircle,
       title: 'Messagerie',
-      description: 'Discutez en privé avec vos amis et votre famille à travers les îles.',
-      color: 'from-[#9400D3] to-[#00CED1]'
+      description: 'Discutez en privé avec vos proches à travers les îles.',
+      color: 'from-[#00CED1] to-[#FFD700]'
     },
     {
       icon: ShoppingBag,
       title: 'Marketplace',
-      description: 'Perles, monoï, artisanat... Achetez et vendez les trésors du Fenua.',
-      color: 'from-[#00CED1] to-[#FFD700]'
-    },
-    {
-      icon: Megaphone,
-      title: 'Publicité Locale',
-      description: 'Faites connaître votre business à toute la Polynésie Française.',
+      description: 'Perles, monoï, artisanat... Achetez et vendez local.',
       color: 'from-[#FFD700] to-[#FF6B35]'
     },
     {
-      icon: Sparkles,
-      title: 'Effets & Filtres',
-      description: 'Des effets inspirés de la culture polynésienne pour vos contenus.',
+      icon: Users,
+      title: 'Communauté',
+      description: 'Rejoignez la communauté polynésienne connectée.',
       color: 'from-[#FF6B35] to-[#00CED1]'
     }
-  ];
-
-  const stats = [
-    { value: '50K+', label: 'Utilisateurs' },
-    { value: '1M+', label: 'Posts partagés' },
-    { value: '10K+', label: 'Produits vendus' },
-    { value: '100+', label: 'Lives par jour' }
   ];
 
   return (
@@ -115,7 +108,7 @@ const LandingPage = () => {
               Photos • Vidéos • Stories • Reels • Lives • Marketplace • Chat
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/auth">
                 <Button 
                   data-testid="get-started-btn"
@@ -136,24 +129,6 @@ const LandingPage = () => {
                 </Button>
               </Link>
             </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
-              {stats.map((stat, i) => (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 + i * 0.1 }}
-                  className="text-center"
-                >
-                  <p className="text-3xl md:text-4xl font-black bg-gradient-to-r from-[#FFD700] to-[#FF6B35] bg-clip-text text-transparent">
-                    {stat.value}
-                  </p>
-                  <p className="text-white/60 text-sm">{stat.label}</p>
-                </motion.div>
-              ))}
-            </div>
           </motion.div>
 
           {/* Floating Elements */}
@@ -168,8 +143,8 @@ const LandingPage = () => {
                 <Heart size={24} className="text-white" fill="white" />
               </div>
               <div>
-                <p className="text-white font-bold">+2.5K</p>
-                <p className="text-white/60 text-sm">Likes aujourd'hui</p>
+                <p className="text-white font-bold">Partagez</p>
+                <p className="text-white/60 text-sm">vos moments</p>
               </div>
             </div>
           </motion.div>
@@ -203,8 +178,8 @@ const LandingPage = () => {
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-ping"></span>
               </div>
               <div>
-                <p className="text-white font-bold">12 Lives</p>
-                <p className="text-white/60 text-sm">en direct maintenant</p>
+                <p className="text-white font-bold">Lives</p>
+                <p className="text-white/60 text-sm">en direct</p>
               </div>
             </div>
           </motion.div>
@@ -281,10 +256,10 @@ const LandingPage = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { img: 'https://images.unsplash.com/photo-1760969485983-c7b370a1532f?w=400', title: 'Perles', price: '15 000 XPF', color: '#00CED1' },
-              { img: 'https://images.unsplash.com/photo-1690228987673-f6e104fa653c?w=400', title: 'Monoï', price: '2 500 XPF', color: '#FFD700' },
-              { img: 'https://images.unsplash.com/photo-1663018084454-86fd8150f950?w=400', title: 'Fruits', price: '1 000 XPF', color: '#32CD32' },
-              { img: 'https://images.unsplash.com/photo-1746511299666-5ba663a2a5df?w=400', title: 'Artisanat', price: '8 000 XPF', color: '#FF6B35' }
+              { img: 'https://images.unsplash.com/photo-1760969485983-c7b370a1532f?w=400', title: 'Perles de Tahiti', color: '#00CED1' },
+              { img: 'https://images.unsplash.com/photo-1690228987673-f6e104fa653c?w=400', title: 'Monoï & Beauté', color: '#FFD700' },
+              { img: 'https://images.unsplash.com/photo-1663018084454-86fd8150f950?w=400', title: 'Produits Locaux', color: '#32CD32' },
+              { img: 'https://images.unsplash.com/photo-1746511299666-5ba663a2a5df?w=400', title: 'Artisanat', color: '#FF6B35' }
             ].map((item, index) => (
               <motion.div
                 key={index}
@@ -299,7 +274,6 @@ const LandingPage = () => {
                 </div>
                 <div className="p-4">
                   <h4 className="font-bold text-[#1A1A2E]">{item.title}</h4>
-                  <p className="font-black text-lg" style={{ color: item.color }}>{item.price}</p>
                 </div>
               </motion.div>
             ))}
@@ -307,57 +281,76 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Pricing Section */}
+      {/* App Download Section */}
       <section className="py-24 bg-[#1A1A2E]">
         <div className="max-w-6xl mx-auto px-4">
-          <motion.div 
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
-              Publicité <span className="bg-gradient-to-r from-[#FF6B35] to-[#FFD700] bg-clip-text text-transparent">Payante</span>
-            </h2>
-            <p className="text-lg text-white/70 max-w-2xl mx-auto">
-              Boostez votre visibilité auprès de la communauté polynésienne
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { name: 'Starter', price: '5 000', features: ['1 000 impressions', '7 jours', 'Feed uniquement'] },
-              { name: 'Boost', price: '15 000', features: ['5 000 impressions', '14 jours', 'Feed + Stories', 'Statistiques'], popular: true },
-              { name: 'Pro', price: '35 000', features: ['15 000 impressions', '30 jours', 'Tous placements', 'Stats avancées', 'Support prioritaire'] }
-            ].map((plan, index) => (
-              <motion.div
-                key={plan.name}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className={`relative rounded-3xl p-8 ${plan.popular ? 'bg-gradient-to-br from-[#FF6B35] to-[#FF1493] text-white' : 'bg-white text-[#1A1A2E]'}`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#FFD700] text-[#1A1A2E] text-sm font-bold rounded-full">
-                    POPULAIRE
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
+                Téléchargez l'application
+              </h2>
+              <p className="text-lg text-white/70 mb-8 leading-relaxed">
+                Fenua Social est disponible sur votre smartphone. 
+                Installez l'application et restez connecté à la communauté polynésienne.
+              </p>
+              
+              <div className="flex flex-wrap gap-4">
+                {/* App Store Button */}
+                <a href="#" className="flex items-center gap-3 px-6 py-4 bg-white rounded-2xl hover:bg-gray-100 transition-all hover:scale-105">
+                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 22 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 22C7.79 22.05 6.8 20.68 5.96 19.47C4.25 17 2.94 12.45 4.7 9.39C5.57 7.87 7.13 6.91 8.82 6.88C10.1 6.86 11.32 7.75 12.11 7.75C12.89 7.75 14.37 6.68 15.92 6.84C16.57 6.87 18.39 7.1 19.56 8.82C19.47 8.88 17.39 10.1 17.41 12.63C17.44 15.65 20.06 16.66 20.09 16.67C20.06 16.74 19.67 18.11 18.71 19.5ZM13 3.5C13.73 2.67 14.94 2.04 15.94 2C16.07 3.17 15.6 4.35 14.9 5.19C14.21 6.04 13.07 6.7 11.95 6.61C11.8 5.46 12.36 4.26 13 3.5Z"/>
+                  </svg>
+                  <div className="text-left">
+                    <p className="text-xs text-gray-500">Télécharger sur</p>
+                    <p className="font-bold text-[#1A1A2E]">App Store</p>
                   </div>
-                )}
-                <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-                <p className="text-4xl font-black mb-6">{plan.price} <span className="text-lg font-normal opacity-70">XPF</span></p>
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <Check size={20} className={plan.popular ? 'text-white' : 'text-[#00CED1]'} />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button className={`w-full py-6 rounded-xl font-bold ${plan.popular ? 'bg-white text-[#FF6B35] hover:bg-gray-100' : 'bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white'}`}>
-                  Choisir
-                </Button>
-              </motion.div>
-            ))}
+                </a>
+                
+                {/* Play Store Button */}
+                <a href="#" className="flex items-center gap-3 px-6 py-4 bg-white rounded-2xl hover:bg-gray-100 transition-all hover:scale-105">
+                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
+                  </svg>
+                  <div className="text-left">
+                    <p className="text-xs text-gray-500">Disponible sur</p>
+                    <p className="font-bold text-[#1A1A2E]">Google Play</p>
+                  </div>
+                </a>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="relative flex justify-center"
+            >
+              {/* Phone Mockup */}
+              <div className="relative w-72">
+                <div className="absolute inset-0 bg-gradient-to-r from-[#FF6B35] to-[#00CED1] rounded-[3rem] blur-3xl opacity-40"></div>
+                <div className="relative bg-[#1a1a1a] rounded-[2.5rem] p-3 shadow-2xl">
+                  <div className="bg-[#2F2F31] rounded-[2rem] overflow-hidden aspect-[9/19]">
+                    <img 
+                      src="https://images.unsplash.com/photo-1612708437841-085ba65e370b?w=400"
+                      alt="App preview"
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Overlay UI */}
+                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493]"></div>
+                        <span className="text-white font-medium text-sm">@hinano_tahiti</span>
+                      </div>
+                      <p className="text-white/80 text-sm">Ia ora na depuis Moorea 🌴</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -374,7 +367,7 @@ const LandingPage = () => {
               Rejoignez la famille
             </h2>
             <p className="text-xl text-white/90 mb-10">
-              Plus de 50 000 polynésiens nous font déjà confiance
+              Connectez-vous avec la communauté polynésienne dès aujourd'hui
             </p>
             <Link to="/auth">
               <Button 

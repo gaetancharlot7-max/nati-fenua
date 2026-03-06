@@ -93,7 +93,7 @@ const MainLayout = ({ children, hideNav = false }) => {
             );
           })}
           
-          {/* Additional nav items */}
+          {/* Chat link */}
           <div className="pt-4 border-t border-gray-100 mt-4">
             <Link
               to="/chat"
@@ -110,18 +110,25 @@ const MainLayout = ({ children, hideNav = false }) => {
                 3
               </span>
             </Link>
-            
+          </div>
+
+          {/* Business/Ads Section */}
+          <div className="pt-4 border-t border-gray-100 mt-4">
+            <p className="px-4 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Business</p>
             <Link
               to="/business"
               data-testid="nav-business"
               className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
-                location.pathname === '/business' 
+                location.pathname === '/business' || location.pathname === '/create-ad'
                   ? 'bg-gradient-to-r from-[#FF6B35]/10 to-[#00CED1]/10 text-[#FF6B35] font-semibold' 
                   : 'text-[#1A1A2E] hover:bg-gray-100'
               }`}
             >
               <Megaphone size={24} strokeWidth={1.5} />
               <span>Publicité</span>
+              <span className="ml-auto px-2 py-0.5 rounded-full bg-gradient-to-r from-[#00CED1] to-[#006994] text-white text-xs font-bold">
+                PRO
+              </span>
             </Link>
           </div>
         </nav>
@@ -174,14 +181,6 @@ const MainLayout = ({ children, hideNav = false }) => {
           >
             <Bell size={24} strokeWidth={1.5} className="text-[#1A1A2E]" />
             <span className="absolute top-0 right-0 min-w-[20px] h-5 px-1.5 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white text-xs font-bold rounded-full flex items-center justify-center">5</span>
-          </Link>
-          
-          <Link 
-            to="/create-ad"
-            data-testid="create-ad-btn"
-            className="px-5 py-2.5 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-orange-500/30 transition-all"
-          >
-            Créer une pub
           </Link>
         </div>
       </header>

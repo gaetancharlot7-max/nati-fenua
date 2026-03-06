@@ -1,0 +1,22 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B35"/>
+      <stop offset="50%" style="stop-color:#FF1493"/>
+      <stop offset="100%" style="stop-color:#9400D3"/>
+    </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FF6B35"/>
+      <stop offset="100%" style="stop-color:#00CED1"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background with rounded corners -->
+  <rect width="512" height="512" rx="102" fill="url(#bgGradient)"/>
+  
+  <!-- Inner white card -->
+  <rect x="40" y="40" width="432" height="432" rx="86" fill="white"/>
+  
+  <!-- Letter F -->
+  <text x="256" y="340" font-family="Arial Black, Arial, sans-serif" font-size="280" font-weight="900" text-anchor="middle" fill="url(#textGradient)">F</text>
+</svg>
