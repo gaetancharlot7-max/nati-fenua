@@ -16,6 +16,15 @@ import json
 import shutil
 import base64
 
+# Import security module
+from security import (
+    moderate_text_content, moderate_media_url,
+    check_rate_limit, sanitize_html, sanitize_filename,
+    validate_location, hash_ip, mask_email,
+    LocationPrivacy, ReportType, REPORT_TYPES,
+    validate_password_strength
+)
+
 ROOT_DIR = Path(__file__).parent
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -560,12 +569,38 @@ async def get_post(post_id: str):
 async def create_post(post_data: PostCreate, request: Request):
     user = await require_auth(request)
     
+    # Rate limiting
+    allowed, remaining = check_rate_limit(user.user_id, "post_create")
+    if not allowed:
+        raise HTTPException(status_code=429, detail="Trop de publications. Réessayez plus tard.")
+    
+    # Content moderation
+    if post_data.content:
+        content_check = moderate_text_content(post_data.content)
+        if content_check.blocked:
+            raise HTTPException(status_code=400, detail="Contenu non autorisé: " + ", ".join(content_check.flags))
+        if content_check.requires_review:
+            logger.warning(f"Post requires review: user={user.user_id}, flags={content_check.flags}")
+    
+    # Media URL check
+    if post_data.media_url:
+        media_check = moderate_media_url(post_data.media_url)
+        if media_check.blocked:
+            raise HTTPException(status_code=400, detail="URL média non autorisée")
+    
+    # Sanitize content
+    sanitized_content = sanitize_html(post_data.content) if post_data.content else None
+    
     post = PostBase(
         user_id=user.user_id,
-        **post_data.model_dump()
+        content=sanitized_content,
+        media_url=post_data.media_url,
+        content_type=post_data.content_type,
+        location=post_data.location
     )
     post_dict = post.model_dump()
     post_dict["created_at"] = post_dict["created_at"].isoformat()
+    post_dict["moderation_status"] = "approved" if not (post_data.content and moderate_text_content(post_data.content).requires_review) else "pending_review"
     
     await db.posts.insert_one(post_dict)
     await db.users.update_one({"user_id": user.user_id}, {"$inc": {"posts_count": 1}})
@@ -1436,10 +1471,277 @@ from fastapi.responses import FileResponse
 @api_router.get("/uploads/{filename}")
 async def get_uploaded_file(filename: str):
     """Serve uploaded files"""
-    file_path = UPLOAD_DIR / filename
+    # Sanitize filename
+    safe_filename = sanitize_filename(filename)
+    file_path = UPLOAD_DIR / safe_filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Fichier non trouvé")
     return FileResponse(file_path)
+
+# ==================== SECURITY & REPORTING ROUTES ====================
+
+class ReportCreate(BaseModel):
+    content_type: str  # post, comment, user, message
+    content_id: str
+    report_type: str
+    description: Optional[str] = None
+
+@api_router.post("/report")
+async def report_content(report_data: ReportCreate, request: Request):
+    """Report content or user for policy violations"""
+    user = await require_auth(request)
+    
+    # Validate report type
+    if report_data.report_type not in REPORT_TYPES:
+        raise HTTPException(status_code=400, detail="Type de signalement invalide")
+    
+    # Check rate limit for reports
+    allowed, _ = check_rate_limit(user.user_id, "api_general")
+    if not allowed:
+        raise HTTPException(status_code=429, detail="Trop de requêtes")
+    
+    report = {
+        "report_id": f"report_{uuid.uuid4().hex[:12]}",
+        "reporter_id": user.user_id,
+        "content_type": report_data.content_type,
+        "content_id": report_data.content_id,
+        "report_type": report_data.report_type,
+        "description": sanitize_html(report_data.description) if report_data.description else None,
+        "status": "pending",
+        "priority": REPORT_TYPES[report_data.report_type]["priority"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "reporter_ip_hash": hash_ip(request.client.host) if request.client else None
+    }
+    
+    await db.reports.insert_one(report)
+    
+    # High priority reports (self-harm, violence) trigger immediate alert
+    if REPORT_TYPES[report_data.report_type]["priority"] <= 1:
+        logger.warning(f"HIGH PRIORITY REPORT: {report['report_id']} - Type: {report_data.report_type}")
+    
+    return {
+        "success": True,
+        "report_id": report["report_id"],
+        "message": "Signalement envoyé. Merci de contribuer à la sécurité de la communauté."
+    }
+
+@api_router.get("/report/types")
+async def get_report_types():
+    """Get available report types"""
+    return [
+        {"value": key, "label": value["label"]}
+        for key, value in REPORT_TYPES.items()
+    ]
+
+@api_router.post("/block/{user_id}")
+async def block_user(user_id: str, request: Request):
+    """Block a user"""
+    user = await require_auth(request)
+    
+    if user_id == user.user_id:
+        raise HTTPException(status_code=400, detail="Vous ne pouvez pas vous bloquer")
+    
+    # Check if already blocked
+    existing = await db.blocks.find_one({
+        "blocker_id": user.user_id,
+        "blocked_id": user_id
+    })
+    
+    if existing:
+        # Unblock
+        await db.blocks.delete_one({"_id": existing["_id"]})
+        return {"blocked": False, "message": "Utilisateur débloqué"}
+    
+    # Block
+    await db.blocks.insert_one({
+        "block_id": f"block_{uuid.uuid4().hex[:12]}",
+        "blocker_id": user.user_id,
+        "blocked_id": user_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Also unfollow if following
+    await db.follows.delete_one({"follower_id": user.user_id, "following_id": user_id})
+    await db.follows.delete_one({"follower_id": user_id, "following_id": user.user_id})
+    
+    return {"blocked": True, "message": "Utilisateur bloqué"}
+
+@api_router.get("/blocked")
+async def get_blocked_users(request: Request):
+    """Get list of blocked users"""
+    user = await require_auth(request)
+    
+    blocks = await db.blocks.find(
+        {"blocker_id": user.user_id},
+        {"_id": 0}
+    ).to_list(100)
+    
+    blocked_users = []
+    for block in blocks:
+        blocked_user = await db.users.find_one(
+            {"user_id": block["blocked_id"]},
+            {"_id": 0, "user_id": 1, "name": 1, "picture": 1}
+        )
+        if blocked_user:
+            blocked_users.append({
+                **blocked_user,
+                "blocked_at": block["created_at"]
+            })
+    
+    return blocked_users
+
+@api_router.get("/security/check")
+async def security_check(request: Request):
+    """Check account security status"""
+    user = await require_auth(request)
+    
+    checks = {
+        "email_verified": user.email_verified if hasattr(user, 'email_verified') else False,
+        "strong_password": True,  # Already validated on registration
+        "two_factor_enabled": False,  # Future feature
+        "recent_login_alerts": 0,
+        "blocked_users_count": await db.blocks.count_documents({"blocker_id": user.user_id}),
+        "reports_made": await db.reports.count_documents({"reporter_id": user.user_id}),
+    }
+    
+    # Calculate security score
+    score = 50
+    if checks["email_verified"]:
+        score += 25
+    if checks["strong_password"]:
+        score += 15
+    if checks["two_factor_enabled"]:
+        score += 10
+    
+    return {
+        "security_score": score,
+        "checks": checks,
+        "recommendations": [
+            "Activez la vérification en deux étapes" if not checks["two_factor_enabled"] else None,
+            "Vérifiez votre email" if not checks["email_verified"] else None,
+        ]
+    }
+
+@api_router.get("/privacy/settings")
+async def get_privacy_settings(request: Request):
+    """Get user's privacy settings"""
+    user = await require_auth(request)
+    
+    settings = await db.privacy_settings.find_one(
+        {"user_id": user.user_id},
+        {"_id": 0}
+    )
+    
+    if not settings:
+        # Default settings
+        settings = {
+            "user_id": user.user_id,
+            "profile_visibility": "public",  # public, followers, private
+            "show_activity_status": True,
+            "allow_messages_from": "everyone",  # everyone, followers, nobody
+            "allow_mentions": True,
+            "allow_tagging": True,
+            "show_location": "blur",  # exact, blur, hidden
+            "data_download_requested": False
+        }
+        await db.privacy_settings.insert_one(settings)
+    
+    settings.pop("_id", None)
+    return settings
+
+@api_router.put("/privacy/settings")
+async def update_privacy_settings(request: Request):
+    """Update user's privacy settings"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    allowed_fields = [
+        "profile_visibility", "show_activity_status", "allow_messages_from",
+        "allow_mentions", "allow_tagging", "show_location"
+    ]
+    
+    updates = {k: v for k, v in body.items() if k in allowed_fields}
+    
+    await db.privacy_settings.update_one(
+        {"user_id": user.user_id},
+        {"$set": updates},
+        upsert=True
+    )
+    
+    return {"success": True, "message": "Paramètres mis à jour"}
+
+@api_router.post("/privacy/data-request")
+async def request_data_download(request: Request):
+    """Request a download of all user data (GDPR compliance)"""
+    user = await require_auth(request)
+    
+    # Rate limit: 1 request per week
+    last_request = await db.data_requests.find_one(
+        {"user_id": user.user_id},
+        sort=[("created_at", -1)]
+    )
+    
+    if last_request:
+        last_time = datetime.fromisoformat(last_request["created_at"].replace('Z', '+00:00'))
+        if datetime.now(timezone.utc) - last_time < timedelta(days=7):
+            raise HTTPException(
+                status_code=429, 
+                detail="Vous ne pouvez demander vos données qu'une fois par semaine"
+            )
+    
+    request_doc = {
+        "request_id": f"data_{uuid.uuid4().hex[:12]}",
+        "user_id": user.user_id,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.data_requests.insert_one(request_doc)
+    
+    return {
+        "success": True,
+        "request_id": request_doc["request_id"],
+        "message": "Votre demande a été enregistrée. Vous recevrez un email sous 48h."
+    }
+
+@api_router.delete("/account")
+async def delete_account(request: Request):
+    """Delete user account (GDPR right to be forgotten)"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    # Require password confirmation
+    password = body.get("password")
+    if not password:
+        raise HTTPException(status_code=400, detail="Mot de passe requis pour supprimer le compte")
+    
+    # Verify password
+    import hashlib
+    hashed = hashlib.sha256(password.encode()).hexdigest()
+    db_user = await db.users.find_one({"user_id": user.user_id})
+    
+    if not db_user or db_user.get("password_hash") != hashed:
+        raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+    
+    # Soft delete - mark as deleted but keep for legal purposes
+    await db.users.update_one(
+        {"user_id": user.user_id},
+        {
+            "$set": {
+                "deleted": True,
+                "deleted_at": datetime.now(timezone.utc).isoformat(),
+                "email": f"deleted_{user.user_id}@deleted.local",
+                "name": "Compte supprimé",
+                "picture": None,
+                "bio": None
+            }
+        }
+    )
+    
+    # Delete sessions
+    await db.sessions.delete_many({"user_id": user.user_id})
+    
+    return {"success": True, "message": "Votre compte a été supprimé"}
 
 # Include router and middleware
 app.include_router(api_router)
