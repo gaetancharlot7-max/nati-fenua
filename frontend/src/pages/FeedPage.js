@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
@@ -8,6 +8,7 @@ import { Input } from '../components/ui/input';
 import { postsApi, storiesApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { ShareModal } from '../components/ShareModal';
 
 // Comments Section Component
 const CommentsSection = ({ post }) => {
@@ -229,6 +230,7 @@ const FeedPage = () => {
   const [loading, setLoading] = useState(true);
   const [userReactions, setUserReactions] = useState({});
   const [showReactions, setShowReactions] = useState(null);
+  const [sharePost, setSharePost] = useState(null);
 
   useEffect(() => {
     loadFeed();
@@ -482,7 +484,11 @@ const FeedPage = () => {
                   <button data-testid={`comment-btn-${post.post_id}`} className="p-2 rounded-xl hover:bg-gray-100 transition-all">
                     <MessageCircle size={26} className="text-[#1A1A2E]" strokeWidth={1.5} />
                   </button>
-                  <button data-testid={`share-btn-${post.post_id}`} className="p-2 rounded-xl hover:bg-gray-100 transition-all">
+                  <button 
+                    onClick={() => setSharePost(post)}
+                    data-testid={`share-btn-${post.post_id}`} 
+                    className="p-2 rounded-xl hover:bg-gray-100 transition-all"
+                  >
                     <Share2 size={24} className="text-[#1A1A2E]" strokeWidth={1.5} />
                   </button>
                 </div>
@@ -533,6 +539,15 @@ const FeedPage = () => {
           <div className="w-10 h-10 border-4 border-[#FF6B35] border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={!!sharePost}
+        onClose={() => setSharePost(null)}
+        url={sharePost ? `${window.location.origin}/post/${sharePost.post_id}` : ''}
+        title={sharePost?.caption?.substring(0, 50) || 'Découvrez ce post sur Fenua Social'}
+        description={sharePost?.caption || ''}
+      />
     </div>
   );
 };

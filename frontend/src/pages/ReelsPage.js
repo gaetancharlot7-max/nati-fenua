@@ -4,6 +4,7 @@ import { Heart, MessageCircle, Share2, Bookmark, Music2, Play, Pause, Volume2, V
 import { Link } from 'react-router-dom';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { reelsApi } from '../lib/api';
+import { ShareModal } from '../components/ShareModal';
 
 // Demo reels data
 const demoReels = [
@@ -42,7 +43,10 @@ const ReelsPage = () => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [likedReels, setLikedReels] = useState(new Set());
+  const [shareReel, setShareReel] = useState(null);
   const containerRef = useRef(null);
+  const touchStartY = useRef(0);
+  const touchEndY = useRef(0);
 
   useEffect(() => {
     loadReels();
@@ -64,6 +68,35 @@ const ReelsPage = () => {
       setCurrentIndex(currentIndex - 1);
     } else if (direction === 'down' && currentIndex < reels.length - 1) {
       setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  // Touch handlers for swipe
+  const handleTouchStart = (e) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e) => {
+    touchEndY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = () => {
+    const diff = touchStartY.current - touchEndY.current;
+    const minSwipeDistance = 50;
+
+    if (diff > minSwipeDistance) {
+      handleScroll('down');
+    } else if (diff < -minSwipeDistance) {
+      handleScroll('up');
+    }
+  };
+
+  // Mouse wheel handler
+  const handleWheel = (e) => {
+    if (e.deltaY > 0) {
+      handleScroll('down');
+    } else {
+      handleScroll('up');
     }
   };
 
@@ -92,6 +125,10 @@ const ReelsPage = () => {
       ref={containerRef}
       className="fixed inset-0 bg-black"
       data-testid="reels-container"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onWheel={handleWheel}
     >
       {/* Back Button */}
       <Link 
@@ -165,7 +202,11 @@ const ReelsPage = () => {
             </button>
 
             {/* Share */}
-            <button data-testid="reel-share-btn" className="flex flex-col items-center gap-1">
+            <button 
+              onClick={() => setShareReel(currentReel)}
+              data-testid="reel-share-btn" 
+              className="flex flex-col items-center gap-1"
+            >
               <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
                 <Share2 size={24} className="text-white" />
               </div>
@@ -263,6 +304,15 @@ const ReelsPage = () => {
           animation: spin-slow 3s linear infinite;
         }
       `}</style>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={!!shareReel}
+        onClose={() => setShareReel(null)}
+        url={shareReel ? `${window.location.origin}/reels/${shareReel.post_id}` : ''}
+        title={shareReel?.caption?.substring(0, 50) || 'Regardez ce reel sur Fenua Social'}
+        description={shareReel?.caption || ''}
+      />
     </div>
   );
 };

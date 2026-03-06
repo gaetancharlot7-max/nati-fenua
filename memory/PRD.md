@@ -5,72 +5,78 @@ Création d'un réseau social local pour la Polynésie Française inspiré d'Ins
 
 ## What's Been Implemented (Mar 2026)
 
-### ✅ Corrections appliquées le 06/03/2026
-1. **Commentaires sur photos/vidéos** - Système de commentaires complet avec modal et input inline
-2. **Ouverture des annonces Marketplace** - Modals détaillés pour produits et services avec infos vendeur
-3. **Page d'authentification** - Nouvelles couleurs (gradient orange/rose) et nouveau logo Fenua
-4. **Flèches de navigation Reels** - Déplacées à gauche (ne chevauchent plus les boutons de partage)
-5. **Upload de fichiers** - Possibilité d'uploader des photos/vidéos directement depuis l'appareil
+### ✅ Dernières corrections (06/03/2026 - Session 2)
+1. **Photos téléchargées** - URLs HTTPS correctes, fichiers accessibles
+2. **Upload Marketplace** - Création d'annonces avec upload photos depuis l'appareil
+3. **Bouton de Likes amélioré** - Nouveau composant ReactionButton avec sélecteur hover
+4. **Scroll sur Reels** - Swipe tactile haut/bas + molette souris
+5. **Partage fonctionnel** - ShareModal avec WhatsApp, Messenger, Telegram, Facebook, Twitter, Email, copie lien
+6. **Politique de confidentialité** - Modal obligatoire avant première publication + sélecteur de visibilité (Public/Abonnés/Privé)
+7. **Live vidéo caméra** - Accès caméra du téléphone, switch front/back, micro on/off, démarrage live
+
+### Corrections précédentes (Session 1)
+- Commentaires sur photos/vidéos fonctionnels
+- Ouverture des annonces Marketplace (modals)
+- Page d'authentification avec nouvelles couleurs et logo
+- Flèches de navigation Reels déplacées à gauche
+- Upload de fichiers depuis l'appareil
 
 ### Backend (FastAPI + MongoDB) ✅
-- Auth avec JWT + Google OAuth (Emergent Auth)
-- Posts avec réactions multiples (like, love, fire, haha, wow)
+- Auth avec JWT + Google OAuth
+- Posts avec réactions multiples
 - Stories éphémères 24h
-- Reels (vidéos courtes)
+- Reels
 - Live streaming avec WebSocket
-- Chat/messagerie avec WebSocket
+- Chat/messagerie
 - Marketplace (produits + services)
-- Système publicitaire complet (campagnes, ciblage, pricing)
-- Analytics et tracking
-- **NOUVEAU: Upload de fichiers** (images et vidéos jusqu'à 50MB)
-- **NOUVEAU: Commentaires API** fonctionnels
+- Système publicitaire
+- Upload de fichiers (images/vidéos jusqu'à 50MB)
+- API Commentaires
 
 ### Frontend Web (React + Tailwind + shadcn/ui) ✅
-- Landing page avec design vibrant tropical
+- Landing page design tropical
 - Logo animé Fenua Social
-- Feed avec réactions multiples + **système de commentaires**
-- Page Reels style TikTok (flèches à gauche)
-- Page Live streaming
+- Feed avec réactions + commentaires + partage
+- Reels style TikTok avec swipe
+- Live streaming avec caméra
 - Chat/messagerie
-- **Marketplace avec modals de détail** (clic = ouverture annonce)
-- Dashboard Business (onglet séparé dans sidebar)
-- **Page auth avec couleurs et logo corrects**
-- **Page création avec upload depuis l'appareil**
+- Marketplace avec création d'annonces
+- Dashboard Business
+- Politique de confidentialité
 
-### PWA (Progressive Web App) ✅
-- manifest.json configuré
-- Service Worker (sw.js)
-- Icônes PWA
-
-### Application Mobile React Native ✅
-Structure complète avec tous les écrans
+### Composants réutilisables créés
+- `ShareModal.js` - Partage multi-plateforme
+- `ReactionButton.js` - Likes avec sélecteur émoji
+- `FileUploader.js` - Upload fichiers + caméra
+- `PrivacySettings.js` - Confidentialité + politique
 
 ## Design System
 - Couleurs: Orange (#FF6B35), Pink (#FF1493), Cyan (#00CED1), Gold (#FFD700)
-- Gradients tropicaux orange → rose
-- Logo: F stylisé avec gradient dans carré arrondi
+- Gradients: Orange → Rose
+- Logo: F stylisé avec gradient
 
 ## Tech Stack
 - Backend: FastAPI, MongoDB, WebSocket
 - Frontend Web: React, Tailwind CSS, shadcn/ui, Framer Motion
 - Frontend Mobile: React Native, TypeScript
-- Auth: JWT + Emergent Google OAuth
 
 ## Prioritized Backlog
 
 ### P0 (Done) ✅
-- Auth, Feed, Stories, Reels, Live, Chat, Marketplace, Ads
-- PWA
-- Structure complète app mobile React Native
-- Corrections: commentaires, modals marketplace, couleurs auth, flèches reels, upload fichiers
+- Toutes les fonctionnalités core
+- Upload fichiers
+- Partage social
+- Live caméra
+- Politique confidentialité
 
 ### P1 (Next)
-- Notifications push en temps réel
-- Système de paiement Stripe pour marketplace
-- Vidéo player réel pour les reels (actuellement images)
+- Notifications push temps réel
+- Paiement Stripe marketplace
+- Player vidéo réel pour reels
+- PWA sur Play Store
 
 ### P2 (Future)
 - Duets/Remix vidéo
 - Filtres AR polynésiens
 - Monétisation créateurs
-- Publication sur App Store / Play Store
+- Publication App Store

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Radio, Play, Heart, MessageCircle, Share2, Users, Eye, Plus, X, Video } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Radio, Play, Heart, MessageCircle, Share2, Users, Eye, Plus, X, Video, Camera, SwitchCamera, Mic, MicOff, VideoOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { Button } from '../components/ui/button';
@@ -8,6 +8,7 @@ import { Input } from '../components/ui/input';
 import { liveApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { ShareModal } from '../components/ShareModal';
 
 // Demo lives
 const demoLives = [
@@ -37,13 +38,217 @@ const demoLives = [
   }
 ];
 
+// Live Camera Component
+const LiveCamera = ({ onClose, title }) => {
+  const videoRef = useRef(null);
+  const [stream, setStream] = useState(null);
+  const [facingMode, setFacingMode] = useState('user');
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [viewerCount, setViewerCount] = useState(0);
+  const [likes, setLikes] = useState(0);
+  const [comments, setComments] = useState([]);
+  const [isLive, setIsLive] = useState(false);
+
+  useEffect(() => {
+    startCamera();
+    return () => stopCamera();
+  }, [facingMode]);
+
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: true
+      });
+      setStream(mediaStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (err) {
+      console.error('Camera error:', err);
+      toast.error('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+  };
+
+  const switchCamera = () => {
+    stopCamera();
+    setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
+  };
+
+  const toggleMute = () => {
+    if (stream) {
+      stream.getAudioTracks().forEach(track => {
+        track.enabled = !track.enabled;
+      });
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const toggleVideo = () => {
+    if (stream) {
+      stream.getVideoTracks().forEach(track => {
+        track.enabled = !track.enabled;
+      });
+      setIsVideoOff(!isVideoOff);
+    }
+  };
+
+  const startLive = () => {
+    setIsLive(true);
+    toast.success('Vous êtes en direct !');
+    // Simulate viewer count increasing
+    const interval = setInterval(() => {
+      setViewerCount(prev => prev + Math.floor(Math.random() * 5));
+    }, 3000);
+    return () => clearInterval(interval);
+  };
+
+  const endLive = () => {
+    setIsLive(false);
+    stopCamera();
+    onClose();
+    toast.success('Live terminé !');
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black z-50 flex flex-col"
+    >
+      {/* Video Preview */}
+      <div className="flex-1 relative">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className={`w-full h-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
+        />
+
+        {/* Top Bar */}
+        <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between bg-gradient-to-b from-black/50 to-transparent">
+          <button
+            onClick={endLive}
+            className="p-2 rounded-full bg-white/20 backdrop-blur-sm"
+          >
+            <X size={24} className="text-white" />
+          </button>
+
+          {isLive && (
+            <div className="flex items-center gap-3">
+              <div className="px-3 py-1.5 bg-red-500 text-white text-sm font-bold rounded-lg flex items-center gap-2">
+                <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                LIVE
+              </div>
+              <div className="px-3 py-1.5 bg-black/50 backdrop-blur-sm text-white text-sm font-medium rounded-lg flex items-center gap-2">
+                <Eye size={16} />
+                {viewerCount}
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={switchCamera}
+            className="p-2 rounded-full bg-white/20 backdrop-blur-sm"
+          >
+            <SwitchCamera size={24} className="text-white" />
+          </button>
+        </div>
+
+        {/* Title */}
+        <div className="absolute top-16 left-4 right-4">
+          <p className="text-white font-semibold text-lg drop-shadow-lg">{title}</p>
+        </div>
+
+        {/* Live Comments (simulated) */}
+        {isLive && (
+          <div className="absolute bottom-32 left-4 right-24 space-y-2 max-h-40 overflow-hidden">
+            {['Ia ora na ! 👋', 'Trop bien ! 🔥', 'Maeva depuis Moorea', 'Magnifique ! 🌺'].map((msg, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 2 }}
+                className="px-3 py-1.5 bg-black/40 backdrop-blur-sm rounded-full text-white text-sm inline-block"
+              >
+                {msg}
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {/* Side Actions */}
+        {isLive && (
+          <div className="absolute bottom-32 right-4 flex flex-col gap-4">
+            <button className="p-3 rounded-full bg-white/20 backdrop-blur-sm">
+              <Heart size={24} className="text-white" onClick={() => setLikes(l => l + 1)} />
+            </button>
+            <span className="text-white text-center text-sm">{likes}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Controls */}
+      <div className="p-6 bg-gradient-to-t from-black to-transparent">
+        <div className="flex items-center justify-center gap-6">
+          <button
+            onClick={toggleMute}
+            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+              isMuted ? 'bg-red-500' : 'bg-white/20 backdrop-blur-sm'
+            }`}
+          >
+            {isMuted ? <MicOff size={24} className="text-white" /> : <Mic size={24} className="text-white" />}
+          </button>
+
+          {!isLive ? (
+            <button
+              onClick={startLive}
+              className="w-20 h-20 rounded-full bg-red-500 flex items-center justify-center border-4 border-white shadow-lg"
+            >
+              <Radio size={32} className="text-white" />
+            </button>
+          ) : (
+            <button
+              onClick={endLive}
+              className="w-20 h-20 rounded-full bg-red-500 flex items-center justify-center border-4 border-white shadow-lg"
+            >
+              <div className="w-8 h-8 rounded bg-white" />
+            </button>
+          )}
+
+          <button
+            onClick={toggleVideo}
+            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+              isVideoOff ? 'bg-red-500' : 'bg-white/20 backdrop-blur-sm'
+            }`}
+          >
+            {isVideoOff ? <VideoOff size={24} className="text-white" /> : <Video size={24} className="text-white" />}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 const LivePage = () => {
   const { user } = useAuth();
   const [lives, setLives] = useState(demoLives);
   const [selectedLive, setSelectedLive] = useState(null);
   const [showStartLive, setShowStartLive] = useState(false);
+  const [showLiveCamera, setShowLiveCamera] = useState(false);
   const [liveTitle, setLiveTitle] = useState('');
   const [loading, setLoading] = useState(true);
+  const [shareLive, setShareLive] = useState(null);
 
   useEffect(() => {
     loadLives();
@@ -73,12 +278,12 @@ const LivePage = () => {
         title: liveTitle,
         thumbnail_url: user?.picture
       });
-      toast.success('Live démarré !');
       setShowStartLive(false);
-      setLiveTitle('');
-      loadLives();
+      setShowLiveCamera(true);
     } catch (error) {
-      toast.error('Erreur lors du démarrage du live');
+      // Still show camera even if API fails
+      setShowStartLive(false);
+      setShowLiveCamera(true);
     }
   };
 
@@ -197,7 +402,10 @@ const LivePage = () => {
                   <span className="text-sm font-medium">Chat</span>
                 </button>
                 
-                <button className="flex items-center gap-1.5 text-gray-500 hover:text-[#00CED1] transition-colors">
+                <button 
+                  onClick={() => setShareLive(live)}
+                  className="flex items-center gap-1.5 text-gray-500 hover:text-[#00CED1] transition-colors"
+                >
                   <Share2 size={18} />
                   <span className="text-sm font-medium">Partager</span>
                 </button>
@@ -283,6 +491,28 @@ const LivePage = () => {
       >
         <Plus size={28} />
       </button>
+
+      {/* Live Camera */}
+      <AnimatePresence>
+        {showLiveCamera && (
+          <LiveCamera 
+            title={liveTitle} 
+            onClose={() => {
+              setShowLiveCamera(false);
+              setLiveTitle('');
+              loadLives();
+            }} 
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={!!shareLive}
+        onClose={() => setShareLive(null)}
+        url={shareLive ? `${window.location.origin}/live/${shareLive.live_id}` : ''}
+        title={shareLive?.title || 'Regardez ce live sur Fenua Social'}
+      />
     </div>
   );
 };

@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, MapPin, Star, Plus, ShoppingBag, Briefcase, Package, Utensils, Compass, Sparkles, Gem, Droplet, Shirt, Home, Calendar, Car, Book, X, MessageCircle, Phone, Heart } from 'lucide-react';
+import { Search, Filter, MapPin, Star, Plus, ShoppingBag, Briefcase, Package, Utensils, Compass, Sparkles, Gem, Droplet, Shirt, Home, Calendar, Car, Book, X, MessageCircle, Phone, Heart, Share2, ImagePlus, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
-import { marketplaceApi } from '../lib/api';
+import { marketplaceApi, uploadApi } from '../lib/api';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
+import { ShareModal } from '../components/ShareModal';
+import { toast } from 'sonner';
 
 // Product Detail Modal Component
 const ProductDetailModal = ({ product, onClose }) => {
@@ -300,6 +302,8 @@ const MarketplacePage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedService, setSelectedService] = useState(null);
+  const [showCreateProduct, setShowCreateProduct] = useState(false);
+  const [shareItem, setShareItem] = useState(null);
 
   useEffect(() => {
     loadMarketplace();
@@ -500,15 +504,219 @@ const MarketplacePage = () => {
         )}
       </AnimatePresence>
 
+      {/* Create Product Modal */}
+      <AnimatePresence>
+        {showCreateProduct && (
+          <CreateProductModal 
+            onClose={() => setShowCreateProduct(false)} 
+            onSuccess={() => {
+              setShowCreateProduct(false);
+              loadMarketplace();
+              toast.success('Annonce publiée !');
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={!!shareItem}
+        onClose={() => setShareItem(null)}
+        url={shareItem ? `${window.location.origin}/marketplace/${shareItem.product_id || shareItem.service_id}` : ''}
+        title={shareItem?.title || 'Découvrez cette annonce sur Fenua Social'}
+      />
+
       {/* FAB - Create Listing */}
-      <Link 
-        to="/create-product"
+      <button
+        onClick={() => setShowCreateProduct(true)}
         data-testid="create-listing-fab"
-        className="fab bg-[#00899B] text-white"
+        className="fab bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white"
       >
         <Plus size={28} />
-      </Link>
+      </button>
     </div>
+  );
+};
+
+// Create Product Modal with File Upload
+const CreateProductModal = ({ onClose, onSuccess }) => {
+  const fileInputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    price: '',
+    category: 'autre',
+    location: '',
+    images: []
+  });
+
+  const handleFileUpload = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    const uploadedUrls = [];
+
+    for (const file of files) {
+      try {
+        const response = await uploadApi.uploadFile(file);
+        if (response.data.success) {
+          uploadedUrls.push(response.data.url);
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+      }
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      images: [...prev.images, ...uploadedUrls]
+    }));
+    setUploading(false);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.title || !formData.price || formData.images.length === 0) {
+      toast.error('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
+    try {
+      await marketplaceApi.createProduct({
+        ...formData,
+        price: parseInt(formData.price)
+      });
+      onSuccess();
+    } catch (error) {
+      toast.error('Erreur lors de la création de l\'annonce');
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white w-full max-w-lg rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
+      >
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-[#1A1A2E]">Nouvelle Annonce</h2>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
+              <X size={20} />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Image Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Photos *</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              
+              <div className="flex flex-wrap gap-2">
+                {formData.images.map((url, i) => (
+                  <div key={i} className="relative w-20 h-20">
+                    <img src={url} alt="" className="w-full h-full object-cover rounded-xl" />
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({
+                        ...prev,
+                        images: prev.images.filter((_, idx) => idx !== i)
+                      }))}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-[#FF6B35] transition-colors"
+                >
+                  {uploading ? (
+                    <Loader2 size={24} className="animate-spin text-gray-400" />
+                  ) : (
+                    <ImagePlus size={24} className="text-gray-400" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Title */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Titre *</label>
+              <Input
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Titre de votre annonce"
+                className="rounded-xl"
+              />
+            </div>
+
+            {/* Price */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Prix (XPF) *</label>
+              <Input
+                type="number"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                placeholder="10000"
+                className="rounded-xl"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Décrivez votre produit..."
+                className="w-full p-3 border rounded-xl min-h-[100px] focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
+              />
+            </div>
+
+            {/* Location */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Localisation</label>
+              <Input
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder="Papeete, Tahiti"
+                className="rounded-xl"
+              />
+            </div>
+
+            {/* Submit */}
+            <Button
+              type="submit"
+              className="w-full py-4 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:from-[#FF5722] hover:to-[#E91E63] rounded-xl"
+            >
+              Publier l'annonce
+            </Button>
+          </form>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 };
 

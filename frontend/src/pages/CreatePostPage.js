@@ -1,13 +1,14 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Image, Film, Camera, MapPin, X, Upload, Sparkles, Hash, ImagePlus } from 'lucide-react';
+import { Image, Film, Camera, MapPin, X, Upload, Sparkles, Hash, ImagePlus, Shield } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
 import { postsApi, storiesApi, uploadApi } from '../lib/api';
 import { toast } from 'sonner';
+import { PrivacySelector, PrivacyPolicyModal } from '../components/PrivacySettings';
 
 const CreatePostPage = () => {
   const navigate = useNavigate();
@@ -16,11 +17,22 @@ const CreatePostPage = () => {
   const [formData, setFormData] = useState({
     media_url: '',
     caption: '',
-    location: ''
+    location: '',
+    privacy: 'public'
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(() => {
+    return localStorage.getItem('privacy_accepted') === 'true';
+  });
+
+  useEffect(() => {
+    if (!privacyAccepted) {
+      setShowPrivacyPolicy(true);
+    }
+  }, []);
 
   const postTypes = [
     { id: 'photo', icon: Image, label: 'Photo', description: 'Partagez une image' },
@@ -271,11 +283,26 @@ const CreatePostPage = () => {
             </div>
           )}
 
+          {/* Privacy Settings */}
+          <div className="space-y-3">
+            <Label className="text-[#1A1A2E]">Confidentialité</Label>
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div className="flex items-center gap-3">
+                <Shield size={20} className="text-gray-500" />
+                <span className="text-sm text-gray-700">Qui peut voir ce contenu ?</span>
+              </div>
+              <PrivacySelector
+                value={formData.privacy}
+                onChange={(value) => setFormData({ ...formData, privacy: value })}
+              />
+            </div>
+          </div>
+
           {/* Submit Button */}
           <Button
             type="submit"
             data-testid="publish-btn"
-            disabled={loading || uploading || !formData.media_url}
+            disabled={loading || uploading || !formData.media_url || !privacyAccepted}
             className="w-full py-6 rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:from-[#FF5722] hover:to-[#E91E63] text-white font-medium"
           >
             {loading ? (
@@ -287,6 +314,16 @@ const CreatePostPage = () => {
             )}
           </Button>
         </form>
+
+        {/* Privacy Policy Modal */}
+        <PrivacyPolicyModal
+          isOpen={showPrivacyPolicy}
+          onClose={() => setShowPrivacyPolicy(false)}
+          onAccept={() => {
+            localStorage.setItem('privacy_accepted', 'true');
+            setPrivacyAccepted(true);
+          }}
+        />
       </motion.div>
     </div>
   );

@@ -1360,11 +1360,17 @@ async def upload_file(file: UploadFile = File(...), request: Request = None):
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        # Get base URL from request
-        base_url = str(request.base_url).rstrip('/')
-        file_url = f"{base_url}/api/uploads/{unique_filename}"
+        # Use HTTPS and proper host from headers
+        forwarded_proto = request.headers.get('x-forwarded-proto', 'https')
+        forwarded_host = request.headers.get('x-forwarded-host', request.headers.get('host', ''))
         
-        logger.info(f"File uploaded: {unique_filename}")
+        if forwarded_host:
+            file_url = f"{forwarded_proto}://{forwarded_host}/api/uploads/{unique_filename}"
+        else:
+            base_url = str(request.base_url).rstrip('/').replace('http://', 'https://')
+            file_url = f"{base_url}/api/uploads/{unique_filename}"
+        
+        logger.info(f"File uploaded: {unique_filename}, URL: {file_url}")
         
         return {
             "success": True,
