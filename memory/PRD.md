@@ -84,7 +84,6 @@ Structure complète avec:
 - Structure complète app mobile React Native
 
 ### P1 (Next)
-- Build et test de l'app mobile sur simulateur/appareil
 - Notifications push en temps réel
 - Système de paiement Stripe pour marketplace
 - Upload d'images réel (actuellement URL)

@@ -1,140 +1,165 @@
 # Fenua Social - Application Mobile React Native
 
-## 📱 Description
-Application mobile native pour Fenua Social, le réseau social de la Polynésie Française.
+Le réseau social de la Polynésie Française 🌺
 
-## 🚀 Prérequis
+## Prérequis
 
-### Pour le développement
-- Node.js 18+
+### Pour tous les systèmes
+- Node.js >= 18
 - Yarn
-- React Native CLI
-- Xcode (pour iOS - Mac uniquement)
-- Android Studio (pour Android)
+- Git
 
-### Comptes développeur (pour publication)
-- **Apple Developer Program**: $99/an - https://developer.apple.com
-- **Google Play Console**: $25 (une fois) - https://play.google.com/console
+### Pour Android
+- JDK 17
+- Android Studio
+- Android SDK (API 34)
+- Variables d'environnement configurées:
+  ```bash
+  export ANDROID_HOME=$HOME/Android/Sdk
+  export PATH=$PATH:$ANDROID_HOME/emulator
+  export PATH=$PATH:$ANDROID_HOME/platform-tools
+  ```
 
-## 📦 Installation
+### Pour iOS (macOS uniquement)
+- Xcode 15+
+- CocoaPods
+- Ruby
+
+## Installation
 
 ```bash
-# Cloner le projet
+# Cloner et installer les dépendances
 cd /app/mobile/FenuaSocial
-
-# Installer les dépendances
 yarn install
 
-# iOS uniquement - installer les pods
+# Pour iOS uniquement
 cd ios && pod install && cd ..
 ```
 
-## 🏃 Lancer l'application
+## Configuration API
+
+Modifier l'URL de l'API dans `src/services/api.ts`:
+```typescript
+const API_URL = 'https://votre-api.com/api';
+```
+
+## Lancer l'application
 
 ### Mode développement
 
 ```bash
+# Démarrer Metro Bundler
+yarn start
+
+# Dans un autre terminal:
+
 # Android
 yarn android
 
-# iOS (Mac uniquement)
+# iOS
 yarn ios
-
-# Metro bundler
-yarn start
 ```
 
 ### Build de production
 
-#### Android (APK/AAB)
+#### Android APK
 ```bash
 cd android
-./gradlew assembleRelease      # APK
-./gradlew bundleRelease        # AAB pour Play Store
-```
-L'APK sera dans: `android/app/build/outputs/apk/release/`
-
-#### iOS (IPA)
-1. Ouvrir `ios/FenuaSocial.xcworkspace` dans Xcode
-2. Sélectionner "Any iOS Device"
-3. Product > Archive
-4. Distribute App > App Store Connect
-
-## 📲 Publication sur les stores
-
-### Google Play Store
-1. Créer un compte sur https://play.google.com/console ($25)
-2. Créer une nouvelle application
-3. Remplir les informations (description, captures d'écran)
-4. Uploader le fichier .aab
-5. Soumettre pour révision
-
-### Apple App Store
-1. S'inscrire à Apple Developer Program ($99/an)
-2. Créer l'app sur App Store Connect
-3. Configurer les métadonnées (description, captures)
-4. Uploader via Xcode ou Transporter
-5. Soumettre pour révision Apple
-
-## 🔧 Configuration
-
-### Variables d'environnement
-Créer un fichier `.env`:
-```
-API_URL=https://votre-api.com/api
+./gradlew assembleRelease
+# APK: android/app/build/outputs/apk/release/app-release.apk
 ```
 
-### Firebase (Notifications Push)
-1. Créer un projet sur https://console.firebase.google.com
-2. Ajouter les apps iOS et Android
-3. Télécharger `google-services.json` (Android) et `GoogleService-Info.plist` (iOS)
-4. Placer les fichiers dans les dossiers respectifs
+#### Android Bundle (Play Store)
+```bash
+cd android
+./gradlew bundleRelease
+# Bundle: android/app/build/outputs/bundle/release/app-release.aab
+```
 
-## 📁 Structure du projet
+#### iOS (Archive)
+```bash
+cd ios
+xcodebuild -workspace FenuaSocial.xcworkspace -scheme FenuaSocial -configuration Release archive
+```
+
+## Structure du projet
 
 ```
 FenuaSocial/
-├── App.tsx                 # Point d'entrée
+├── android/                 # Code natif Android
+├── ios/                     # Code natif iOS
 ├── src/
-│   ├── contexts/          # Context API (Auth)
-│   ├── navigation/        # React Navigation
-│   ├── screens/           # Écrans de l'app
-│   ├── components/        # Composants réutilisables
-│   ├── services/          # API et services
-│   └── assets/            # Images, fonts
-├── android/               # Code natif Android
-├── ios/                   # Code natif iOS
+│   ├── components/          # Composants réutilisables
+│   ├── contexts/            # Contextes React (Auth)
+│   ├── navigation/          # Configuration navigation
+│   ├── screens/             # Écrans de l'app
+│   │   ├── FeedScreen.tsx
+│   │   ├── ReelsScreen.tsx
+│   │   ├── LiveScreen.tsx
+│   │   ├── CreateScreen.tsx
+│   │   ├── MarketplaceScreen.tsx
+│   │   ├── ProfileScreen.tsx
+│   │   ├── ChatScreen.tsx
+│   │   ├── SearchScreen.tsx
+│   │   └── NotificationsScreen.tsx
+│   └── services/            # API services
+├── App.tsx                  # Point d'entrée
 └── package.json
 ```
 
-## ✨ Fonctionnalités
+## Fonctionnalités
 
-- ✅ Authentification (Email + OAuth)
-- ✅ Feed avec posts et réactions
-- ✅ Stories éphémères
-- ✅ Reels (vidéos courtes)
+- ✅ Feed avec stories et posts
+- ✅ Reels (vidéos courtes style TikTok)
 - ✅ Lives en direct
-- ✅ Messagerie privée
-- ✅ Marketplace local
-- ✅ Notifications push
-- ✅ Mode hors ligne (PWA)
+- ✅ Marketplace (produits locaux)
+- ✅ Chat/Messagerie
+- ✅ Profil utilisateur
+- ✅ Recherche
+- ✅ Notifications
+- ✅ Authentification (Email + Google)
 
-## 🎨 Design System
+## Couleurs de la marque
 
-### Couleurs
 - Orange: `#FF6B35`
 - Pink: `#FF1493`
 - Cyan: `#00CED1`
-- Purple: `#9400D3`
-- Gold: `#FFD700`
+- Background: `#FFF5E6`
 - Dark: `#1A1A2E`
 
-### Fonts
-- Outfit (Regular, Medium, SemiBold, Bold, ExtraBold)
+## Dépannage
 
-## 📞 Support
+### Android - Erreur de SDK
+```bash
+# Accepter les licences
+sdkmanager --licenses
+```
 
-Pour toute question: support@fenuasocial.pf
+### iOS - Erreur de pods
+```bash
+cd ios
+pod deintegrate
+pod install
+```
+
+### Metro - Cache
+```bash
+yarn start --reset-cache
+```
+
+## Publication
+
+### Google Play Store
+1. Créer un keystore de release
+2. Configurer `android/gradle.properties`
+3. `./gradlew bundleRelease`
+4. Uploader sur Play Console
+
+### Apple App Store
+1. Configurer les certificats dans Xcode
+2. Archive depuis Xcode
+3. Uploader via Transporter ou Xcode
 
 ---
-Fait avec ❤️ en Polynésie Française
+
+Développé avec ❤️ pour la Polynésie Française
