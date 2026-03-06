@@ -212,8 +212,8 @@ const ReelsPage = () => {
             )}
           </div>
 
-          {/* Navigation Arrows */}
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-4">
+          {/* Navigation Arrows - Moved to left side */}
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-4">
             <button
               onClick={() => handleScroll('up')}
               data-testid="scroll-up-btn"

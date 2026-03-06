@@ -1,5 +1,6 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.security import HTTPBearer
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -12,8 +13,12 @@ import uuid
 from datetime import datetime, timezone, timedelta
 import httpx
 import json
+import shutil
+import base64
 
 ROOT_DIR = Path(__file__).parent
+UPLOAD_DIR = ROOT_DIR / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
 load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
@@ -1334,6 +1339,101 @@ async def websocket_live(websocket: WebSocket, live_id: str):
     except WebSocketDisconnect:
         viewer_count = manager.disconnect_live(websocket, live_id)
         await db.lives.update_one({"live_id": live_id}, {"$set": {"viewer_count": viewer_count}})
+
+# ==================== FILE UPLOAD ====================
+
+@api_router.post("/upload")
+async def upload_file(file: UploadFile = File(...), request: Request = None):
+    """Upload a file (image or video) and return its URL"""
+    try:
+        # Validate file type
+        allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm']
+        if file.content_type not in allowed_types:
+            raise HTTPException(status_code=400, detail="Type de fichier non supporté. Utilisez JPG, PNG, GIF, WebP ou MP4.")
+        
+        # Generate unique filename
+        file_ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
+        unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
+        file_path = UPLOAD_DIR / unique_filename
+        
+        # Save file
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Get base URL from request
+        base_url = str(request.base_url).rstrip('/')
+        file_url = f"{base_url}/api/uploads/{unique_filename}"
+        
+        logger.info(f"File uploaded: {unique_filename}")
+        
+        return {
+            "success": True,
+            "url": file_url,
+            "filename": unique_filename,
+            "content_type": file.content_type
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Upload error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'upload: {str(e)}")
+
+@api_router.post("/upload/base64")
+async def upload_base64(request: Request):
+    """Upload a file from base64 encoded data"""
+    try:
+        data = await request.json()
+        base64_data = data.get('data', '')
+        file_type = data.get('type', 'image/jpeg')
+        
+        # Remove data URL prefix if present
+        if ',' in base64_data:
+            base64_data = base64_data.split(',')[1]
+        
+        # Decode base64
+        file_bytes = base64.b64decode(base64_data)
+        
+        # Determine extension
+        ext_map = {
+            'image/jpeg': 'jpg',
+            'image/png': 'png',
+            'image/gif': 'gif',
+            'image/webp': 'webp',
+            'video/mp4': 'mp4'
+        }
+        file_ext = ext_map.get(file_type, 'jpg')
+        
+        # Generate unique filename
+        unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
+        file_path = UPLOAD_DIR / unique_filename
+        
+        # Save file
+        with open(file_path, "wb") as f:
+            f.write(file_bytes)
+        
+        # Get base URL from request
+        base_url = str(request.base_url).rstrip('/')
+        file_url = f"{base_url}/api/uploads/{unique_filename}"
+        
+        return {
+            "success": True,
+            "url": file_url,
+            "filename": unique_filename
+        }
+    except Exception as e:
+        logger.error(f"Base64 upload error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'upload: {str(e)}")
+
+# Serve uploaded files
+from fastapi.responses import FileResponse
+
+@api_router.get("/uploads/{filename}")
+async def get_uploaded_file(filename: str):
+    """Serve uploaded files"""
+    file_path = UPLOAD_DIR / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Fichier non trouvé")
+    return FileResponse(file_path)
 
 # Include router and middleware
 app.include_router(api_router)

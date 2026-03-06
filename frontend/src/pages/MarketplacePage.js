@@ -1,11 +1,196 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Search, Filter, MapPin, Star, Plus, ShoppingBag, Briefcase, Package, Utensils, Compass, Sparkles, Gem, Droplet, Shirt, Home, Calendar, Car, Book } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Filter, MapPin, Star, Plus, ShoppingBag, Briefcase, Package, Utensils, Compass, Sparkles, Gem, Droplet, Shirt, Home, Calendar, Car, Book, X, MessageCircle, Phone, Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { marketplaceApi } from '../lib/api';
+import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
+
+// Product Detail Modal Component
+const ProductDetailModal = ({ product, onClose }) => {
+  if (!product) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
+      >
+        {/* Header Image */}
+        <div className="relative aspect-video">
+          <img 
+            src={product.images?.[0]} 
+            alt={product.title}
+            className="w-full h-full object-cover"
+          />
+          <button 
+            onClick={onClose}
+            className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center"
+          >
+            <X size={20} />
+          </button>
+          <button className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center">
+            <Heart size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-[#1A1A2E] mb-2">{product.title}</h2>
+              <p className="text-3xl font-bold text-[#FF6B35]">
+                {product.price?.toLocaleString()} {product.currency || 'XPF'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-gray-500 mb-4">
+            <MapPin size={16} />
+            <span>{product.location}</span>
+          </div>
+
+          {/* Description */}
+          <div className="mb-6">
+            <h3 className="font-semibold text-[#1A1A2E] mb-2">Description</h3>
+            <p className="text-gray-600">
+              {product.description || 'Produit local authentique de Polynésie Française. Contactez le vendeur pour plus d\'informations.'}
+            </p>
+          </div>
+
+          {/* Seller Info */}
+          <div className="bg-gray-50 rounded-2xl p-4 mb-6">
+            <h3 className="font-semibold text-[#1A1A2E] mb-3">Vendeur</h3>
+            <div className="flex items-center gap-3">
+              <Avatar className="w-12 h-12">
+                <AvatarImage src={product.seller?.picture} />
+                <AvatarFallback className="bg-[#FF6B35] text-white">{product.seller?.name?.[0]}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-semibold">{product.seller?.name}</p>
+                <p className="text-sm text-gray-500">{product.location}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <Button className="flex-1 bg-[#FF6B35] hover:bg-[#FF5722] rounded-xl py-6">
+              <MessageCircle size={20} className="mr-2" />
+              Contacter
+            </Button>
+            <Button variant="outline" className="flex-1 rounded-xl py-6 border-[#FF6B35] text-[#FF6B35]">
+              <Phone size={20} className="mr-2" />
+              Appeler
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// Service Detail Modal Component
+const ServiceDetailModal = ({ service, onClose }) => {
+  if (!service) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
+      >
+        {/* Header Image */}
+        <div className="relative aspect-video">
+          <img 
+            src={service.images?.[0]} 
+            alt={service.title}
+            className="w-full h-full object-cover"
+          />
+          <button 
+            onClick={onClose}
+            className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center"
+          >
+            <X size={20} />
+          </button>
+          {service.rating && (
+            <div className="absolute top-4 left-4 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm flex items-center gap-1">
+              <Star size={16} className="text-[#E97C07] fill-[#E97C07]" />
+              <span className="font-semibold">{service.rating}</span>
+              <span className="text-gray-500 text-sm">({service.reviews_count} avis)</span>
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          <h2 className="text-2xl font-bold text-[#1A1A2E] mb-2">{service.title}</h2>
+          <p className="text-2xl font-bold text-[#FF6B35] mb-4">{service.price_range}</p>
+
+          <div className="flex items-center gap-2 text-gray-500 mb-4">
+            <MapPin size={16} />
+            <span>{service.location}</span>
+          </div>
+
+          {/* Description */}
+          <div className="mb-6">
+            <h3 className="font-semibold text-[#1A1A2E] mb-2">À propos du service</h3>
+            <p className="text-gray-600">
+              {service.description || 'Service professionnel en Polynésie Française. Contactez le prestataire pour réserver ou obtenir plus d\'informations.'}
+            </p>
+          </div>
+
+          {/* Provider Info */}
+          <div className="bg-gray-50 rounded-2xl p-4 mb-6">
+            <h3 className="font-semibold text-[#1A1A2E] mb-3">Prestataire</h3>
+            <div className="flex items-center gap-3">
+              <Avatar className="w-12 h-12">
+                <AvatarImage src={service.provider?.picture} />
+                <AvatarFallback className="bg-[#00CED1] text-white">{service.provider?.name?.[0]}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-semibold">{service.provider?.name}</p>
+                <p className="text-sm text-gray-500">{service.location}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <Button className="flex-1 bg-[#00CED1] hover:bg-[#00B5B5] rounded-xl py-6">
+              <Calendar size={20} className="mr-2" />
+              Réserver
+            </Button>
+            <Button variant="outline" className="flex-1 rounded-xl py-6 border-[#00CED1] text-[#00CED1]">
+              <MessageCircle size={20} className="mr-2" />
+              Contacter
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 // Icon mapping
 const iconMap = {
@@ -113,6 +298,8 @@ const MarketplacePage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedService, setSelectedService] = useState(null);
 
   useEffect(() => {
     loadMarketplace();
@@ -227,7 +414,8 @@ const MarketplacePage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
                 data-testid={`product-${product.product_id}`}
-                className="bg-white rounded-2xl overflow-hidden shadow-sm card-hover"
+                onClick={() => setSelectedProduct(product)}
+                className="bg-white rounded-2xl overflow-hidden shadow-sm card-hover cursor-pointer"
               >
                 <div className="aspect-product relative">
                   <img 
@@ -238,7 +426,7 @@ const MarketplacePage = () => {
                 </div>
                 <div className="p-4">
                   <h3 className="font-medium text-[#2F2F31] text-sm mb-1 line-clamp-2">{product.title}</h3>
-                  <p className="text-[#00899B] font-bold text-lg mb-2">
+                  <p className="text-[#FF6B35] font-bold text-lg mb-2">
                     {formatPrice(product.price, product.currency)}
                   </p>
                   <div className="flex items-center gap-2 text-gray-500 text-xs">
@@ -261,7 +449,8 @@ const MarketplacePage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
                 data-testid={`service-${service.service_id}`}
-                className="bg-white rounded-2xl overflow-hidden shadow-sm card-hover"
+                onClick={() => setSelectedService(service)}
+                className="bg-white rounded-2xl overflow-hidden shadow-sm card-hover cursor-pointer"
               >
                 <div className="aspect-product relative">
                   <img 
@@ -278,7 +467,7 @@ const MarketplacePage = () => {
                 </div>
                 <div className="p-4">
                   <h3 className="font-medium text-[#2F2F31] text-sm mb-1 line-clamp-2">{service.title}</h3>
-                  <p className="text-[#00899B] font-bold mb-2">
+                  <p className="text-[#00CED1] font-bold mb-2">
                     {service.price_range}
                   </p>
                   <div className="flex items-center justify-between">
@@ -296,6 +485,20 @@ const MarketplacePage = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Product Detail Modal */}
+      <AnimatePresence>
+        {selectedProduct && (
+          <ProductDetailModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+        )}
+      </AnimatePresence>
+
+      {/* Service Detail Modal */}
+      <AnimatePresence>
+        {selectedService && (
+          <ServiceDetailModal service={selectedService} onClose={() => setSelectedService(null)} />
+        )}
+      </AnimatePresence>
 
       {/* FAB - Create Listing */}
       <Link 

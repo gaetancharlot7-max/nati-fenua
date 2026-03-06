@@ -45,6 +45,23 @@ const AuthPage = () => {
     loginWithGoogle();
   };
 
+  // Fenua Social Logo Component
+  const FenuaLogo = ({ size = 'md' }) => {
+    const sizes = {
+      sm: { outer: 'w-10 h-10', inner: 'text-lg' },
+      md: { outer: 'w-14 h-14', inner: 'text-2xl' },
+      lg: { outer: 'w-16 h-16', inner: 'text-3xl' }
+    };
+    
+    return (
+      <div className={`${sizes[size].outer} rounded-2xl bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#9400D3] p-0.5 rotate-3`}>
+        <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
+          <span className={`${sizes[size].inner} font-black bg-gradient-to-r from-[#FF6B35] to-[#00CED1] bg-clip-text text-transparent`}>F</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Image */}
@@ -55,19 +72,19 @@ const AuthPage = () => {
             backgroundImage: 'url(https://images.unsplash.com/photo-1703549068359-49d854524ddd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwyfHx0YWhpdGklMjBidW5nYWxvdyUyMG92ZXJ3YXRlcnxlbnwwfHx8fDE3NzI3ODk3NTl8MA&ixlib=rb-4.1.0&q=85)'
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-[#00899B]/80 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#FF6B35]/80 via-[#FF1493]/60 to-transparent"></div>
         </div>
         
         <div className="relative z-10 p-12 flex flex-col justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
-              <span className="text-[#00899B] font-bold text-2xl font-serif">F</span>
-            </div>
-            <h1 className="text-3xl font-serif text-white">Fenua Social</h1>
+            <FenuaLogo size="md" />
+            <h1 className="text-3xl font-black text-white">
+              Fenua <span className="text-white/90">Social</span>
+            </h1>
           </div>
           
           <div>
-            <h2 className="text-4xl font-serif text-white mb-4">
+            <h2 className="text-4xl font-bold text-white mb-4">
               Bienvenue sur le réseau social polynésien
             </h2>
             <p className="text-white/80 text-lg">
@@ -78,7 +95,7 @@ const AuthPage = () => {
       </div>
 
       {/* Right Side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#FFF4E6]">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gradient-to-b from-[#FFF5E6] to-white">
         <motion.div 
           className="w-full max-w-md"
           initial={{ opacity: 0, y: 20 }}
@@ -87,14 +104,15 @@ const AuthPage = () => {
         >
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-full bg-[#00899B] flex items-center justify-center">
-              <span className="text-white font-bold text-2xl font-serif">F</span>
-            </div>
-            <h1 className="text-3xl font-serif text-[#2F2F31]">Fenua Social</h1>
+            <FenuaLogo size="md" />
+            <h1 className="text-3xl font-black">
+              <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">Fenua</span>
+              <span className="text-[#1A1A2E]"> Social</span>
+            </h1>
           </div>
 
           <div className="bg-white rounded-3xl p-8 shadow-xl">
-            <h2 className="text-3xl font-serif text-[#2F2F31] mb-2">
+            <h2 className="text-3xl font-bold text-[#1A1A2E] mb-2">
               {isLogin ? 'Connexion' : 'Inscription'}
             </h2>
             <p className="text-gray-500 mb-8">
@@ -133,7 +151,7 @@ const AuthPage = () => {
             <form onSubmit={handleSubmit} className="space-y-5">
               {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-[#2F2F31]">Nom complet</Label>
+                  <Label htmlFor="name" className="text-[#1A1A2E]">Nom complet</Label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                     <Input
@@ -143,7 +161,7 @@ const AuthPage = () => {
                       placeholder="Votre nom"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="pl-12 py-6 rounded-xl border-gray-200 focus:border-[#00899B] focus:ring-[#00899B]"
+                      className="pl-12 py-6 rounded-xl border-gray-200 focus:border-[#FF6B35] focus:ring-[#FF6B35]"
                       required={!isLogin}
                     />
                   </div>
@@ -151,7 +169,7 @@ const AuthPage = () => {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-[#2F2F31]">Email</Label>
+                <Label htmlFor="email" className="text-[#1A1A2E]">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                   <Input
@@ -161,14 +179,14 @@ const AuthPage = () => {
                     placeholder="votre@email.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="pl-12 py-6 rounded-xl border-gray-200 focus:border-[#00899B] focus:ring-[#00899B]"
+                    className="pl-12 py-6 rounded-xl border-gray-200 focus:border-[#FF6B35] focus:ring-[#FF6B35]"
                     required
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-[#2F2F31]">Mot de passe</Label>
+                <Label htmlFor="password" className="text-[#1A1A2E]">Mot de passe</Label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                   <Input
@@ -178,7 +196,7 @@ const AuthPage = () => {
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="pl-12 pr-12 py-6 rounded-xl border-gray-200 focus:border-[#00899B] focus:ring-[#00899B]"
+                    className="pl-12 pr-12 py-6 rounded-xl border-gray-200 focus:border-[#FF6B35] focus:ring-[#FF6B35]"
                     required
                   />
                   <button
@@ -195,7 +213,7 @@ const AuthPage = () => {
                 type="submit"
                 data-testid="submit-auth-btn"
                 disabled={loading}
-                className="w-full py-6 rounded-xl bg-[#00899B] hover:bg-[#007585] text-white font-medium transition-all duration-300"
+                className="w-full py-6 rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:from-[#FF5722] hover:to-[#E91E63] text-white font-medium transition-all duration-300"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -213,7 +231,7 @@ const AuthPage = () => {
               <button
                 onClick={() => setIsLogin(!isLogin)}
                 data-testid="toggle-auth-btn"
-                className="ml-2 text-[#00899B] font-medium hover:underline"
+                className="ml-2 text-[#FF6B35] font-medium hover:underline"
               >
                 {isLogin ? "S'inscrire" : "Se connecter"}
               </button>

@@ -96,4 +96,18 @@ export const notificationsApi = {
   markRead: () => api.post('/notifications/read')
 };
 
+// Upload API
+export const uploadApi = {
+  uploadFile: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
+  uploadBase64: (data, type) => api.post('/upload/base64', { data, type })
+};
+
 export default api;

@@ -1,12 +1,168 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
+import { Input } from '../components/ui/input';
 import { postsApi, storiesApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+
+// Comments Section Component
+const CommentsSection = ({ post }) => {
+  const { user } = useAuth();
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const loadComments = async () => {
+    try {
+      setLoading(true);
+      const response = await postsApi.getComments(post.post_id);
+      setComments(response.data || []);
+    } catch (error) {
+      console.error('Error loading comments:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmitComment = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    try {
+      const response = await postsApi.addComment(post.post_id, newComment);
+      setComments([...comments, { 
+        comment_id: Date.now(), 
+        content: newComment, 
+        user: user,
+        created_at: new Date().toISOString()
+      }]);
+      setNewComment('');
+      toast.success('Commentaire ajouté !');
+    } catch (error) {
+      toast.error('Erreur lors de l\'ajout du commentaire');
+    }
+  };
+
+  const handleOpenComments = () => {
+    setShowComments(true);
+    loadComments();
+  };
+
+  return (
+    <>
+      {/* Comments Preview Button */}
+      {post.comments_count > 0 && (
+        <button 
+          onClick={handleOpenComments}
+          className="text-gray-500 text-sm mt-2 hover:text-gray-700"
+        >
+          Voir les {post.comments_count} commentaires
+        </button>
+      )}
+      
+      {/* Add comment input */}
+      <form onSubmit={handleSubmitComment} className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+        <Avatar className="w-8 h-8 rounded-lg">
+          <AvatarImage src={user?.picture} className="rounded-lg" />
+          <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white text-xs rounded-lg">{user?.name?.[0]}</AvatarFallback>
+        </Avatar>
+        <Input
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder="Ajouter un commentaire..."
+          className="flex-1 border-0 bg-gray-100 rounded-full text-sm h-9"
+        />
+        <button 
+          type="submit" 
+          disabled={!newComment.trim()}
+          className="text-[#FF6B35] disabled:text-gray-300"
+        >
+          <Send size={20} />
+        </button>
+      </form>
+
+      {/* Comments Modal */}
+      <AnimatePresence>
+        {showComments && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center justify-center"
+            onClick={() => setShowComments(false)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white w-full lg:w-[500px] lg:rounded-3xl rounded-t-3xl max-h-[80vh] overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b">
+                <h3 className="font-bold text-lg">Commentaires</h3>
+                <button onClick={() => setShowComments(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Comments List */}
+              <div className="overflow-y-auto max-h-[50vh] p-4 space-y-4">
+                {loading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="w-8 h-8 border-4 border-[#FF6B35] border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : comments.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">Aucun commentaire. Soyez le premier !</p>
+                ) : (
+                  comments.map((comment) => (
+                    <div key={comment.comment_id} className="flex gap-3">
+                      <Avatar className="w-10 h-10 rounded-xl">
+                        <AvatarImage src={comment.user?.picture} className="rounded-xl" />
+                        <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl">{comment.user?.name?.[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <p className="text-sm">
+                          <span className="font-bold">{comment.user?.name}</span>{' '}
+                          {comment.content}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(comment.created_at).toLocaleDateString('fr-FR')}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Comment Input */}
+              <form onSubmit={handleSubmitComment} className="p-4 border-t flex items-center gap-3">
+                <Avatar className="w-10 h-10 rounded-xl">
+                  <AvatarImage src={user?.picture} className="rounded-xl" />
+                  <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl">{user?.name?.[0]}</AvatarFallback>
+                </Avatar>
+                <Input
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Ajouter un commentaire..."
+                  className="flex-1 rounded-full"
+                />
+                <Button type="submit" disabled={!newComment.trim()} className="rounded-full bg-[#FF6B35] hover:bg-[#FF5722]">
+                  <Send size={18} />
+                </Button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+};
 
 // Demo data for initial display
 const demoStories = [
@@ -359,12 +515,8 @@ const FeedPage = () => {
                 {post.caption}
               </p>
 
-              {/* Comments Preview */}
-              {post.comments_count > 0 && (
-                <button className="text-gray-500 text-sm mt-2">
-                  Voir les {post.comments_count} commentaires
-                </button>
-              )}
+              {/* Comments Section */}
+              <CommentsSection post={post} />
 
               {/* Timestamp */}
               <p className="text-gray-400 text-xs mt-2 uppercase">
