@@ -1,0 +1,120 @@
+{
+  "identity": {
+    "name": "Fenua Social",
+    "mission": "Connect the islands through the Mana of digital storytelling.",
+    "aesthetics": "Modern Polynesian · Organic · Vibrant · Connected",
+    "emotional_tone": "Warm, Authentic, Joyful, Community-Focused"
+  },
+  "typography": {
+    "primary_font": "DM Serif Display",
+    "secondary_font": "Outfit",
+    "heading_scale": {
+      "h1": "text-4xl md:text-5xl lg:text-6xl font-serif tracking-tight",
+      "h2": "text-3xl md:text-4xl font-serif tracking-tight",
+      "h3": "text-2xl md:text-3xl font-serif tracking-normal",
+      "h4": "text-xl md:text-2xl font-sans font-bold",
+      "body": "text-base md:text-lg font-sans leading-relaxed"
+    },
+    "installation": "IMPLICIT: Use Google Fonts via CSS import or Next.js font optimization if applicable. For raw HTML/React: @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap');"
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "name": "Tahitian Teal",
+        "hex": "#00899B",
+        "tailwind": "bg-[#00899B] text-white"
+      },
+      "secondary": {
+        "name": "Tahiti Gold",
+        "hex": "#E97C07",
+        "tailwind": "bg-[#E97C07] text-white"
+      },
+      "accent": {
+        "name": "Tiare White",
+        "hex": "#F9FAF8",
+        "tailwind": "bg-[#F9FAF8] text-[#2F2F31]"
+      },
+      "dark_base": {
+        "name": "Black Pearl",
+        "hex": "#2F2F31",
+        "tailwind": "bg-[#2F2F31] text-white"
+      },
+      "success": {
+        "name": "Lush Green",
+        "hex": "#64A7A1"
+      },
+      "background": {
+        "light": "#FFDCB7", 
+        "light_subtle": "#FFF4E6",
+        "dark": "#0F172A"
+      }
+    },
+    "theme_strategy": {
+      "mode": "hybrid",
+      "default": "light",
+      "rules": "Use Light/Warm themes for Marketplace and Profile (Trust/Openness). Use Dark/Immersive themes for Video Feed and Stories (Cinema Mode)."
+    }
+  },
+  "visual_enhancers": {
+    "border_radius": "rounded-2xl",
+    "shadows": "shadow-[0_8px_30px_rgb(0,0,0,0.06)]",
+    "glassmorphism": "backdrop-blur-xl bg-white/70 border border-white/20",
+    "textures": "Use subtle noise overlays or 'Tapa cloth' patterns in faint SVG backgrounds for headers."
+  },
+  "component_name": {
+    "button": "Pill-shaped, high saturation, shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95",
+    "card": "rounded-3xl border-none shadow-sm hover:shadow-md transition-all bg-white dark:bg-slate-900",
+    "input": "rounded-xl border-stone-200 bg-stone-50 focus:ring-2 focus:ring-[#00899B] focus:border-transparent",
+    "navigation": "Bottom floating dock (mobile) / Left sidebar (desktop) - Glassmorphism style"
+  },
+  "grids": {
+    "feed": "grid-cols-1 md:grid-cols-[1fr_400px] gap-8",
+    "marketplace": "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 masonry-dense",
+    "profile": "grid-cols-3 gap-1 (Instagram style) or Bento Grid for featured items"
+  },
+  "layouts": {
+    "container_width": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    "section_spacing": "py-12 md:py-20",
+    "mobile_padding": "px-4"
+  },
+  "motion": {
+    "speed": "duration-500",
+    "easing": "ease-out-expo",
+    "hover_effects": "hover:-translate-y-1",
+    "page_transition": "animate-in fade-in slide-in-from-bottom-4"
+  },
+  "image_urls": {
+    "hero_backgrounds": [
+        "https://images.unsplash.com/photo-1723958286930-b32795ed2bbd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzV8MHwxfHNlYXJjaHwzfHx0cm9waWNhbCUyMGxhZ29vbiUyMGlzbGFuZCUyMG1vdW50YWluJTIwdHVycXVvaXNlJTIwd2F0ZXJ8ZW58MHx8fHwxNzcyNzg5NzU3fDA&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1703549068359-49d854524ddd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwyfHx0YWhpdGklMjBidW5nYWxvdyUyMG92ZXJ3YXRlcnxlbnwwfHx8fDE3NzI3ODk3NTl8MA&ixlib=rb-4.1.0&q=85"
+    ],
+    "people_avatars": [
+        "https://images.unsplash.com/photo-1612708437841-085ba65e370b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODl8MHwxfHNlYXJjaHwzfHxQb2x5bmVzaWFuJTIwcGVvcGxlJTIwaGFwcHklMjBzbWlsaW5nJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzcyNzg5NzQyfDA&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1746511299666-5ba663a2a5df?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNTl8MHwxfHNlYXJjaHwxfHxUYWhpdGlhbiUyMGRhbmNlJTIwb3JpJTIwdGFoaXRpJTIwY29zdHVtZXxlbnwwfHx8fDE3NzI3ODk3NDJ8MA&ixlib=rb-4.1.0&q=85"
+    ],
+    "marketplace_products": [
+        "https://images.unsplash.com/photo-1760969485983-c7b370a1532f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njd8MHwxfHNlYXJjaHwzfHxibGFjayUyMHBlYXJsJTIwamV3ZWxyeSUyMGx1eHVyeXxlbnwwfHx8fDE3NzI3ODk3NDN8MA&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1690228987673-f6e104fa653c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA0MTJ8MHwxfHNlYXJjaHwxfHxjb2NvbnV0JTIwb2lsJTIwZmxvd2VyJTIwc3BhJTIwcHJvZHVjdHxlbnwwfHx8fDE3NzI3ODk3NTh8MA&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1663018084454-86fd8150f950?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzB8MHwxfHNlYXJjaHwxfHx0cm9waWNhbCUyMGZydWl0JTIwbWFya2V0JTIwc3RhbGwlMjB0YWhpdGl8ZW58MHx8fHwxNzcyNzg5NzQ0fDA&ixlib=rb-4.1.0&q=85"
+    ],
+    "logo_placeholder": "https://placehold.co/100x100/00899B/FFFFFF?text=Fenua"
+  },
+  "instructions_to_main_agent": [
+    "Install 'lucide-react', 'framer-motion', 'clsx', 'tailwind-merge' immediately.",
+    "Use 'DM Serif Display' for all H1-H3 headings. Use 'Outfit' for body text.",
+    "Implement a 'Bottom Navigation Bar' for mobile views that floats above content with glassmorphism.",
+    "The Feed should feel infinite but cozy. Use large corner radii (rounded-3xl) for media cards.",
+    "Marketplace Grid: Use a Masonry or dense grid layout to show variety.",
+    "Authentication: Login page must be stunning with a full-height background image of the lagoon.",
+    "Icons: Use Lucide React icons. Stroke width 1.5px for elegance.",
+    "Buttons: Primary buttons are Tahitian Teal (#00899B) with rounded-full shape."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Do NOT use gradients for dark backgrounds. Use solid deep colors.",
+    "Avoid generic centered layouts. Use asymmetry where possible.",
+    "All interactive elements must have a hover state and active state.",
+    "Use 'sonner' for toast notifications.",
+    "Ensure all images have alt text for accessibility.",
+    "Mobile First: Always design for mobile width first, then expand to desktop."
+  ]
+}
