@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Image, Film, Camera, MapPin, X, Upload, Sparkles, Hash, ImagePlus, Shield } from 'lucide-react';
+import { Image, Film, Camera, MapPin, X, Upload, Sparkles, Hash, ImagePlus, Shield, Navigation, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -18,7 +18,8 @@ const CreatePostPage = () => {
     media_url: '',
     caption: '',
     location: '',
-    privacy: 'public'
+    privacy: 'public',
+    coordinates: null
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -27,12 +28,61 @@ const CreatePostPage = () => {
   const [privacyAccepted, setPrivacyAccepted] = useState(() => {
     return localStorage.getItem('privacy_accepted') === 'true';
   });
+  const [gettingLocation, setGettingLocation] = useState(false);
+  const [locationEnabled, setLocationEnabled] = useState(false);
 
   useEffect(() => {
     if (!privacyAccepted) {
       setShowPrivacyPolicy(true);
     }
   }, []);
+
+  // Get current location
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('La géolocalisation n\'est pas supportée par votre navigateur');
+      return;
+    }
+
+    setGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setFormData(prev => ({
+          ...prev,
+          coordinates: { lat: latitude, lng: longitude }
+        }));
+        setLocationEnabled(true);
+        
+        // Reverse geocoding to get location name
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+          );
+          const data = await response.json();
+          const locationName = data.address?.city || data.address?.town || data.address?.village || data.address?.municipality || 'Polynésie Française';
+          setFormData(prev => ({
+            ...prev,
+            location: locationName
+          }));
+          toast.success(`Localisation activée : ${locationName}`);
+        } catch (error) {
+          setFormData(prev => ({
+            ...prev,
+            location: 'Polynésie Française'
+          }));
+        }
+        
+        setGettingLocation(false);
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        toast.error('Impossible d\'obtenir votre position');
+        setGettingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
 
   const postTypes = [
     { id: 'photo', icon: Image, label: 'Photo', description: 'Partagez une image' },
@@ -63,9 +113,10 @@ const CreatePostPage = () => {
           content_type: postType,
           media_url: formData.media_url,
           caption: formData.caption,
-          location: formData.location
+          location: formData.location,
+          coordinates: formData.coordinates
         });
-        toast.success('Publication créée !');
+        toast.success('Publication créée ! Vos amis seront notifiés.');
       }
       navigate('/feed');
     } catch (error) {
@@ -270,16 +321,42 @@ const CreatePostPage = () => {
           {postType !== 'story' && (
             <div className="space-y-3">
               <Label className="text-[#1A1A2E]">Lieu</Label>
-              <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                <Input
-                  data-testid="location-input"
-                  placeholder="Ajouter un lieu"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  className="pl-12 py-6 rounded-xl"
-                />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                  <Input
+                    data-testid="location-input"
+                    placeholder="Ajouter un lieu"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    className="pl-12 py-6 rounded-xl"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  onClick={getCurrentLocation}
+                  disabled={gettingLocation}
+                  className={`px-4 py-6 rounded-xl transition-all ${
+                    locationEnabled 
+                      ? 'bg-green-500 hover:bg-green-600 text-white' 
+                      : 'bg-gradient-to-r from-[#00CED1] to-[#006994] hover:from-[#00B5B5] hover:to-[#005580] text-white'
+                  }`}
+                >
+                  {gettingLocation ? (
+                    <Loader2 size={20} className="animate-spin" />
+                  ) : locationEnabled ? (
+                    <MapPin size={20} />
+                  ) : (
+                    <Navigation size={20} />
+                  )}
+                </Button>
               </div>
+              {locationEnabled && formData.coordinates && (
+                <p className="text-xs text-green-600 flex items-center gap-1">
+                  <MapPin size={12} />
+                  Localisation activée - Vos amis pourront voir où vous êtes
+                </p>
+              )}
             </div>
           )}
 

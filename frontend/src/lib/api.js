@@ -13,6 +13,7 @@ const api = axios.create({
 // Posts API
 export const postsApi = {
   getAll: (params) => api.get('/posts', { params }),
+  getNearby: (lat, lng, radiusKm = 50) => api.get(`/posts/nearby?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`),
   getOne: (postId) => api.get(`/posts/${postId}`),
   create: (data) => api.post('/posts', data),
   like: (postId) => api.post(`/posts/${postId}/like`),
@@ -93,7 +94,12 @@ export const analyticsApi = {
 // Notifications API
 export const notificationsApi = {
   getAll: (params) => api.get('/notifications', { params }),
-  markRead: () => api.post('/notifications/read')
+  markRead: () => api.post('/notifications/read'),
+  getUnreadCount: () => api.get('/notifications/unread-count'),
+  subscribe: (subscription) => api.post('/notifications/subscribe', subscription),
+  unsubscribe: () => api.delete('/notifications/unsubscribe'),
+  getSettings: () => api.get('/notifications/settings'),
+  updateSettings: (data) => api.put('/notifications/settings', data)
 };
 
 // Security API

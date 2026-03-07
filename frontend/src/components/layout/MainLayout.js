@@ -2,6 +2,7 @@ import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
+import NotificationBell from '../NotificationBell';
 
 // Fenua Social Logo Component
 const FenuaLogo = ({ size = 'md' }) => {
@@ -190,14 +191,7 @@ const MainLayout = ({ children, hideNav = false }) => {
         </div>
         
         <div className="flex items-center gap-3">
-          <Link 
-            to="/notifications"
-            data-testid="notifications-btn"
-            className="relative p-2.5 rounded-xl hover:bg-gray-100 transition-all"
-          >
-            <Bell size={24} strokeWidth={1.5} className="text-[#1A1A2E]" />
-            <span className="absolute top-0 right-0 min-w-[20px] h-5 px-1.5 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white text-xs font-bold rounded-full flex items-center justify-center">5</span>
-          </Link>
+          <NotificationBell />
         </div>
       </header>
 
@@ -218,10 +212,7 @@ const MainLayout = ({ children, hideNav = false }) => {
           <Link to="/search" className="p-2 rounded-xl hover:bg-gray-100">
             <Search size={22} strokeWidth={1.5} className="text-[#1A1A2E]" />
           </Link>
-          <Link to="/notifications" className="relative p-2 rounded-xl hover:bg-gray-100">
-            <Bell size={22} strokeWidth={1.5} className="text-[#1A1A2E]" />
-            <span className="absolute top-0 right-0 w-4 h-4 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white text-[10px] font-bold rounded-full flex items-center justify-center">5</span>
-          </Link>
+          <NotificationBell />
         </div>
       </header>
 

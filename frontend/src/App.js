@@ -20,6 +20,7 @@ import NotificationsPage from './pages/NotificationsPage';
 import ChatPage from './pages/ChatPage';
 import CreateAdPage from './pages/CreateAdPage';
 import SecuritySettingsPage from './pages/SecuritySettingsPage';
+import NotificationSettingsPage from './pages/NotificationSettingsPage';
 
 // Layout
 import MainLayout from './components/layout/MainLayout';
@@ -175,6 +176,14 @@ function AppRouter() {
         <ProtectedRoute>
           <MainLayout>
             <SecuritySettingsPage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/notifications/settings" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <NotificationSettingsPage />
           </MainLayout>
         </ProtectedRoute>
       } />

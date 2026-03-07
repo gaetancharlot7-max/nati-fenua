@@ -127,6 +127,7 @@ class PostBase(BaseModel):
     thumbnail_url: Optional[str] = None
     caption: Optional[str] = None
     location: Optional[str] = None
+    coordinates: Optional[dict] = None  # {"lat": float, "lng": float}
     likes_count: int = 0
     comments_count: int = 0
     shares_count: int = 0
@@ -141,6 +142,7 @@ class PostCreate(BaseModel):
     thumbnail_url: Optional[str] = None
     caption: Optional[str] = None
     location: Optional[str] = None
+    coordinates: Optional[dict] = None  # {"lat": float, "lng": float}
 
 class StoryBase(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -552,6 +554,34 @@ async def get_posts(limit: int = 20, skip: int = 0):
     
     return posts
 
+@api_router.get("/posts/nearby")
+async def get_nearby_posts(lat: float, lng: float, radius_km: float = 50, limit: int = 20):
+    """Get posts within a radius of given coordinates"""
+    # Simple distance calculation (Haversine formula approximation)
+    # 1 degree lat ≈ 111km, 1 degree lng ≈ 111km * cos(lat)
+    import math
+    lat_range = radius_km / 111.0
+    lng_range = radius_km / (111.0 * math.cos(math.radians(lat)))
+    
+    posts = await db.posts.find({
+        "coordinates": {"$ne": None},
+        "coordinates.lat": {"$gte": lat - lat_range, "$lte": lat + lat_range},
+        "coordinates.lng": {"$gte": lng - lng_range, "$lte": lng + lng_range}
+    }, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    for post in posts:
+        user = await db.users.find_one({"user_id": post["user_id"]}, {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "is_verified": 1})
+        post["user"] = user
+        
+        # Calculate distance
+        if post.get("coordinates"):
+            dlat = math.radians(post["coordinates"]["lat"] - lat)
+            dlng = math.radians(post["coordinates"]["lng"] - lng)
+            a = math.sin(dlat/2)**2 + math.cos(math.radians(lat)) * math.cos(math.radians(post["coordinates"]["lat"])) * math.sin(dlng/2)**2
+            post["distance_km"] = round(2 * 6371 * math.asin(math.sqrt(a)), 1)
+    
+    return posts
+
 @api_router.get("/posts/{post_id}")
 async def get_post(post_id: str):
     post = await db.posts.find_one({"post_id": post_id}, {"_id": 0})
@@ -575,8 +605,8 @@ async def create_post(post_data: PostCreate, request: Request):
         raise HTTPException(status_code=429, detail="Trop de publications. Réessayez plus tard.")
     
     # Content moderation
-    if post_data.content:
-        content_check = moderate_text_content(post_data.content)
+    if post_data.caption:
+        content_check = moderate_text_content(post_data.caption)
         if content_check.blocked:
             raise HTTPException(status_code=400, detail="Contenu non autorisé: " + ", ".join(content_check.flags))
         if content_check.requires_review:
@@ -589,21 +619,25 @@ async def create_post(post_data: PostCreate, request: Request):
             raise HTTPException(status_code=400, detail="URL média non autorisée")
     
     # Sanitize content
-    sanitized_content = sanitize_html(post_data.content) if post_data.content else None
+    sanitized_caption = sanitize_html(post_data.caption) if post_data.caption else None
     
     post = PostBase(
         user_id=user.user_id,
-        content=sanitized_content,
+        caption=sanitized_caption,
         media_url=post_data.media_url,
         content_type=post_data.content_type,
-        location=post_data.location
+        location=post_data.location,
+        coordinates=post_data.coordinates
     )
     post_dict = post.model_dump()
     post_dict["created_at"] = post_dict["created_at"].isoformat()
-    post_dict["moderation_status"] = "approved" if not (post_data.content and moderate_text_content(post_data.content).requires_review) else "pending_review"
+    post_dict["moderation_status"] = "approved" if not (post_data.caption and moderate_text_content(post_data.caption).requires_review) else "pending_review"
     
     await db.posts.insert_one(post_dict)
     await db.users.update_one({"user_id": user.user_id}, {"$inc": {"posts_count": 1}})
+    
+    # Notify followers about new post
+    await notify_followers_new_post(user.user_id, post.post_id, post_data.content_type)
     
     post_dict.pop("_id", None)
     return post_dict
@@ -1342,6 +1376,122 @@ async def mark_notifications_read(request: Request):
     user = await require_auth(request)
     await db.notifications.update_many({"user_id": user.user_id, "read": False}, {"$set": {"read": True}})
     return {"success": True}
+
+@api_router.get("/notifications/unread-count")
+async def get_unread_count(request: Request):
+    user = await require_auth(request)
+    count = await db.notifications.count_documents({"user_id": user.user_id, "read": False})
+    return {"count": count}
+
+@api_router.post("/notifications/subscribe")
+async def subscribe_push(request: Request):
+    """Subscribe to push notifications"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    subscription = {
+        "user_id": user.user_id,
+        "endpoint": body.get("endpoint"),
+        "keys": body.get("keys"),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.push_subscriptions.update_one(
+        {"user_id": user.user_id},
+        {"$set": subscription},
+        upsert=True
+    )
+    
+    return {"success": True, "message": "Notifications activées"}
+
+@api_router.delete("/notifications/unsubscribe")
+async def unsubscribe_push(request: Request):
+    """Unsubscribe from push notifications"""
+    user = await require_auth(request)
+    await db.push_subscriptions.delete_one({"user_id": user.user_id})
+    return {"success": True, "message": "Notifications désactivées"}
+
+@api_router.get("/notifications/settings")
+async def get_notification_settings(request: Request):
+    """Get user notification preferences"""
+    user = await require_auth(request)
+    
+    settings = await db.notification_settings.find_one(
+        {"user_id": user.user_id},
+        {"_id": 0}
+    )
+    
+    if not settings:
+        settings = {
+            "user_id": user.user_id,
+            "friend_posts": True,
+            "likes": True,
+            "comments": True,
+            "follows": True,
+            "messages": True,
+            "live_streams": True,
+            "marketing": False
+        }
+        await db.notification_settings.insert_one(dict(settings))
+    
+    settings.pop("_id", None)
+    return settings
+
+@api_router.put("/notifications/settings")
+async def update_notification_settings(request: Request):
+    """Update user notification preferences"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    allowed_fields = ["friend_posts", "likes", "comments", "follows", "messages", "live_streams", "marketing"]
+    updates = {k: v for k, v in body.items() if k in allowed_fields}
+    
+    await db.notification_settings.update_one(
+        {"user_id": user.user_id},
+        {"$set": updates},
+        upsert=True
+    )
+    
+    return {"success": True}
+
+# Helper function to create notifications for followers when user posts
+async def notify_followers_new_post(user_id: str, post_id: str, post_type: str):
+    """Send notifications to all followers when user creates a post"""
+    # Get user info
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "name": 1, "picture": 1})
+    if not user:
+        return
+    
+    # Get all followers
+    followers = await db.follows.find({"following_id": user_id}, {"_id": 0, "follower_id": 1}).to_list(1000)
+    
+    for follower in followers:
+        # Check if follower wants notifications for friend posts
+        settings = await db.notification_settings.find_one({"user_id": follower["follower_id"]})
+        if settings and not settings.get("friend_posts", True):
+            continue
+        
+        notification = {
+            "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+            "user_id": follower["follower_id"],
+            "type": "new_post",
+            "title": "Nouvelle publication",
+            "message": f"{user['name']} a publié {('un reel' if post_type == 'reel' else 'une story' if post_type == 'story' else 'une photo')}",
+            "from_user": {
+                "user_id": user_id,
+                "name": user["name"],
+                "picture": user.get("picture")
+            },
+            "data": {
+                "post_id": post_id,
+                "post_type": post_type
+            },
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.notifications.insert_one(notification)
+    
+    logger.info(f"Notified {len(followers)} followers about new post from {user_id}")
 
 # ==================== ROOT ====================
 
