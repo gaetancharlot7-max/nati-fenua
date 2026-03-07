@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X, ChevronLeft, ChevronRight, Flag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
@@ -9,6 +9,7 @@ import { postsApi, storiesApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { ShareModal } from '../components/ShareModal';
+import { ReportModal, BlockUserModal } from '../components/ReportModal';
 
 // Comments Section Component
 const CommentsSection = ({ post }) => {
@@ -231,6 +232,9 @@ const FeedPage = () => {
   const [userReactions, setUserReactions] = useState({});
   const [showReactions, setShowReactions] = useState(null);
   const [sharePost, setSharePost] = useState(null);
+  const [showPostMenu, setShowPostMenu] = useState(null);
+  const [reportPost, setReportPost] = useState(null);
+  const [blockUser, setBlockUser] = useState(null);
 
   useEffect(() => {
     loadFeed();
@@ -402,9 +406,51 @@ const FeedPage = () => {
                     Sponsorisé
                   </span>
                 )}
-                <Button variant="ghost" size="icon" className="rounded-xl">
-                  <MoreHorizontal size={20} className="text-gray-500" />
-                </Button>
+                <div className="relative">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-xl"
+                    onClick={() => setShowPostMenu(showPostMenu === post.post_id ? null : post.post_id)}
+                  >
+                    <MoreHorizontal size={20} className="text-gray-500" />
+                  </Button>
+                  
+                  {/* Post Menu Dropdown */}
+                  <AnimatePresence>
+                    {showPostMenu === post.post_id && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                        className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 z-20 overflow-hidden"
+                      >
+                        <button
+                          onClick={() => {
+                            setReportPost(post);
+                            setShowPostMenu(null);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 text-red-600 transition-colors"
+                        >
+                          <Flag size={18} />
+                          <span className="font-medium">Signaler</span>
+                        </button>
+                        {post.user?.user_id !== user?.user_id && (
+                          <button
+                            onClick={() => {
+                              setBlockUser({ user_id: post.user?.user_id, name: post.user?.name });
+                              setShowPostMenu(null);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-gray-700 transition-colors"
+                          >
+                            <X size={18} />
+                            <span className="font-medium">Bloquer l'utilisateur</span>
+                          </button>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
 
@@ -547,6 +593,23 @@ const FeedPage = () => {
         url={sharePost ? `${window.location.origin}/post/${sharePost.post_id}` : ''}
         title={sharePost?.caption?.substring(0, 50) || 'Découvrez ce post sur Fenua Social'}
         description={sharePost?.caption || ''}
+      />
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={!!reportPost}
+        onClose={() => setReportPost(null)}
+        contentType="post"
+        contentId={reportPost?.post_id}
+        contentPreview={reportPost?.caption}
+      />
+
+      {/* Block User Modal */}
+      <BlockUserModal
+        isOpen={!!blockUser}
+        onClose={() => setBlockUser(null)}
+        userId={blockUser?.user_id}
+        userName={blockUser?.name}
       />
     </div>
   );

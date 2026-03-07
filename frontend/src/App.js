@@ -19,6 +19,7 @@ import SearchPage from './pages/SearchPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ChatPage from './pages/ChatPage';
 import CreateAdPage from './pages/CreateAdPage';
+import SecuritySettingsPage from './pages/SecuritySettingsPage';
 
 // Layout
 import MainLayout from './components/layout/MainLayout';
@@ -166,6 +167,14 @@ function AppRouter() {
         <ProtectedRoute>
           <MainLayout>
             <ChatPage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/security" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <SecuritySettingsPage />
           </MainLayout>
         </ProtectedRoute>
       } />

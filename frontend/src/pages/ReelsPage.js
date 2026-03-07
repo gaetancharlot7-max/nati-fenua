@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, Music2, Play, Pause, Volume2, VolumeX, ChevronUp, ChevronDown } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, Music2, Play, Pause, Volume2, VolumeX, ChevronUp, ChevronDown, Flag, MoreVertical } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { reelsApi } from '../lib/api';
 import { ShareModal } from '../components/ShareModal';
+import { ReportModal } from '../components/ReportModal';
 
 // Demo reels data
 const demoReels = [
@@ -44,6 +45,7 @@ const ReelsPage = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [likedReels, setLikedReels] = useState(new Set());
   const [shareReel, setShareReel] = useState(null);
+  const [reportReel, setReportReel] = useState(null);
   const containerRef = useRef(null);
   const touchStartY = useRef(0);
   const touchEndY = useRef(0);
@@ -220,6 +222,17 @@ const ReelsPage = () => {
               </div>
             </button>
 
+            {/* Report */}
+            <button 
+              onClick={() => setReportReel(currentReel)}
+              data-testid="reel-report-btn" 
+              className="flex flex-col items-center gap-1"
+            >
+              <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <Flag size={22} className="text-white" />
+              </div>
+            </button>
+
             {/* User Avatar */}
             <Link to={`/profile/${currentReel?.user?.user_id}`}>
               <Avatar className="w-12 h-12 border-2 border-white">
@@ -312,6 +325,15 @@ const ReelsPage = () => {
         url={shareReel ? `${window.location.origin}/reels/${shareReel.post_id}` : ''}
         title={shareReel?.caption?.substring(0, 50) || 'Regardez ce reel sur Fenua Social'}
         description={shareReel?.caption || ''}
+      />
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={!!reportReel}
+        onClose={() => setReportReel(null)}
+        contentType="post"
+        contentId={reportReel?.post_id}
+        contentPreview={reportReel?.caption}
       />
     </div>
   );

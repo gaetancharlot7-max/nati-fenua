@@ -1,4 +1,4 @@
-import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone } from 'lucide-react';
+import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone, Shield } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
@@ -129,6 +129,22 @@ const MainLayout = ({ children, hideNav = false }) => {
               <span className="ml-auto px-2 py-0.5 rounded-full bg-gradient-to-r from-[#00CED1] to-[#006994] text-white text-xs font-bold">
                 PRO
               </span>
+            </Link>
+          </div>
+
+          {/* Security Section */}
+          <div className="pt-4 border-t border-gray-100 mt-4">
+            <Link
+              to="/security"
+              data-testid="nav-security"
+              className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
+                location.pathname === '/security'
+                  ? 'bg-gradient-to-r from-[#FF6B35]/10 to-[#00CED1]/10 text-[#FF6B35] font-semibold' 
+                  : 'text-[#1A1A2E] hover:bg-gray-100'
+              }`}
+            >
+              <Shield size={24} strokeWidth={1.5} />
+              <span>Sécurité</span>
             </Link>
           </div>
         </nav>

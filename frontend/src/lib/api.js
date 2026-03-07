@@ -96,6 +96,19 @@ export const notificationsApi = {
   markRead: () => api.post('/notifications/read')
 };
 
+// Security API
+export const securityApi = {
+  getSecurityCheck: () => api.get('/security/check'),
+  getPrivacySettings: () => api.get('/privacy/settings'),
+  updatePrivacySettings: (data) => api.put('/privacy/settings', data),
+  reportContent: (data) => api.post('/report', data),
+  getReportTypes: () => api.get('/report/types'),
+  blockUser: (userId) => api.post(`/block/${userId}`),
+  getBlockedUsers: () => api.get('/blocked'),
+  requestDataDownload: () => api.post('/privacy/data-request'),
+  deleteAccount: (password) => api.delete('/account', { data: { password } })
+};
+
 // Upload API
 export const uploadApi = {
   uploadFile: async (file) => {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, MapPin, Star, Plus, ShoppingBag, Briefcase, Package, Utensils, Compass, Sparkles, Gem, Droplet, Shirt, Home, Calendar, Car, Book, X, MessageCircle, Phone, Heart, Share2, ImagePlus, Loader2 } from 'lucide-react';
+import { Search, Filter, MapPin, Star, Plus, ShoppingBag, Briefcase, Package, Utensils, Compass, Sparkles, Gem, Droplet, Shirt, Home, Calendar, Car, Book, X, MessageCircle, Phone, Heart, Share2, ImagePlus, Loader2, Flag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -8,10 +8,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { marketplaceApi, uploadApi } from '../lib/api';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { ShareModal } from '../components/ShareModal';
+import { ReportModal } from '../components/ReportModal';
 import { toast } from 'sonner';
 
 // Product Detail Modal Component
-const ProductDetailModal = ({ product, onClose }) => {
+const ProductDetailModal = ({ product, onClose, onReport }) => {
   if (!product) return null;
 
   return (
@@ -44,6 +45,12 @@ const ProductDetailModal = ({ product, onClose }) => {
           </button>
           <button className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center">
             <Heart size={20} />
+          </button>
+          <button 
+            onClick={() => onReport(product)}
+            className="absolute top-4 left-16 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center"
+          >
+            <Flag size={18} className="text-red-500" />
           </button>
         </div>
 
@@ -104,7 +111,7 @@ const ProductDetailModal = ({ product, onClose }) => {
 };
 
 // Service Detail Modal Component
-const ServiceDetailModal = ({ service, onClose }) => {
+const ServiceDetailModal = ({ service, onClose, onReport }) => {
   if (!service) return null;
 
   return (
@@ -135,8 +142,14 @@ const ServiceDetailModal = ({ service, onClose }) => {
           >
             <X size={20} />
           </button>
+          <button 
+            onClick={() => onReport(service)}
+            className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center"
+          >
+            <Flag size={18} className="text-red-500" />
+          </button>
           {service.rating && (
-            <div className="absolute top-4 left-4 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm flex items-center gap-1">
+            <div className="absolute top-4 left-16 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm flex items-center gap-1">
               <Star size={16} className="text-[#E97C07] fill-[#E97C07]" />
               <span className="font-semibold">{service.rating}</span>
               <span className="text-gray-500 text-sm">({service.reviews_count} avis)</span>
@@ -304,6 +317,7 @@ const MarketplacePage = () => {
   const [selectedService, setSelectedService] = useState(null);
   const [showCreateProduct, setShowCreateProduct] = useState(false);
   const [shareItem, setShareItem] = useState(null);
+  const [reportItem, setReportItem] = useState(null);
 
   useEffect(() => {
     loadMarketplace();
@@ -493,14 +507,28 @@ const MarketplacePage = () => {
       {/* Product Detail Modal */}
       <AnimatePresence>
         {selectedProduct && (
-          <ProductDetailModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+          <ProductDetailModal 
+            product={selectedProduct} 
+            onClose={() => setSelectedProduct(null)} 
+            onReport={(item) => {
+              setSelectedProduct(null);
+              setReportItem({ ...item, type: 'product' });
+            }}
+          />
         )}
       </AnimatePresence>
 
       {/* Service Detail Modal */}
       <AnimatePresence>
         {selectedService && (
-          <ServiceDetailModal service={selectedService} onClose={() => setSelectedService(null)} />
+          <ServiceDetailModal 
+            service={selectedService} 
+            onClose={() => setSelectedService(null)} 
+            onReport={(item) => {
+              setSelectedService(null);
+              setReportItem({ ...item, type: 'service' });
+            }}
+          />
         )}
       </AnimatePresence>
 
@@ -524,6 +552,15 @@ const MarketplacePage = () => {
         onClose={() => setShareItem(null)}
         url={shareItem ? `${window.location.origin}/marketplace/${shareItem.product_id || shareItem.service_id}` : ''}
         title={shareItem?.title || 'Découvrez cette annonce sur Fenua Social'}
+      />
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={!!reportItem}
+        onClose={() => setReportItem(null)}
+        contentType={reportItem?.type === 'service' ? 'service' : 'product'}
+        contentId={reportItem?.product_id || reportItem?.service_id}
+        contentPreview={reportItem?.title}
       />
 
       {/* FAB - Create Listing */}
