@@ -18,6 +18,8 @@ export const postsApi = {
   create: (data) => api.post('/posts', data),
   like: (postId) => api.post(`/posts/${postId}/like`),
   react: (postId, reaction) => api.post(`/posts/${postId}/react`, { reaction }),
+  save: (postId) => api.post(`/posts/${postId}/save`),
+  getSaved: () => api.get('/saved'),
   getComments: (postId) => api.get(`/posts/${postId}/comments`),
   addComment: (postId, content) => api.post(`/posts/${postId}/comments`, { content })
 };

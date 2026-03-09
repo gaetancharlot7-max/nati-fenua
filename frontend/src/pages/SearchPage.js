@@ -215,7 +215,7 @@ const SearchPage = () => {
                     </Avatar>
                     <div className="flex-1">
                       <p className="font-medium text-[#2F2F31]">{user.name}</p>
-                      <p className="text-sm text-gray-500">{user.followers_count} abonnés</p>
+                      <p className="text-sm text-gray-500">{user.followers_count} amis</p>
                     </div>
                   </Link>
                 ))}

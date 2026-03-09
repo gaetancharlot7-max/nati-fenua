@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Image, Film, Camera, MapPin, X, Upload, Sparkles, Hash, ImagePlus, Shield, Navigation, Loader2 } from 'lucide-react';
+import { Image, Film, Camera, MapPin, X, Upload, Sparkles, Hash, ImagePlus, Shield, Navigation, Loader2, Link2, Youtube, Newspaper } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -19,7 +19,9 @@ const CreatePostPage = () => {
     caption: '',
     location: '',
     privacy: 'public',
-    coordinates: null
+    coordinates: null,
+    external_link: '',
+    link_type: null
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -30,6 +32,7 @@ const CreatePostPage = () => {
   });
   const [gettingLocation, setGettingLocation] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(false);
+  const [linkPreview, setLinkPreview] = useState(null);
 
   useEffect(() => {
     if (!privacyAccepted) {
@@ -88,14 +91,64 @@ const CreatePostPage = () => {
     { id: 'photo', icon: Image, label: 'Photo', description: 'Partagez une image' },
     { id: 'video', icon: Film, label: 'Vidéo', description: 'Publiez une vidéo' },
     { id: 'reel', icon: Sparkles, label: 'Reel', description: 'Vidéo courte verticale' },
-    { id: 'story', icon: Camera, label: 'Story', description: 'Disparaît après 24h' }
+    { id: 'story', icon: Camera, label: 'Story', description: 'Disparaît après 24h' },
+    { id: 'link', icon: Link2, label: 'Lien', description: 'YouTube, articles, etc.' }
   ];
+
+  // Parse YouTube URL to get video ID
+  const getYoutubeVideoId = (url) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  // Detect link type
+  const detectLinkType = (url) => {
+    if (!url) return null;
+    if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
+    if (url.includes('tiktok.com')) return 'tiktok';
+    if (url.includes('instagram.com')) return 'instagram';
+    if (url.includes('twitter.com') || url.includes('x.com')) return 'twitter';
+    return 'article';
+  };
+
+  // Handle external link change
+  const handleExternalLinkChange = (url) => {
+    const linkType = detectLinkType(url);
+    setFormData(prev => ({ ...prev, external_link: url, link_type: linkType }));
+    
+    if (linkType === 'youtube') {
+      const videoId = getYoutubeVideoId(url);
+      if (videoId) {
+        setLinkPreview({
+          type: 'youtube',
+          videoId,
+          thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+        });
+        setPreviewUrl(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
+        setFormData(prev => ({ 
+          ...prev, 
+          media_url: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+          external_link: url,
+          link_type: 'youtube'
+        }));
+      }
+    } else if (linkType === 'article') {
+      setLinkPreview({ type: 'article', url });
+      // For articles, we'll use a placeholder or og:image
+      setFormData(prev => ({ 
+        ...prev, 
+        external_link: url,
+        link_type: 'article'
+      }));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.media_url) {
-      toast.error('Veuillez ajouter un média');
+    if (!formData.media_url && !formData.external_link) {
+      toast.error('Veuillez ajouter un média ou un lien');
       return;
     }
 
@@ -110,11 +163,13 @@ const CreatePostPage = () => {
         toast.success('Story publiée !');
       } else {
         await postsApi.create({
-          content_type: postType,
-          media_url: formData.media_url,
+          content_type: postType === 'link' ? 'link' : postType,
+          media_url: formData.media_url || formData.external_link,
           caption: formData.caption,
           location: formData.location,
-          coordinates: formData.coordinates
+          coordinates: formData.coordinates,
+          external_link: formData.external_link,
+          link_type: formData.link_type
         });
         toast.success('Publication créée ! Vos amis seront notifiés.');
       }
@@ -189,7 +244,7 @@ const CreatePostPage = () => {
         </div>
 
         {/* Post Type Selection */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
           {postTypes.map((type) => (
             <button
               key={type.id}
@@ -212,9 +267,100 @@ const CreatePostPage = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* External Link Section (for link type) */}
+          {postType === 'link' && (
+            <div className="space-y-3">
+              <Label className="text-[#1A1A2E]">Lien externe</Label>
+              <div className="space-y-3">
+                <div className="relative">
+                  <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                  <Input
+                    data-testid="external-link-input"
+                    placeholder="https://youtube.com/watch?v=... ou URL d'article"
+                    value={formData.external_link}
+                    onChange={(e) => handleExternalLinkChange(e.target.value)}
+                    className="pl-12 py-6 rounded-xl"
+                  />
+                </div>
+                
+                {/* Link Type Indicators */}
+                <div className="flex gap-2">
+                  <span className={`px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1 ${
+                    formData.link_type === 'youtube' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    <Youtube size={14} /> YouTube
+                  </span>
+                  <span className={`px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1 ${
+                    formData.link_type === 'article' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    <Newspaper size={14} /> Article
+                  </span>
+                </div>
+
+                {/* YouTube Preview */}
+                {linkPreview?.type === 'youtube' && (
+                  <div className="relative aspect-video rounded-2xl overflow-hidden bg-gray-100">
+                    <img 
+                      src={linkPreview.thumbnail}
+                      alt="YouTube video"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center">
+                        <div className="w-0 h-0 border-t-8 border-t-transparent border-l-12 border-l-white border-b-8 border-b-transparent ml-1"></div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLinkPreview(null);
+                        setFormData(prev => ({ ...prev, external_link: '', link_type: null, media_url: '' }));
+                        setPreviewUrl('');
+                      }}
+                      className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Article Preview */}
+                {linkPreview?.type === 'article' && formData.external_link && (
+                  <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200">
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                        <Newspaper size={24} className="text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[#1A1A2E] truncate">Article partagé</p>
+                        <p className="text-xs text-gray-500 truncate">{formData.external_link}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLinkPreview(null);
+                          setFormData(prev => ({ ...prev, external_link: '', link_type: null }));
+                        }}
+                        className="p-1.5 rounded-full hover:bg-gray-200"
+                      >
+                        <X size={16} className="text-gray-500" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Optional: Add an image to go with the link */}
+              <div className="pt-4 border-t border-gray-100">
+                <p className="text-sm text-gray-500 mb-3">Ajouter une image (optionnel)</p>
+              </div>
+            </div>
+          )}
+
           {/* File Upload Section */}
+          {(postType !== 'link' || (postType === 'link' && !linkPreview?.thumbnail)) && (
           <div className="space-y-3">
-            <Label className="text-[#1A1A2E]">Ajouter un média</Label>
+            <Label className="text-[#1A1A2E]">{postType === 'link' ? 'Image personnalisée' : 'Ajouter un média'}</Label>
             
             {/* Hidden file input */}
             <input
@@ -276,6 +422,7 @@ const CreatePostPage = () => {
               </div>
             </div>
           </div>
+          )}
 
           {/* Preview */}
           {previewUrl && (

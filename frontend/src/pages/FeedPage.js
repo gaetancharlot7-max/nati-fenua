@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X, ChevronLeft, ChevronRight, Flag } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X, ChevronLeft, ChevronRight, Flag, Youtube, Link2, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
@@ -10,6 +10,51 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { ShareModal } from '../components/ShareModal';
 import { ReportModal, BlockUserModal } from '../components/ReportModal';
+
+// YouTube Embed Component
+const YouTubeEmbed = ({ videoId, onClick }) => {
+  return (
+    <div className="relative aspect-video bg-black rounded-xl overflow-hidden cursor-pointer" onClick={onClick}>
+      <img 
+        src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
+        alt="YouTube video"
+        className="w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors">
+        <div className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center shadow-lg">
+          <Play size={28} className="text-white ml-1" fill="white" />
+        </div>
+      </div>
+      <div className="absolute bottom-3 left-3 flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-600 text-white text-sm font-medium">
+        <Youtube size={16} />
+        YouTube
+      </div>
+    </div>
+  );
+};
+
+// Article Link Preview Component
+const ArticleLinkPreview = ({ url, onClick }) => {
+  const domain = url ? new URL(url).hostname.replace('www.', '') : '';
+  
+  return (
+    <div 
+      className="relative rounded-xl overflow-hidden border border-gray-200 bg-gradient-to-br from-blue-50 to-purple-50 p-4 cursor-pointer hover:shadow-md transition-shadow"
+      onClick={onClick}
+    >
+      <div className="flex items-start gap-3">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+          <Link2 size={24} className="text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-[#1A1A2E] text-sm">Article partagé</p>
+          <p className="text-xs text-gray-500 truncate">{domain}</p>
+        </div>
+        <ExternalLink size={18} className="text-gray-400 flex-shrink-0" />
+      </div>
+    </div>
+  );
+};
 
 // Comments Section Component
 const CommentsSection = ({ post }) => {
@@ -235,6 +280,7 @@ const FeedPage = () => {
   const [showPostMenu, setShowPostMenu] = useState(null);
   const [reportPost, setReportPost] = useState(null);
   const [blockUser, setBlockUser] = useState(null);
+  const [savedPosts, setSavedPosts] = useState(new Set());
 
   useEffect(() => {
     loadFeed();
@@ -293,6 +339,25 @@ const FeedPage = () => {
       setShowReactions(null);
     } catch (error) {
       toast.error('Erreur lors de la réaction');
+    }
+  };
+
+  const handleSavePost = async (postId) => {
+    try {
+      const response = await postsApi.save(postId);
+      if (response.data.saved) {
+        setSavedPosts(prev => new Set([...prev, postId]));
+        toast.success('Publication enregistrée !');
+      } else {
+        setSavedPosts(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(postId);
+          return newSet;
+        });
+        toast.success('Publication retirée des enregistrements');
+      }
+    } catch (error) {
+      toast.error('Erreur lors de l\'enregistrement');
     }
   };
 
@@ -455,17 +520,36 @@ const FeedPage = () => {
             </div>
 
             {/* Post Media */}
-            <div className="relative aspect-square bg-gray-100">
-              <img 
-                src={post.media_url} 
-                alt={post.caption}
-                className="w-full h-full object-cover"
-              />
-              {post.content_type === 'video' && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                  <div className="w-16 h-16 rounded-2xl bg-white/90 flex items-center justify-center shadow-xl">
-                    <Play size={28} className="text-[#1A1A2E] ml-1" fill="currentColor" />
-                  </div>
+            <div className="relative bg-gray-100">
+              {/* YouTube Video */}
+              {post.link_type === 'youtube' && post.external_link ? (
+                <YouTubeEmbed 
+                  videoId={post.external_link.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&#?]*)/)?.[1]}
+                  onClick={() => window.open(post.external_link, '_blank')}
+                />
+              ) : post.link_type === 'article' && post.external_link ? (
+                /* Article Link */
+                <div className="p-4">
+                  <ArticleLinkPreview 
+                    url={post.external_link}
+                    onClick={() => window.open(post.external_link, '_blank')}
+                  />
+                </div>
+              ) : (
+                /* Regular Image/Video */
+                <div className="aspect-square">
+                  <img 
+                    src={post.media_url} 
+                    alt={post.caption}
+                    className="w-full h-full object-cover"
+                  />
+                  {post.content_type === 'video' && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                      <div className="w-16 h-16 rounded-2xl bg-white/90 flex items-center justify-center shadow-xl">
+                        <Play size={28} className="text-[#1A1A2E] ml-1" fill="currentColor" />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -538,8 +622,17 @@ const FeedPage = () => {
                     <Share2 size={24} className="text-[#1A1A2E]" strokeWidth={1.5} />
                   </button>
                 </div>
-                <button data-testid={`save-btn-${post.post_id}`} className="p-2 rounded-xl hover:bg-gray-100 transition-all">
-                  <Bookmark size={26} className="text-[#1A1A2E]" strokeWidth={1.5} />
+                <button 
+                  onClick={() => handleSavePost(post.post_id)}
+                  data-testid={`save-btn-${post.post_id}`} 
+                  className="p-2 rounded-xl hover:bg-gray-100 transition-all"
+                >
+                  <Bookmark 
+                    size={26} 
+                    className={savedPosts.has(post.post_id) ? "text-[#FF6B35]" : "text-[#1A1A2E]"} 
+                    strokeWidth={1.5}
+                    fill={savedPosts.has(post.post_id) ? "#FF6B35" : "none"}
+                  />
                 </button>
               </div>
 

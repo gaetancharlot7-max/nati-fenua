@@ -78,8 +78,8 @@ const NotificationSettingsPage = () => {
     {
       key: 'follows',
       icon: UserPlus,
-      title: 'Nouveaux abonnés',
-      description: 'Quand quelqu\'un s\'abonne à votre profil',
+      title: 'Nouveaux amis',
+      description: 'Quand quelqu\'un vous ajoute en ami',
       color: 'from-green-400 to-emerald-500'
     },
     {

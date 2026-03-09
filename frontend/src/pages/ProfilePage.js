@@ -61,7 +61,7 @@ const ProfilePage = () => {
     try {
       const response = await usersApi.follow(userId);
       setIsFollowing(response.data.following);
-      toast.success(response.data.following ? 'Abonné !' : 'Désabonné');
+      toast.success(response.data.following ? 'Ami ajouté !' : 'Ami retiré');
     } catch (error) {
       toast.error('Erreur');
     }
@@ -129,7 +129,7 @@ const ProfilePage = () => {
                   data-testid="follow-btn"
                   className={`rounded-full ${isFollowing ? 'bg-gray-200 text-[#2F2F31] hover:bg-gray-300' : 'bg-[#00899B] text-white hover:bg-[#007585]'}`}
                 >
-                  {isFollowing ? 'Abonné' : 'Suivre'}
+                  {isFollowing ? 'Ami' : 'Ajouter'}
                 </Button>
               )}
             </div>
@@ -142,11 +142,11 @@ const ProfilePage = () => {
               </div>
               <div className="text-center">
                 <p className="font-bold text-[#2F2F31]">{displayUser?.followers_count || 0}</p>
-                <p className="text-sm text-gray-500">Abonnés</p>
+                <p className="text-sm text-gray-500">Amis</p>
               </div>
               <div className="text-center">
                 <p className="font-bold text-[#2F2F31]">{displayUser?.following_count || 0}</p>
-                <p className="text-sm text-gray-500">Abonnements</p>
+                <p className="text-sm text-gray-500">Ajoutés</p>
               </div>
             </div>
 

@@ -122,12 +122,14 @@ class PostBase(BaseModel):
     model_config = ConfigDict(extra="ignore")
     post_id: str = Field(default_factory=lambda: f"post_{uuid.uuid4().hex[:12]}")
     user_id: str
-    content_type: str  # photo, video, reel, live_replay
+    content_type: str  # photo, video, reel, live_replay, link
     media_url: str
     thumbnail_url: Optional[str] = None
     caption: Optional[str] = None
     location: Optional[str] = None
     coordinates: Optional[dict] = None  # {"lat": float, "lng": float}
+    external_link: Optional[str] = None  # YouTube, article URLs
+    link_type: Optional[str] = None  # youtube, article, tiktok, etc.
     likes_count: int = 0
     comments_count: int = 0
     shares_count: int = 0
@@ -143,6 +145,8 @@ class PostCreate(BaseModel):
     caption: Optional[str] = None
     location: Optional[str] = None
     coordinates: Optional[dict] = None  # {"lat": float, "lng": float}
+    external_link: Optional[str] = None  # YouTube, article URLs
+    link_type: Optional[str] = None  # youtube, article, tiktok, etc.
 
 class StoryBase(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -627,7 +631,9 @@ async def create_post(post_data: PostCreate, request: Request):
         media_url=post_data.media_url,
         content_type=post_data.content_type,
         location=post_data.location,
-        coordinates=post_data.coordinates
+        coordinates=post_data.coordinates,
+        external_link=post_data.external_link,
+        link_type=post_data.link_type
     )
     post_dict = post.model_dump()
     post_dict["created_at"] = post_dict["created_at"].isoformat()
@@ -704,6 +710,43 @@ async def like_post(post_id: str, request: Request):
         await db.likes.insert_one(like)
         await db.posts.update_one({"post_id": post_id}, {"$inc": {"likes_count": 1}})
         return {"liked": True}
+
+@api_router.post("/posts/{post_id}/save")
+async def save_post(post_id: str, request: Request):
+    """Toggle save/unsave a post"""
+    user = await require_auth(request)
+    
+    existing = await db.saved_posts.find_one({"post_id": post_id, "user_id": user.user_id}, {"_id": 0})
+    
+    if existing:
+        await db.saved_posts.delete_one({"post_id": post_id, "user_id": user.user_id})
+        return {"saved": False}
+    else:
+        save = {
+            "save_id": f"save_{uuid.uuid4().hex[:12]}",
+            "post_id": post_id,
+            "user_id": user.user_id,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.saved_posts.insert_one(save)
+        return {"saved": True}
+
+@api_router.get("/saved")
+async def get_saved_posts(request: Request, limit: int = 50):
+    """Get all saved posts for current user"""
+    user = await require_auth(request)
+    
+    saved = await db.saved_posts.find({"user_id": user.user_id}, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    posts = []
+    for s in saved:
+        post = await db.posts.find_one({"post_id": s["post_id"]}, {"_id": 0})
+        if post:
+            post_user = await db.users.find_one({"user_id": post["user_id"]}, {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "is_verified": 1})
+            post["user"] = post_user
+            posts.append(post)
+    
+    return posts
 
 @api_router.get("/posts/{post_id}/comments")
 async def get_comments(post_id: str, limit: int = 50):
@@ -1907,3 +1950,36 @@ app.add_middleware(
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+@app.on_event("startup")
+async def seed_polynesian_content():
+    """Automatically populate the database with Polynesian media content on startup"""
+    try:
+        from seed_data import POLYNESIAN_ACCOUNTS, build_seed_posts, build_seed_accounts
+        
+        # Check if already seeded
+        existing_seeded = await db.users.find_one({"is_seeded": True})
+        if existing_seeded:
+            logger.info("Database already seeded with Polynesian content")
+            return
+        
+        logger.info("Seeding database with Polynesian media content...")
+        
+        # Insert accounts
+        accounts = build_seed_accounts()
+        for account in accounts:
+            existing = await db.users.find_one({"user_id": account["user_id"]})
+            if not existing:
+                await db.users.insert_one(account)
+                logger.info(f"Created account: {account['name']}")
+        
+        # Insert posts
+        posts = build_seed_posts()
+        for post in posts:
+            await db.posts.insert_one(post)
+        
+        logger.info(f"Seeded {len(accounts)} accounts and {len(posts)} posts")
+        
+    except Exception as e:
+        logger.error(f"Error seeding database: {e}")
+

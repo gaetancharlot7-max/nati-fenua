@@ -150,7 +150,7 @@ const SecuritySettingsPage = () => {
                 className="p-2 rounded-lg border border-gray-200 text-sm"
               >
                 <option value="public">Public</option>
-                <option value="followers">Abonnés</option>
+                <option value="followers">Amis</option>
                 <option value="private">Privé</option>
               </select>
             </div>
@@ -179,7 +179,7 @@ const SecuritySettingsPage = () => {
                 className="p-2 rounded-lg border border-gray-200 text-sm"
               >
                 <option value="everyone">Tout le monde</option>
-                <option value="followers">Abonnés</option>
+                <option value="followers">Amis</option>
                 <option value="nobody">Personne</option>
               </select>
             </div>

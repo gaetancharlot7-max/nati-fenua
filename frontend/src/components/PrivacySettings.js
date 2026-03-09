@@ -14,8 +14,8 @@ export const PRIVACY_OPTIONS = [
   },
   { 
     value: 'followers', 
-    label: 'Abonnés', 
-    description: 'Seulement vos abonnés',
+    label: 'Amis', 
+    description: 'Seulement vos amis',
     icon: Users 
   },
   { 
@@ -165,7 +165,7 @@ export const PrivacyPolicyModal = ({ isOpen, onClose, onAccept }) => {
               </p>
               <ul className="mt-2 space-y-1 text-sm text-gray-600">
                 <li>• <strong>Public</strong> : visible par tous</li>
-                <li>• <strong>Abonnés</strong> : visible par vos abonnés uniquement</li>
+                <li>• <strong>Amis</strong> : visible par vos amis uniquement</li>
                 <li>• <strong>Privé</strong> : visible par vous uniquement</li>
               </ul>
             </section>

@@ -80,7 +80,7 @@ const BusinessDashboard = () => {
     { title: 'Impressions', value: stats.ads?.total_impressions || 0, icon: Eye, color: 'bg-blue-500', change: '+12%' },
     { title: 'Clics', value: stats.ads?.total_clicks || 0, icon: MousePointer, color: 'bg-green-500', change: '+8%' },
     { title: 'CTR', value: `${stats.ads?.ctr || 0}%`, icon: Target, color: 'bg-purple-500', change: '+2%' },
-    { title: 'Abonnés', value: stats.followers || 0, icon: Users, color: 'bg-orange-500', change: '+15%' }
+    { title: 'Amis', value: stats.followers || 0, icon: Users, color: 'bg-orange-500', change: '+15%' }
   ];
 
   return (
