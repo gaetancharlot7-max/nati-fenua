@@ -49,7 +49,8 @@ export const liveApi = {
 export const chatApi = {
   getConversations: () => api.get('/conversations'),
   getMessages: (conversationId, params) => api.get(`/conversations/${conversationId}/messages`, { params }),
-  sendMessage: (data) => api.post('/messages', data)
+  sendMessage: (data) => api.post('/messages', data),
+  createConversation: (userId) => api.post('/conversations', { user_id: userId })
 };
 
 // Marketplace API

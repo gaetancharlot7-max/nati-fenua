@@ -946,6 +946,41 @@ async def get_messages(conversation_id: str, request: Request, limit: int = 50):
     
     return list(reversed(messages))
 
+@api_router.post("/conversations")
+async def create_conversation(request: Request):
+    """Create or get existing conversation with another user"""
+    user = await require_auth(request)
+    body = await request.json()
+    other_user_id = body.get("user_id")
+    
+    if not other_user_id:
+        raise HTTPException(status_code=400, detail="user_id is required")
+    
+    if other_user_id == user.user_id:
+        raise HTTPException(status_code=400, detail="Cannot create conversation with yourself")
+    
+    # Check if other user exists
+    other_user = await db.users.find_one({"user_id": other_user_id}, {"_id": 0, "user_id": 1, "name": 1, "picture": 1})
+    if not other_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Find or create conversation
+    participants = sorted([user.user_id, other_user_id])
+    conversation = await db.conversations.find_one({"participants": participants}, {"_id": 0})
+    
+    if not conversation:
+        new_conversation = ConversationBase(participants=participants)
+        conv_dict = new_conversation.model_dump()
+        conv_dict["created_at"] = conv_dict["created_at"].isoformat()
+        await db.conversations.insert_one(conv_dict)
+        conversation = conv_dict
+    
+    # Add other user info
+    conversation["other_user"] = other_user
+    conversation.pop("_id", None)
+    
+    return conversation
+
 @api_router.post("/messages")
 async def send_message(message_data: MessageCreate, request: Request):
     user = await require_auth(request)

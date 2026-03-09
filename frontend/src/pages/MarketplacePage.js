@@ -1,18 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, MapPin, Star, Plus, ShoppingBag, Briefcase, Package, Utensils, Compass, Sparkles, Gem, Droplet, Shirt, Home, Calendar, Car, Book, X, MessageCircle, Phone, Heart, Share2, ImagePlus, Loader2, Flag } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search, Filter, MapPin, Star, Plus, ShoppingBag, Briefcase, Package, Utensils, Compass, Sparkles, Gem, Droplet, Shirt, Home, Calendar, Car, Book, X, MessageCircle, Heart, Share2, ImagePlus, Loader2, Flag } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
-import { marketplaceApi, uploadApi } from '../lib/api';
+import { marketplaceApi, uploadApi, chatApi } from '../lib/api';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { ShareModal } from '../components/ShareModal';
 import { ReportModal } from '../components/ReportModal';
 import { toast } from 'sonner';
 
 // Product Detail Modal Component
-const ProductDetailModal = ({ product, onClose, onReport }) => {
+const ProductDetailModal = ({ product, onClose, onReport, onContact }) => {
   if (!product) return null;
 
   return (
@@ -93,17 +93,14 @@ const ProductDetailModal = ({ product, onClose, onReport }) => {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            <Button className="flex-1 bg-[#FF6B35] hover:bg-[#FF5722] rounded-xl py-6">
-              <MessageCircle size={20} className="mr-2" />
-              Contacter
-            </Button>
-            <Button variant="outline" className="flex-1 rounded-xl py-6 border-[#FF6B35] text-[#FF6B35]">
-              <Phone size={20} className="mr-2" />
-              Appeler
-            </Button>
-          </div>
+          {/* Single Contact Button */}
+          <Button 
+            onClick={() => onContact(product.seller)}
+            className="w-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:from-[#FF5722] hover:to-[#E91E63] rounded-xl py-6 text-lg"
+          >
+            <MessageCircle size={22} className="mr-2" />
+            Contacter le vendeur
+          </Button>
         </div>
       </motion.div>
     </motion.div>
@@ -111,7 +108,7 @@ const ProductDetailModal = ({ product, onClose, onReport }) => {
 };
 
 // Service Detail Modal Component
-const ServiceDetailModal = ({ service, onClose, onReport }) => {
+const ServiceDetailModal = ({ service, onClose, onReport, onContact }) => {
   if (!service) return null;
 
   return (
@@ -160,7 +157,7 @@ const ServiceDetailModal = ({ service, onClose, onReport }) => {
         {/* Content */}
         <div className="p-6">
           <h2 className="text-2xl font-bold text-[#1A1A2E] mb-2">{service.title}</h2>
-          <p className="text-2xl font-bold text-[#FF6B35] mb-4">{service.price_range}</p>
+          <p className="text-2xl font-bold text-[#00CED1] mb-4">{service.price_range}</p>
 
           <div className="flex items-center gap-2 text-gray-500 mb-4">
             <MapPin size={16} />
@@ -190,17 +187,14 @@ const ServiceDetailModal = ({ service, onClose, onReport }) => {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            <Button className="flex-1 bg-[#00CED1] hover:bg-[#00B5B5] rounded-xl py-6">
-              <Calendar size={20} className="mr-2" />
-              Réserver
-            </Button>
-            <Button variant="outline" className="flex-1 rounded-xl py-6 border-[#00CED1] text-[#00CED1]">
-              <MessageCircle size={20} className="mr-2" />
-              Contacter
-            </Button>
-          </div>
+          {/* Single Contact Button */}
+          <Button 
+            onClick={() => onContact(service.provider)}
+            className="w-full bg-gradient-to-r from-[#00CED1] to-[#006994] hover:from-[#00B5B5] hover:to-[#005580] rounded-xl py-6 text-lg"
+          >
+            <MessageCircle size={22} className="mr-2" />
+            Contacter le prestataire
+          </Button>
         </div>
       </motion.div>
     </motion.div>
@@ -306,6 +300,7 @@ const demoServices = [
 ];
 
 const MarketplacePage = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('products');
   const [products, setProducts] = useState(demoProducts);
   const [services, setServices] = useState(demoServices);
@@ -339,6 +334,32 @@ const MarketplacePage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Function to start a chat with the seller/provider
+  const handleContactSeller = async (seller) => {
+    if (!seller?.user_id) {
+      toast.error('Impossible de contacter ce vendeur');
+      return;
+    }
+    
+    try {
+      // Create or get existing conversation
+      const response = await chatApi.createConversation(seller.user_id);
+      const conversationId = response.data.conversation_id || response.data.id;
+      
+      // Navigate to chat with this conversation
+      navigate(`/chat?conversation=${conversationId}&user=${seller.user_id}`);
+      toast.success(`Conversation avec ${seller.name} ouverte`);
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      // If API fails, navigate to chat with user param
+      navigate(`/chat?user=${seller.user_id}`);
+    }
+    
+    // Close the modal
+    setSelectedProduct(null);
+    setSelectedService(null);
   };
 
   const formatPrice = (price, currency = 'XPF') => {
@@ -514,6 +535,7 @@ const MarketplacePage = () => {
               setSelectedProduct(null);
               setReportItem({ ...item, type: 'product' });
             }}
+            onContact={handleContactSeller}
           />
         )}
       </AnimatePresence>
@@ -528,6 +550,7 @@ const MarketplacePage = () => {
               setSelectedService(null);
               setReportItem({ ...item, type: 'service' });
             }}
+            onContact={handleContactSeller}
           />
         )}
       </AnimatePresence>
