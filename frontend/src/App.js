@@ -25,6 +25,13 @@ import AdminLoginPage from './pages/AdminLoginPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import EditProfilePage from './pages/EditProfilePage';
 import LegalPage from './pages/LegalPage';
+import GDPRSettingsPage from './pages/GDPRSettingsPage';
+import AdminAnalyticsPage from './pages/AdminAnalyticsPage';
+import AdminMonitoringPage from './pages/AdminMonitoringPage';
+import AdminModerationPage from './pages/AdminModerationPage';
+
+// Components
+import CookieBanner from './components/CookieBanner';
 
 // Layout
 import MainLayout from './components/layout/MainLayout';
@@ -203,6 +210,18 @@ function AppRouter() {
       {/* Admin Routes (no auth provider needed) */}
       <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+      <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
+      <Route path="/admin/monitoring" element={<AdminMonitoringPage />} />
+      <Route path="/admin/moderation" element={<AdminModerationPage />} />
+      
+      {/* GDPR Settings */}
+      <Route path="/privacy/settings" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <GDPRSettingsPage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
       
       {/* Legal Pages (public) */}
       <Route path="/legal" element={<LegalPage />} />
@@ -220,6 +239,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <AppRouter />
+        <CookieBanner />
         <Toaster position="top-center" richColors />
       </AuthProvider>
     </BrowserRouter>

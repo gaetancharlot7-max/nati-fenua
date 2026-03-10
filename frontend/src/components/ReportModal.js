@@ -6,18 +6,14 @@ import { Textarea } from './ui/textarea';
 import api from '../lib/api';
 import { toast } from 'sonner';
 
-// Report types matching backend
+// Report types matching backend moderation.py REPORT_CATEGORIES
 const REPORT_TYPES = [
-  { value: 'spam', label: 'Spam', icon: '📧', description: 'Contenu indésirable ou répétitif' },
-  { value: 'harassment', label: 'Harcèlement', icon: '😠', description: 'Intimidation ou menaces' },
-  { value: 'violence', label: 'Violence', icon: '⚠️', description: 'Menaces ou incitation à la violence' },
-  { value: 'nudity', label: 'Nudité', icon: '🔞', description: 'Contenu sexuel ou nudité' },
-  { value: 'hate_speech', label: 'Discours haineux', icon: '🚫', description: 'Discrimination ou haine' },
-  { value: 'scam', label: 'Arnaque', icon: '💰', description: 'Fraude ou arnaque' },
-  { value: 'fake_account', label: 'Faux compte', icon: '👤', description: 'Usurpation d\'identité' },
-  { value: 'intellectual_property', label: 'Propriété intellectuelle', icon: '©️', description: 'Violation de droits d\'auteur' },
-  { value: 'self_harm', label: 'Automutilation', icon: '🆘', description: 'Contenu lié au suicide ou automutilation', urgent: true },
-  { value: 'other', label: 'Autre', icon: '📝', description: 'Autre problème' },
+  { value: 'inappropriate', label: 'Contenu inapproprié', icon: '🔞', description: 'Contenu sexuel, violent ou choquant' },
+  { value: 'harassment', label: 'Harcèlement', icon: '😠', description: 'Harcèlement, intimidation ou menaces', urgent: true },
+  { value: 'spam', label: 'Spam', icon: '📧', description: 'Spam ou contenu non pertinent' },
+  { value: 'misinformation', label: 'Fausses informations', icon: '⚠️', description: 'Informations fausses ou trompeuses' },
+  { value: 'copyright', label: 'Droits d\'auteur', icon: '©️', description: 'Violation des droits d\'auteur' },
+  { value: 'other', label: 'Autre', icon: '📝', description: 'Autre type de problème' },
 ];
 
 // Report Modal Component
@@ -39,15 +35,16 @@ export const ReportModal = ({
 
     setSubmitting(true);
     try {
-      await api.post('/report', {
+      // Use the new moderation endpoint
+      await api.post('/moderation/report', {
         content_type: contentType,
         content_id: contentId,
-        report_type: selectedType,
+        category: selectedType,
         description: description.trim() || null
       });
 
       setSubmitted(true);
-      toast.success('Signalement envoyé');
+      toast.success('Signalement reçu, nous allons examiner ce contenu');
     } catch (error) {
       toast.error('Erreur lors du signalement');
     } finally {

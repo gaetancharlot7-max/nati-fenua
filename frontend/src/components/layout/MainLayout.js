@@ -250,7 +250,7 @@ const MainLayout = ({ children, hideNav = false }) => {
       </aside>
 
       {/* Desktop Top Bar */}
-      <header className="hidden lg:flex fixed top-0 left-72 right-0 h-16 bg-white/80 backdrop-blur-xl border-b border-gray-100 z-30 items-center justify-between px-6">
+      <header className="hidden lg:flex fixed top-0 left-72 right-72 h-16 bg-white/80 backdrop-blur-xl border-b border-gray-100 z-30 items-center justify-between px-6">
         <div className="flex-1 max-w-lg">
           <Link 
             to="/search"
@@ -266,6 +266,67 @@ const MainLayout = ({ children, hideNav = false }) => {
           <NotificationBell />
         </div>
       </header>
+
+      {/* Desktop Right Sidebar */}
+      <aside className="hidden lg:flex fixed right-0 top-0 bottom-0 w-72 flex-col bg-white/80 backdrop-blur-xl border-l border-gray-100 z-40">
+        <div className="p-6 border-b border-gray-100">
+          <h3 className="text-lg font-bold text-[#1A1A2E]">Raccourcis</h3>
+        </div>
+        
+        <div className="p-4 space-y-2">
+          {/* Profile Link */}
+          <Link
+            to="/profile"
+            data-testid="right-nav-profile"
+            className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
+              location.pathname === '/profile' 
+                ? 'bg-gradient-to-r from-[#FF6B35]/10 to-[#00CED1]/10 text-[#FF6B35] font-semibold' 
+                : 'text-[#1A1A2E] hover:bg-gray-100'
+            }`}
+          >
+            <User size={24} strokeWidth={1.5} />
+            <span>Mon Profil</span>
+          </Link>
+
+          {/* Live Link - Below Profile */}
+          <Link
+            to="/live"
+            data-testid="right-nav-live"
+            className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
+              location.pathname === '/live' 
+                ? 'bg-gradient-to-r from-[#FF6B35]/10 to-[#00CED1]/10 text-[#FF6B35] font-semibold' 
+                : 'text-[#1A1A2E] hover:bg-gray-100'
+            }`}
+          >
+            <Radio size={24} strokeWidth={1.5} />
+            <span>Live</span>
+            <span className="ml-auto px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-bold animate-pulse">
+              LIVE
+            </span>
+          </Link>
+
+          <div className="pt-4 border-t border-gray-100">
+            <p className="px-4 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Suggestions</p>
+            <div className="space-y-2">
+              {/* Suggested users placeholder */}
+              <div className="px-4 py-2 text-sm text-gray-500">
+                Découvrez des créateurs polynésiens
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-auto p-4 border-t border-gray-100">
+          <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs text-gray-400">
+            <Link to="/legal" className="hover:text-gray-600">CGU</Link>
+            <span>·</span>
+            <Link to="/legal#privacy" className="hover:text-gray-600">Confidentialité</Link>
+            <span>·</span>
+            <span>© 2024 Hui Fenua</span>
+          </div>
+        </div>
+      </aside>
 
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-14 glass z-30 flex items-center justify-between px-4">
@@ -289,7 +350,7 @@ const MainLayout = ({ children, hideNav = false }) => {
       </header>
 
       {/* Main Content */}
-      <main className={`lg:ml-72 lg:pt-16 pt-14 min-h-screen ${hideNav ? '' : 'pb-24 lg:pb-6'}`}>
+      <main className={`lg:ml-72 lg:mr-72 lg:pt-16 pt-14 min-h-screen ${hideNav ? '' : 'pb-24 lg:pb-6'}`}>
         {children}
       </main>
 

@@ -44,6 +44,15 @@ from media_processing import (
     MEDIA_SPECS, STORAGE_LIMITS
 )
 
+# Import moderation module
+from moderation import ModerationService, get_report_categories, REPORT_CATEGORIES
+
+# Import GDPR module
+from gdpr import GDPRService, get_consent_types, MINIMUM_AGE, PARENTAL_CONSENT_AGE
+
+# Import analytics module
+from analytics import AnalyticsService, MonitoringService
+
 ROOT_DIR = Path(__file__).parent
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -55,9 +64,24 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # Create the main app
-app = FastAPI(title="Fenua Social API")
+app = FastAPI(title="Hui Fenua API")
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
+
+# Initialize services
+moderation_service = None
+gdpr_service = None
+analytics_service = None
+monitoring_service = None
+
+def get_app_services():
+    global moderation_service, gdpr_service, analytics_service, monitoring_service
+    if moderation_service is None:
+        moderation_service = ModerationService(db)
+        gdpr_service = GDPRService(db)
+        analytics_service = AnalyticsService(db)
+        monitoring_service = MonitoringService(db)
+    return moderation_service, gdpr_service, analytics_service, monitoring_service
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -954,6 +978,34 @@ async def get_nearby_posts(lat: float, lng: float, radius_km: float = 50, limit:
             post["distance_km"] = round(2 * 6371 * math.asin(math.sqrt(a)), 1)
     
     return posts
+
+@api_router.get("/posts/paginated")
+async def get_paginated_posts(limit: int = 10, skip: int = 0):
+    """Get paginated posts for infinite scroll (optimized for slow connections)"""
+    posts = await db.posts.find(
+        {}, 
+        {"_id": 0}
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    for post in posts:
+        user = await db.users.find_one(
+            {"user_id": post["user_id"]}, 
+            {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "is_verified": 1}
+        )
+        post["user"] = user
+    
+    # Get total count for pagination info
+    total = await db.posts.count_documents({})
+    
+    return {
+        "posts": posts,
+        "pagination": {
+            "skip": skip,
+            "limit": limit,
+            "total": total,
+            "has_more": skip + limit < total
+        }
+    }
 
 @api_router.get("/posts/{post_id}")
 async def get_post(post_id: str):
@@ -2860,6 +2912,249 @@ async def get_user_storage(user_id: str, request: Request):
         "video_limit": STORAGE_LIMITS["max_reels_per_user"],
         "can_upload": storage_info["can_upload"]
     }
+
+# ==================== ENHANCED MODERATION ROUTES ====================
+
+@api_router.get("/moderation/categories")
+async def get_moderation_categories():
+    """Get available report categories"""
+    return get_report_categories()
+
+@api_router.post("/moderation/report")
+async def create_moderation_report(request: Request):
+    """Create a content report with full moderation system"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    moderation, _, _, _ = get_app_services()
+    
+    try:
+        result = await moderation.create_report(
+            reporter_id=user.user_id,
+            content_type=body.get("content_type"),
+            content_id=body.get("content_id"),
+            category=body.get("category"),
+            description=body.get("description"),
+            ip_hash=hash_ip(request.client.host) if request.client else None
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/admin/moderation/reports")
+async def get_moderation_reports(
+    request: Request,
+    status: Optional[str] = None,
+    priority: Optional[int] = None,
+    limit: int = 50,
+    skip: int = 0
+):
+    """Get moderation reports for admin"""
+    await verify_admin_token(request)
+    moderation, _, _, _ = get_app_services()
+    
+    return await moderation.get_reports(
+        status=status,
+        priority=priority,
+        limit=limit,
+        skip=skip
+    )
+
+@api_router.get("/admin/moderation/stats")
+async def get_moderation_stats(request: Request, days: int = 30):
+    """Get moderation statistics"""
+    await verify_admin_token(request)
+    moderation, _, _, _ = get_app_services()
+    
+    return await moderation.get_report_stats(days=days)
+
+@api_router.post("/admin/moderation/reports/{report_id}/resolve")
+async def resolve_moderation_report(report_id: str, request: Request):
+    """Resolve a moderation report with action"""
+    session = await verify_admin_token(request)
+    body = await request.json()
+    
+    moderation, _, _, _ = get_app_services()
+    
+    try:
+        result = await moderation.resolve_report(
+            report_id=report_id,
+            admin_id=session.get("admin_id"),
+            action=body.get("action", "dismiss"),
+            notes=body.get("notes")
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/admin/moderation/user/{user_id}/warnings")
+async def get_user_warnings(user_id: str, request: Request):
+    """Get warnings for a specific user"""
+    await verify_admin_token(request)
+    moderation, _, _, _ = get_app_services()
+    
+    return await moderation.get_user_warnings(user_id)
+
+# ==================== GDPR COMPLIANCE ROUTES ====================
+
+@api_router.get("/gdpr/consent-types")
+async def get_gdpr_consent_types():
+    """Get available consent types for registration"""
+    return get_consent_types()
+
+@api_router.post("/gdpr/consent")
+async def record_gdpr_consent(request: Request):
+    """Record user consent"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    _, gdpr, _, _ = get_app_services()
+    
+    try:
+        result = await gdpr.record_consent(
+            user_id=user.user_id,
+            consent_type=body.get("consent_type"),
+            granted=body.get("granted", False),
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent")
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/gdpr/my-consents")
+async def get_my_consents(request: Request):
+    """Get current user's consent status"""
+    user = await require_auth(request)
+    _, gdpr, _, _ = get_app_services()
+    
+    return await gdpr.get_user_consents(user.user_id)
+
+@api_router.post("/gdpr/export-data")
+async def request_data_export(request: Request):
+    """Request GDPR data export"""
+    user = await require_auth(request)
+    _, gdpr, _, _ = get_app_services()
+    
+    return await gdpr.request_data_export(user.user_id)
+
+@api_router.get("/gdpr/download-data")
+async def download_data(request: Request):
+    """Generate and download user data"""
+    user = await require_auth(request)
+    _, gdpr, _, _ = get_app_services()
+    
+    try:
+        result = await gdpr.generate_data_export(user.user_id)
+        if result["success"]:
+            from fastapi.responses import FileResponse
+            return FileResponse(
+                result["path"],
+                filename=result["filename"],
+                media_type="application/zip"
+            )
+        raise HTTPException(status_code=500, detail="Erreur lors de la génération")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/gdpr/request-deletion")
+async def request_account_deletion(request: Request):
+    """Request account deletion (30-day grace period)"""
+    user = await require_auth(request)
+    _, gdpr, _, _ = get_app_services()
+    
+    return await gdpr.request_account_deletion(user.user_id)
+
+@api_router.post("/gdpr/cancel-deletion")
+async def cancel_account_deletion(request: Request):
+    """Cancel pending account deletion"""
+    user = await require_auth(request)
+    _, gdpr, _, _ = get_app_services()
+    
+    return await gdpr.cancel_account_deletion(user.user_id)
+
+@api_router.post("/gdpr/validate-age")
+async def validate_age(request: Request):
+    """Validate age for registration"""
+    body = await request.json()
+    birth_date = body.get("birth_date")
+    
+    if not birth_date:
+        raise HTTPException(status_code=400, detail="Date de naissance requise")
+    
+    _, gdpr, _, _ = get_app_services()
+    valid, message, age = gdpr.validate_age(birth_date)
+    
+    return {
+        "valid": valid,
+        "message": message,
+        "age": age,
+        "requires_parental_consent": 13 <= age < 16 if valid else False
+    }
+
+# ==================== ANALYTICS & MONITORING ROUTES ====================
+
+@api_router.get("/admin/analytics")
+async def get_analytics_dashboard(request: Request):
+    """Get analytics dashboard data"""
+    await verify_admin_token(request)
+    _, _, analytics, _ = get_app_services()
+    
+    user_stats = await analytics.get_user_stats()
+    content_stats = await analytics.get_content_stats()
+    geo_stats = await analytics.get_geo_stats()
+    
+    return {
+        "users": user_stats,
+        "content": content_stats,
+        "geography": geo_stats
+    }
+
+@api_router.get("/admin/monitoring")
+async def get_monitoring_dashboard(request: Request):
+    """Get system monitoring data"""
+    await verify_admin_token(request)
+    _, _, _, monitoring = get_app_services()
+    
+    health = await monitoring.get_system_health()
+    alerts = await monitoring.check_alerts()
+    
+    return {
+        "health": health,
+        "alerts": alerts
+    }
+
+@api_router.get("/admin/monitoring/errors")
+async def get_recent_errors(request: Request, limit: int = 50):
+    """Get recent error logs"""
+    await verify_admin_token(request)
+    _, _, _, monitoring = get_app_services()
+    
+    return await monitoring.get_recent_errors(limit=limit)
+
+@api_router.get("/admin/analytics/users")
+async def get_user_analytics(request: Request, days: int = 30):
+    """Get detailed user analytics"""
+    await verify_admin_token(request)
+    _, _, analytics, _ = get_app_services()
+    
+    return await analytics.get_user_stats(days=days)
+
+@api_router.get("/admin/analytics/content")
+async def get_content_analytics(request: Request):
+    """Get detailed content analytics"""
+    await verify_admin_token(request)
+    _, _, analytics, _ = get_app_services()
+    
+    return await analytics.get_content_stats()
+
+@api_router.get("/admin/analytics/geography")
+async def get_geo_analytics(request: Request):
+    """Get geographic analytics"""
+    await verify_admin_token(request)
+    _, _, analytics, _ = get_app_services()
+    
+    return await analytics.get_geo_stats()
 
 # Include router AFTER all routes are defined
 app.include_router(api_router)

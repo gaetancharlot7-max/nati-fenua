@@ -10,9 +10,24 @@ const api = axios.create({
   }
 });
 
+// Request interceptor to add admin token for admin routes
+api.interceptors.request.use((config) => {
+  // Check if it's an admin route
+  if (config.url && config.url.includes('/admin')) {
+    const adminToken = localStorage.getItem('admin_token');
+    if (adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`;
+    }
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
 // Posts API
 export const postsApi = {
   getAll: (params) => api.get('/posts', { params }),
+  getPaginated: (params) => api.get('/posts/paginated', { params }),
   getNearby: (lat, lng, radiusKm = 50) => api.get(`/posts/nearby?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`),
   getOne: (postId) => api.get(`/posts/${postId}`),
   create: (data) => api.post('/posts', data),
@@ -116,6 +131,56 @@ export const securityApi = {
   getBlockedUsers: () => api.get('/blocked'),
   requestDataDownload: () => api.post('/privacy/data-request'),
   deleteAccount: (password) => api.delete('/account', { data: { password } })
+};
+
+// Moderation API (enhanced)
+export const moderationApi = {
+  getCategories: () => api.get('/moderation/categories'),
+  createReport: (data) => api.post('/moderation/report', data),
+};
+
+// GDPR API
+export const gdprApi = {
+  getConsentTypes: () => api.get('/gdpr/consent-types'),
+  recordConsent: (consentType, granted) => api.post('/gdpr/consent', { consent_type: consentType, granted }),
+  getMyConsents: () => api.get('/gdpr/my-consents'),
+  exportData: () => api.post('/gdpr/export-data'),
+  downloadData: () => api.get('/gdpr/download-data', { responseType: 'blob' }),
+  requestDeletion: () => api.post('/gdpr/request-deletion'),
+  cancelDeletion: () => api.post('/gdpr/cancel-deletion'),
+  validateAge: (birthDate) => api.post('/gdpr/validate-age', { birth_date: birthDate }),
+};
+
+// Admin API
+export const adminApi = {
+  login: (email, password) => api.post('/admin/login', { email, password }),
+  getDashboard: () => api.get('/admin/dashboard'),
+  // Moderation
+  getReports: (params) => api.get('/admin/moderation/reports', { params }),
+  getReportStats: (days = 30) => api.get(`/admin/moderation/stats?days=${days}`),
+  resolveReport: (reportId, action, notes) => api.post(`/admin/moderation/reports/${reportId}/resolve`, { action, notes }),
+  getUserWarnings: (userId) => api.get(`/admin/moderation/user/${userId}/warnings`),
+  // Analytics
+  getAnalytics: () => api.get('/admin/analytics'),
+  getUserAnalytics: (days = 30) => api.get(`/admin/analytics/users?days=${days}`),
+  getContentAnalytics: () => api.get('/admin/analytics/content'),
+  getGeoAnalytics: () => api.get('/admin/analytics/geography'),
+  // Monitoring
+  getMonitoring: () => api.get('/admin/monitoring'),
+  getErrors: (limit = 50) => api.get(`/admin/monitoring/errors?limit=${limit}`),
+  // Users
+  banUser: (userId) => api.post(`/admin/users/${userId}/ban`),
+  // Posts
+  deletePost: (postId) => api.delete(`/admin/posts/${postId}`),
+  // Lives
+  endLive: (liveId) => api.post(`/admin/lives/${liveId}/end`),
+  // Storage
+  getStorage: () => api.get('/admin/storage'),
+  triggerCleanup: () => api.post('/admin/storage/cleanup'),
+  deleteMedia: (mediaId) => api.delete(`/admin/media/${mediaId}`),
+  // Settings
+  updateModerationSettings: (data) => api.put('/admin/moderation/settings', data),
+  updateAdsSettings: (data) => api.put('/admin/ads/settings', data),
 };
 
 // Upload API

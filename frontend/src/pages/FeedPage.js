@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X, ChevronLeft, ChevronRight, Flag, Youtube, Link2, ExternalLink } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X, ChevronLeft, ChevronRight, Flag, Youtube, Link2, ExternalLink, WifiOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
@@ -10,6 +10,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { ShareModal } from '../components/ShareModal';
 import { ReportModal, BlockUserModal } from '../components/ReportModal';
+import { PostSkeleton, StoriesRowSkeleton, FeedSkeleton } from '../components/SkeletonLoader';
+import { LazyImage, LazyVideo, ConnectionStatus, useNetworkQuality } from '../components/LazyImage';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 
 // YouTube Embed Component
 const YouTubeEmbed = ({ videoId, onClick }) => {
