@@ -75,10 +75,10 @@ const LandingPage = () => {
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#00CED1] rounded-full blur-[150px] opacity-30 animate-pulse" style={{ animationDelay: '1s' }}></div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#FF1493] rounded-full blur-[200px] opacity-20"></div>
           
-          {/* Background image overlay */}
+          {/* Background image overlay - Huahine Island aerial view */}
           <div 
-            className="absolute inset-0 opacity-20 bg-cover bg-center"
-            style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1723958286930-b32795ed2bbd?w=1920)' }}
+            className="absolute inset-0 opacity-30 bg-cover bg-center"
+            style={{ backgroundImage: 'url(https://images.pexels.com/photos/34010769/pexels-photo-34010769.jpeg?auto=compress&cs=tinysrgb&w=1920)' }}
           ></div>
         </div>
 

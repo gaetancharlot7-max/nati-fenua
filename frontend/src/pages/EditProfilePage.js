@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Camera, User, MapPin, FileText, ArrowLeft, Save, X } from 'lucide-react';
+import { Camera, User, MapPin, FileText, ArrowLeft, Save, X, Eye, EyeOff, Lock } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -21,9 +21,30 @@ const EditProfilePage = () => {
     bio: user?.bio || '',
     location: user?.location || 'Polynésie Française'
   });
+  const [visibility, setVisibility] = useState({
+    show_photos: user?.profile_visibility?.show_photos ?? true,
+    show_posts: user?.profile_visibility?.show_posts ?? true,
+    is_private: user?.profile_visibility?.is_private ?? false
+  });
   const [previewImage, setPreviewImage] = useState(user?.picture || null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Update visibility settings
+  const handleVisibilityChange = async (key, value) => {
+    const newVisibility = { ...visibility, [key]: value };
+    setVisibility(newVisibility);
+    
+    try {
+      await axios.put(
+        `${API_URL}/api/users/visibility`,
+        { [key]: value },
+        { withCredentials: true }
+      );
+    } catch (error) {
+      console.error('Error updating visibility:', error);
+    }
+  };
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -192,6 +213,82 @@ const EditProfilePage = () => {
             data-testid="edit-location-input"
             className="rounded-xl border-gray-200 focus:border-[#FF6B35] py-6"
           />
+        </div>
+
+        {/* Profile Visibility Settings */}
+        <div className="bg-white rounded-3xl p-6 shadow-sm">
+          <Label className="text-gray-700 font-medium mb-4 flex items-center gap-2">
+            <Lock size={18} className="text-[#FF6B35]" />
+            Visibilité du profil
+          </Label>
+          
+          <div className="space-y-4">
+            {/* Show Photos Toggle */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+              <div className="flex items-center gap-3">
+                <Eye size={20} className="text-gray-600" />
+                <div>
+                  <p className="font-medium text-[#1A1A2E]">Afficher les photos</p>
+                  <p className="text-sm text-gray-500">Les visiteurs peuvent voir vos photos</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleVisibilityChange('show_photos', !visibility.show_photos)}
+                className={`w-12 h-7 rounded-full transition-all ${
+                  visibility.show_photos ? 'bg-[#FF6B35]' : 'bg-gray-300'
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                  visibility.show_photos ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+
+            {/* Show Posts Toggle */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+              <div className="flex items-center gap-3">
+                <Eye size={20} className="text-gray-600" />
+                <div>
+                  <p className="font-medium text-[#1A1A2E]">Afficher les publications</p>
+                  <p className="text-sm text-gray-500">Les visiteurs peuvent voir vos posts</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleVisibilityChange('show_posts', !visibility.show_posts)}
+                className={`w-12 h-7 rounded-full transition-all ${
+                  visibility.show_posts ? 'bg-[#FF6B35]' : 'bg-gray-300'
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                  visibility.show_posts ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+
+            {/* Private Profile Toggle */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+              <div className="flex items-center gap-3">
+                <Lock size={20} className="text-gray-600" />
+                <div>
+                  <p className="font-medium text-[#1A1A2E]">Profil privé</p>
+                  <p className="text-sm text-gray-500">Seuls vos amis peuvent voir votre contenu</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleVisibilityChange('is_private', !visibility.is_private)}
+                className={`w-12 h-7 rounded-full transition-all ${
+                  visibility.is_private ? 'bg-[#FF6B35]' : 'bg-gray-300'
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                  visibility.is_private ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Action Buttons */}

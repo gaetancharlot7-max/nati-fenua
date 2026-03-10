@@ -25,6 +25,13 @@ from security import (
     validate_password_strength
 )
 
+# Import media processing module
+from media_processing import (
+    compress_video, compress_image, check_user_storage_limits,
+    cleanup_expired_media, delete_post_media, get_storage_stats,
+    MEDIA_SPECS, STORAGE_LIMITS
+)
+
 ROOT_DIR = Path(__file__).parent
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -108,6 +115,13 @@ class UserBase(BaseModel):
     following_count: int = 0
     posts_count: int = 0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    # Profile visibility settings
+    profile_visibility: dict = Field(default_factory=lambda: {
+        "show_photos": True,
+        "show_posts": True,
+        "show_saved": True,
+        "is_private": False
+    })
 
 class UserCreate(BaseModel):
     email: str
@@ -1558,7 +1572,7 @@ async def update_my_profile(request: Request):
     else:
         # Handle JSON body
         body = await request.json()
-        allowed_fields = ["name", "bio", "location", "picture", "is_business"]
+        allowed_fields = ["name", "bio", "location", "picture", "is_business", "profile_visibility"]
         update_data = {k: v for k, v in body.items() if k in allowed_fields}
         
         if update_data:
@@ -1566,6 +1580,21 @@ async def update_my_profile(request: Request):
     
     updated_user = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "password_hash": 0})
     return updated_user
+
+@api_router.put("/users/visibility")
+async def update_profile_visibility(request: Request):
+    """Update profile visibility settings"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    allowed_settings = ["show_photos", "show_posts", "show_saved", "is_private"]
+    visibility_updates = {f"profile_visibility.{k}": v for k, v in body.items() if k in allowed_settings}
+    
+    if visibility_updates:
+        await db.users.update_one({"user_id": user.user_id}, {"$set": visibility_updates})
+    
+    updated_user = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "password_hash": 0})
+    return updated_user.get("profile_visibility", {})
 
 # ==================== ANALYTICS ROUTES ====================
 
@@ -1838,9 +1867,25 @@ async def websocket_live(websocket: WebSocket, live_id: str):
 # ==================== FILE UPLOAD ====================
 
 @api_router.post("/upload")
-async def upload_file(file: UploadFile = File(...), request: Request = None):
-    """Upload a file (image or video) and return its URL"""
+async def upload_file(
+    file: UploadFile = File(...), 
+    request: Request = None,
+    media_type: str = "video"  # video, story, photo
+):
+    """Upload a file (image or video) with automatic compression"""
     try:
+        # Get user for storage limits check
+        user = None
+        try:
+            user = await require_auth(request)
+            # Check storage limits
+            storage_check = await check_user_storage_limits(db, user.user_id)
+            if not storage_check["can_upload"]:
+                raise HTTPException(status_code=400, detail=storage_check["message"])
+        except HTTPException as auth_error:
+            # Allow anonymous uploads for now (could be restricted later)
+            pass
+        
         # Validate file type
         allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm']
         if file.content_type not in allowed_types:
@@ -1849,13 +1894,73 @@ async def upload_file(file: UploadFile = File(...), request: Request = None):
         # Generate unique filename
         file_ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
         unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
-        file_path = UPLOAD_DIR / unique_filename
+        temp_file_path = UPLOAD_DIR / f"temp_{unique_filename}"
+        final_file_path = UPLOAD_DIR / unique_filename
         
-        # Save file
-        with open(file_path, "wb") as buffer:
+        # Save original file to temp location
+        with open(temp_file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        # Use HTTPS and proper host from headers
+        # Get file size before compression
+        original_size_mb = os.path.getsize(temp_file_path) / (1024 * 1024)
+        
+        is_video = file.content_type.startswith('video/')
+        compression_result = {"success": True}
+        
+        if is_video:
+            # Compress video based on media type
+            output_filename = f"{uuid.uuid4().hex}.mp4"
+            output_path = UPLOAD_DIR / output_filename
+            
+            compression_result = await compress_video(
+                str(temp_file_path), 
+                str(output_path), 
+                media_type
+            )
+            
+            if compression_result["success"]:
+                # Remove temp file, use compressed version
+                os.remove(temp_file_path)
+                final_file_path = output_path
+                unique_filename = output_filename
+            else:
+                os.remove(temp_file_path)
+                raise HTTPException(status_code=400, detail=compression_result["message"])
+        else:
+            # Compress image to WebP
+            output_filename = f"{uuid.uuid4().hex}.webp"
+            output_path = UPLOAD_DIR / output_filename
+            
+            compression_result = await compress_image(
+                str(temp_file_path),
+                str(output_path)
+            )
+            
+            if compression_result["success"]:
+                os.remove(temp_file_path)
+                final_file_path = output_path
+                unique_filename = output_filename
+            else:
+                # If compression fails, use original
+                shutil.move(str(temp_file_path), str(final_file_path))
+        
+        # Calculate final size
+        final_size_mb = os.path.getsize(final_file_path) / (1024 * 1024)
+        
+        # Record media file in database
+        if user:
+            media_record = {
+                "media_id": f"media_{uuid.uuid4().hex[:12]}",
+                "user_id": user.user_id,
+                "file_path": f"/uploads/{unique_filename}",
+                "media_type": "photo" if not is_video else media_type,
+                "size_mb": round(final_size_mb, 2),
+                "original_size_mb": round(original_size_mb, 2),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.media_files.insert_one(media_record)
+        
+        # Build URL
         forwarded_proto = request.headers.get('x-forwarded-proto', 'https')
         forwarded_host = request.headers.get('x-forwarded-host', request.headers.get('host', ''))
         
@@ -1865,13 +1970,19 @@ async def upload_file(file: UploadFile = File(...), request: Request = None):
             base_url = str(request.base_url).rstrip('/').replace('http://', 'https://')
             file_url = f"{base_url}/api/uploads/{unique_filename}"
         
-        logger.info(f"File uploaded: {unique_filename}, URL: {file_url}")
+        compression_ratio = round((1 - final_size_mb / original_size_mb) * 100, 1) if original_size_mb > 0 else 0
+        
+        logger.info(f"File uploaded: {unique_filename}, Original: {original_size_mb:.2f}MB, Final: {final_size_mb:.2f}MB, Compression: {compression_ratio}%")
         
         return {
             "success": True,
             "url": file_url,
             "filename": unique_filename,
-            "content_type": file.content_type
+            "content_type": file.content_type,
+            "original_size_mb": round(original_size_mb, 2),
+            "final_size_mb": round(final_size_mb, 2),
+            "compression_ratio": compression_ratio,
+            "message": f"Fichier optimisé ({compression_ratio}% de compression)"
         }
     except HTTPException:
         raise
@@ -2439,6 +2550,69 @@ async def resolve_report(report_id: str, request: Request):
     
     logger.info(f"Report resolved: {report_id}, action: {action}")
     return {"success": True}
+
+@api_router.get("/admin/storage")
+async def admin_storage_stats(request: Request):
+    """Get storage statistics for admin dashboard"""
+    await verify_admin_token(request)
+    
+    stats = await get_storage_stats(db)
+    return stats
+
+@api_router.post("/admin/storage/cleanup")
+async def admin_trigger_cleanup(request: Request):
+    """Manually trigger storage cleanup"""
+    await verify_admin_token(request)
+    
+    deleted_count = await cleanup_expired_media(db)
+    return {"success": True, "deleted_files": deleted_count}
+
+@api_router.delete("/admin/media/{media_id}")
+async def admin_delete_media(media_id: str, request: Request):
+    """Delete a specific media file"""
+    await verify_admin_token(request)
+    
+    media = await db.media_files.find_one({"media_id": media_id})
+    if not media:
+        raise HTTPException(status_code=404, detail="Media non trouvé")
+    
+    # Delete file from disk
+    file_path = media.get("file_path", "").replace("/uploads/", "/app/uploads/")
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    
+    # Delete from database
+    await db.media_files.delete_one({"media_id": media_id})
+    
+    logger.info(f"Media deleted by admin: {media_id}")
+    return {"success": True}
+
+@api_router.get("/users/{user_id}/storage")
+async def get_user_storage(user_id: str, request: Request):
+    """Get storage usage for a specific user"""
+    user = await require_auth(request)
+    
+    # Only allow users to see their own storage or admin
+    if user.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    
+    storage_info = await check_user_storage_limits(db, user_id)
+    
+    # Get counts
+    media_files = await db.media_files.find({"user_id": user_id}).to_list(10000)
+    photo_count = sum(1 for m in media_files if m.get("media_type") == "photo")
+    video_count = sum(1 for m in media_files if m.get("media_type") in ["video", "reel", "story"])
+    
+    return {
+        "storage_used_mb": storage_info["storage_used_mb"],
+        "storage_limit_mb": STORAGE_LIMITS["max_storage_per_user_mb"],
+        "storage_remaining_mb": storage_info.get("storage_remaining_mb", 0),
+        "photo_count": photo_count,
+        "photo_limit": STORAGE_LIMITS["max_photos_per_user"],
+        "video_count": video_count,
+        "video_limit": STORAGE_LIMITS["max_reels_per_user"],
+        "can_upload": storage_info["can_upload"]
+    }
 
 # Include router AFTER all routes are defined
 app.include_router(api_router)

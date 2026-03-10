@@ -25,6 +25,8 @@ const CreatePostPage = () => {
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [compressionMessage, setCompressionMessage] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(() => {
@@ -196,15 +198,16 @@ const CreatePostPage = () => {
       return;
     }
 
-    // Validate video duration (max 30 seconds)
+    // Validate video duration (max 30 seconds for stories, 90 for videos)
     if (file.type.startsWith('video/')) {
+      const maxDuration = postType === 'story' ? 30 : 90;
       const video = document.createElement('video');
       video.preload = 'metadata';
       
       const durationCheck = new Promise((resolve, reject) => {
         video.onloadedmetadata = () => {
           window.URL.revokeObjectURL(video.src);
-          if (video.duration > 30) {
+          if (video.duration > maxDuration) {
             reject(new Error('Vidéo trop longue'));
           } else {
             resolve(video.duration);
@@ -218,7 +221,7 @@ const CreatePostPage = () => {
       try {
         await durationCheck;
       } catch (error) {
-        toast.error('La vidéo ne doit pas dépasser 30 secondes');
+        toast.error(`La vidéo ne doit pas dépasser ${maxDuration} secondes`);
         return;
       }
     }
@@ -227,19 +230,35 @@ const CreatePostPage = () => {
     const localPreview = URL.createObjectURL(file);
     setPreviewUrl(localPreview);
     setUploading(true);
+    setUploadProgress(0);
+    setCompressionMessage('Téléchargement en cours...');
 
     try {
-      const response = await uploadApi.uploadFile(file);
+      const mediaType = postType === 'story' ? 'story' : 'video';
+      
+      const response = await uploadApi.uploadFile(file, mediaType, (progress) => {
+        setUploadProgress(progress);
+        if (progress < 100) {
+          setCompressionMessage(`Téléchargement: ${progress}%`);
+        } else {
+          setCompressionMessage('Optimisation en cours...');
+        }
+      });
+      
       if (response.data.success) {
         setFormData({ ...formData, media_url: response.data.url });
-        toast.success('Fichier téléchargé !');
+        setCompressionMessage(response.data.message || 'Fichier optimisé !');
+        toast.success(response.data.message || 'Fichier téléchargé !');
       }
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Erreur lors du téléchargement');
+      const errorMsg = error.response?.data?.detail || 'Erreur lors du téléchargement';
+      toast.error(errorMsg);
+      setCompressionMessage('');
       setPreviewUrl('');
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -428,6 +447,24 @@ const CreatePostPage = () => {
                 <span className="text-sm font-medium text-gray-500">Via URL</span>
               </Button>
             </div>
+            
+            {/* Upload Progress Bar */}
+            {uploading && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">{compressionMessage}</span>
+                  <span className="text-[#FF6B35] font-medium">{uploadProgress}%</span>
+                </div>
+                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493]"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${uploadProgress}%` }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </div>
+              </div>
+            )}
             
             {/* Quick Select Demo Images */}
             <div className="mt-4">

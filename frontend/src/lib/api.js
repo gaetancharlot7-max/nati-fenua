@@ -120,16 +120,30 @@ export const securityApi = {
 
 // Upload API
 export const uploadApi = {
-  uploadFile: async (file) => {
+  uploadFile: async (file, mediaType = 'video', onProgress = null) => {
     const formData = new FormData();
     formData.append('file', file);
-    return api.post('/upload', formData, {
+    
+    return api.post(`/upload?media_type=${mediaType}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(progress);
+        }
       }
     });
   },
-  uploadBase64: (data, type) => api.post('/upload/base64', { data, type })
+  uploadBase64: (data, type) => api.post('/upload/base64', { data, type }),
+  getStorageUsage: () => api.get('/users/me/storage')
+};
+
+// Storage API
+export const storageApi = {
+  getUsage: (userId) => api.get(`/users/${userId}/storage`),
+  getMyUsage: () => api.get('/users/me/storage')
 };
 
 export default api;
