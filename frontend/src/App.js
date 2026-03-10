@@ -29,6 +29,8 @@ import GDPRSettingsPage from './pages/GDPRSettingsPage';
 import AdminAnalyticsPage from './pages/AdminAnalyticsPage';
 import AdminMonitoringPage from './pages/AdminMonitoringPage';
 import AdminModerationPage from './pages/AdminModerationPage';
+import PulsePage from './pages/PulsePage';
+import VendorDashboardPage from './pages/VendorDashboardPage';
 
 // Components
 import CookieBanner from './components/CookieBanner';
@@ -213,6 +215,24 @@ function AppRouter() {
       <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
       <Route path="/admin/monitoring" element={<AdminMonitoringPage />} />
       <Route path="/admin/moderation" element={<AdminModerationPage />} />
+      
+      {/* Fenua Pulse */}
+      <Route path="/pulse" element={
+        <ProtectedRoute>
+          <MainLayout hideNav>
+            <PulsePage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      {/* Vendor Dashboard */}
+      <Route path="/vendor" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <VendorDashboardPage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
       
       {/* GDPR Settings */}
       <Route path="/privacy/settings" element={

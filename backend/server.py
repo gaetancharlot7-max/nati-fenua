@@ -53,6 +53,18 @@ from gdpr import GDPRService, get_consent_types, MINIMUM_AGE, PARENTAL_CONSENT_A
 # Import analytics module
 from analytics import AnalyticsService, MonitoringService
 
+# Import Fenua Pulse module
+from fenua_pulse import (
+    FenuaPulseService, get_islands, get_marker_types, get_badges_list,
+    ISLANDS, MARKER_TYPES, BADGES, MANA_REWARDS
+)
+
+# Import Roulotte module
+from roulotte import (
+    RouletteService, get_payment_methods, get_cuisine_types,
+    PAYMENT_METHODS, CUISINE_TYPES
+)
+
 ROOT_DIR = Path(__file__).parent
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -73,15 +85,19 @@ moderation_service = None
 gdpr_service = None
 analytics_service = None
 monitoring_service = None
+pulse_service = None
+roulotte_service = None
 
 def get_app_services():
-    global moderation_service, gdpr_service, analytics_service, monitoring_service
+    global moderation_service, gdpr_service, analytics_service, monitoring_service, pulse_service, roulotte_service
     if moderation_service is None:
         moderation_service = ModerationService(db)
         gdpr_service = GDPRService(db)
         analytics_service = AnalyticsService(db)
         monitoring_service = MonitoringService(db)
-    return moderation_service, gdpr_service, analytics_service, monitoring_service
+        pulse_service = FenuaPulseService(db)
+        roulotte_service = RouletteService(db, pulse_service)
+    return moderation_service, gdpr_service, analytics_service, monitoring_service, pulse_service, roulotte_service
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -2926,7 +2942,7 @@ async def create_moderation_report(request: Request):
     user = await require_auth(request)
     body = await request.json()
     
-    moderation, _, _, _ = get_app_services()
+    moderation, _, _, _, _, _ = get_app_services()
     
     try:
         result = await moderation.create_report(
@@ -2951,7 +2967,7 @@ async def get_moderation_reports(
 ):
     """Get moderation reports for admin"""
     await verify_admin_token(request)
-    moderation, _, _, _ = get_app_services()
+    moderation, _, _, _, _, _ = get_app_services()
     
     return await moderation.get_reports(
         status=status,
@@ -2964,7 +2980,7 @@ async def get_moderation_reports(
 async def get_moderation_stats(request: Request, days: int = 30):
     """Get moderation statistics"""
     await verify_admin_token(request)
-    moderation, _, _, _ = get_app_services()
+    moderation, _, _, _, _, _ = get_app_services()
     
     return await moderation.get_report_stats(days=days)
 
@@ -2974,7 +2990,7 @@ async def resolve_moderation_report(report_id: str, request: Request):
     session = await verify_admin_token(request)
     body = await request.json()
     
-    moderation, _, _, _ = get_app_services()
+    moderation, _, _, _, _, _ = get_app_services()
     
     try:
         result = await moderation.resolve_report(
@@ -2991,7 +3007,7 @@ async def resolve_moderation_report(report_id: str, request: Request):
 async def get_user_warnings(user_id: str, request: Request):
     """Get warnings for a specific user"""
     await verify_admin_token(request)
-    moderation, _, _, _ = get_app_services()
+    moderation, _, _, _, _, _ = get_app_services()
     
     return await moderation.get_user_warnings(user_id)
 
@@ -3008,7 +3024,7 @@ async def record_gdpr_consent(request: Request):
     user = await require_auth(request)
     body = await request.json()
     
-    _, gdpr, _, _ = get_app_services()
+    _, gdpr, _, _, _, _ = get_app_services()
     
     try:
         result = await gdpr.record_consent(
@@ -3026,7 +3042,7 @@ async def record_gdpr_consent(request: Request):
 async def get_my_consents(request: Request):
     """Get current user's consent status"""
     user = await require_auth(request)
-    _, gdpr, _, _ = get_app_services()
+    _, gdpr, _, _, _, _ = get_app_services()
     
     return await gdpr.get_user_consents(user.user_id)
 
@@ -3034,7 +3050,7 @@ async def get_my_consents(request: Request):
 async def request_data_export(request: Request):
     """Request GDPR data export"""
     user = await require_auth(request)
-    _, gdpr, _, _ = get_app_services()
+    _, gdpr, _, _, _, _ = get_app_services()
     
     return await gdpr.request_data_export(user.user_id)
 
@@ -3042,7 +3058,7 @@ async def request_data_export(request: Request):
 async def download_data(request: Request):
     """Generate and download user data"""
     user = await require_auth(request)
-    _, gdpr, _, _ = get_app_services()
+    _, gdpr, _, _, _, _ = get_app_services()
     
     try:
         result = await gdpr.generate_data_export(user.user_id)
@@ -3061,7 +3077,7 @@ async def download_data(request: Request):
 async def request_account_deletion(request: Request):
     """Request account deletion (30-day grace period)"""
     user = await require_auth(request)
-    _, gdpr, _, _ = get_app_services()
+    _, gdpr, _, _, _, _ = get_app_services()
     
     return await gdpr.request_account_deletion(user.user_id)
 
@@ -3069,7 +3085,7 @@ async def request_account_deletion(request: Request):
 async def cancel_account_deletion(request: Request):
     """Cancel pending account deletion"""
     user = await require_auth(request)
-    _, gdpr, _, _ = get_app_services()
+    _, gdpr, _, _, _, _ = get_app_services()
     
     return await gdpr.cancel_account_deletion(user.user_id)
 
@@ -3082,7 +3098,7 @@ async def validate_age(request: Request):
     if not birth_date:
         raise HTTPException(status_code=400, detail="Date de naissance requise")
     
-    _, gdpr, _, _ = get_app_services()
+    _, gdpr, _, _, _, _ = get_app_services()
     valid, message, age = gdpr.validate_age(birth_date)
     
     return {
@@ -3098,7 +3114,7 @@ async def validate_age(request: Request):
 async def get_analytics_dashboard(request: Request):
     """Get analytics dashboard data"""
     await verify_admin_token(request)
-    _, _, analytics, _ = get_app_services()
+    _, _, analytics, _, _, _ = get_app_services()
     
     user_stats = await analytics.get_user_stats()
     content_stats = await analytics.get_content_stats()
@@ -3114,7 +3130,7 @@ async def get_analytics_dashboard(request: Request):
 async def get_monitoring_dashboard(request: Request):
     """Get system monitoring data"""
     await verify_admin_token(request)
-    _, _, _, monitoring = get_app_services()
+    _, _, _, monitoring, _, _ = get_app_services()
     
     health = await monitoring.get_system_health()
     alerts = await monitoring.check_alerts()
@@ -3128,7 +3144,7 @@ async def get_monitoring_dashboard(request: Request):
 async def get_recent_errors(request: Request, limit: int = 50):
     """Get recent error logs"""
     await verify_admin_token(request)
-    _, _, _, monitoring = get_app_services()
+    _, _, _, monitoring, _, _ = get_app_services()
     
     return await monitoring.get_recent_errors(limit=limit)
 
@@ -3136,7 +3152,7 @@ async def get_recent_errors(request: Request, limit: int = 50):
 async def get_user_analytics(request: Request, days: int = 30):
     """Get detailed user analytics"""
     await verify_admin_token(request)
-    _, _, analytics, _ = get_app_services()
+    _, _, analytics, _, _, _ = get_app_services()
     
     return await analytics.get_user_stats(days=days)
 
@@ -3144,7 +3160,7 @@ async def get_user_analytics(request: Request, days: int = 30):
 async def get_content_analytics(request: Request):
     """Get detailed content analytics"""
     await verify_admin_token(request)
-    _, _, analytics, _ = get_app_services()
+    _, _, analytics, _, _, _ = get_app_services()
     
     return await analytics.get_content_stats()
 
@@ -3152,9 +3168,342 @@ async def get_content_analytics(request: Request):
 async def get_geo_analytics(request: Request):
     """Get geographic analytics"""
     await verify_admin_token(request)
-    _, _, analytics, _ = get_app_services()
+    _, _, analytics, _, _, _ = get_app_services()
     
     return await analytics.get_geo_stats()
+
+# ==================== FENUA PULSE ROUTES ====================
+
+@api_router.get("/pulse/islands")
+async def get_pulse_islands():
+    """Get list of islands with coordinates"""
+    return get_islands()
+
+@api_router.get("/pulse/marker-types")
+async def get_pulse_marker_types():
+    """Get list of marker types"""
+    return get_marker_types()
+
+@api_router.get("/pulse/badges")
+async def get_all_badges():
+    """Get list of all available badges"""
+    return get_badges_list()
+
+@api_router.get("/pulse/status")
+async def get_pulse_status():
+    """Get current pulse status of the fenua"""
+    _, _, _, _, pulse, _ = get_app_services()
+    return await pulse.get_pulse_status()
+
+@api_router.get("/pulse/markers")
+async def get_pulse_markers(
+    types: Optional[str] = None,
+    island: Optional[str] = None,
+    lat: Optional[float] = None,
+    lng: Optional[float] = None,
+    radius_km: Optional[float] = None
+):
+    """Get active pulse markers"""
+    _, _, _, _, pulse, _ = get_app_services()
+    
+    marker_types = types.split(",") if types else None
+    
+    return await pulse.get_active_markers(
+        marker_types=marker_types,
+        island=island,
+        lat=lat,
+        lng=lng,
+        radius_km=radius_km
+    )
+
+@api_router.post("/pulse/markers")
+async def create_pulse_marker(request: Request):
+    """Create a new pulse marker"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    _, _, _, _, pulse, _ = get_app_services()
+    
+    try:
+        marker = await pulse.create_marker(
+            user_id=user.user_id,
+            marker_type=body.get("marker_type"),
+            lat=body.get("lat"),
+            lng=body.get("lng"),
+            title=body.get("title"),
+            description=body.get("description"),
+            photo_url=body.get("photo_url"),
+            extra_data=body.get("extra_data")
+        )
+        return marker
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.post("/pulse/markers/{marker_id}/confirm")
+async def confirm_pulse_marker(marker_id: str, request: Request):
+    """Confirm or deny a marker"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    _, _, _, _, pulse, _ = get_app_services()
+    
+    try:
+        return await pulse.confirm_marker(
+            marker_id=marker_id,
+            user_id=user.user_id,
+            is_confirmed=body.get("is_confirmed", True)
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.post("/pulse/markers/{marker_id}/close")
+async def close_pulse_marker(marker_id: str, request: Request):
+    """Close a marker (only creator)"""
+    user = await require_auth(request)
+    _, _, _, _, pulse, _ = get_app_services()
+    
+    try:
+        return await pulse.close_marker(marker_id, user.user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/pulse/leaderboard")
+async def get_pulse_leaderboard(island: Optional[str] = None):
+    """Get weekly leaderboard"""
+    _, _, _, _, pulse, _ = get_app_services()
+    return await pulse.get_weekly_leaderboard(island=island)
+
+@api_router.get("/pulse/stats")
+async def get_pulse_stats():
+    """Get fenua pulse statistics"""
+    _, _, _, _, pulse, _ = get_app_services()
+    return await pulse.get_fenua_stats()
+
+@api_router.get("/pulse/mana")
+async def get_user_mana(request: Request):
+    """Get current user's mana balance"""
+    user = await require_auth(request)
+    _, _, _, _, pulse, _ = get_app_services()
+    return await pulse.get_user_mana(user.user_id)
+
+@api_router.post("/pulse/mana/spend")
+async def spend_user_mana(request: Request):
+    """Spend mana points"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    _, _, _, _, pulse, _ = get_app_services()
+    
+    try:
+        return await pulse.spend_mana(
+            user_id=user.user_id,
+            amount=body.get("amount"),
+            reason=body.get("reason")
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/pulse/badges/me")
+async def get_my_badges(request: Request):
+    """Get current user's badges"""
+    user = await require_auth(request)
+    _, _, _, _, pulse, _ = get_app_services()
+    return await pulse.get_user_badges(user.user_id)
+
+# ==================== ROULOTTE ROUTES ====================
+
+@api_router.get("/roulotte/payment-methods")
+async def get_roulotte_payment_methods():
+    """Get available payment methods"""
+    return get_payment_methods()
+
+@api_router.get("/roulotte/cuisine-types")
+async def get_roulotte_cuisine_types():
+    """Get available cuisine types"""
+    return get_cuisine_types()
+
+@api_router.post("/roulotte/profile")
+async def create_vendor_profile(request: Request):
+    """Create or update vendor profile"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    _, _, _, _, _, roulotte = get_app_services()
+    
+    try:
+        return await roulotte.create_vendor_profile(
+            user_id=user.user_id,
+            name=body.get("name"),
+            description=body.get("description"),
+            cuisine_type=body.get("cuisine_type"),
+            photo_url=body.get("photo_url"),
+            phone=body.get("phone"),
+            payment_methods=body.get("payment_methods"),
+            usual_hours=body.get("usual_hours"),
+            usual_location=body.get("usual_location")
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/roulotte/profile/me")
+async def get_my_vendor_profile(request: Request):
+    """Get current user's vendor profile"""
+    user = await require_auth(request)
+    _, _, _, _, _, roulotte = get_app_services()
+    
+    profile = await roulotte.get_vendor_by_user(user.user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil vendeur non trouvé")
+    return profile
+
+@api_router.get("/roulotte/profile/{vendor_id}")
+async def get_vendor_profile(vendor_id: str):
+    """Get vendor profile by ID"""
+    _, _, _, _, _, roulotte = get_app_services()
+    
+    profile = await roulotte.get_vendor_profile(vendor_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Roulotte non trouvée")
+    return profile
+
+@api_router.post("/roulotte/open")
+async def open_roulotte(request: Request):
+    """Signal that roulotte is open"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    _, _, _, _, _, roulotte = get_app_services()
+    
+    try:
+        return await roulotte.open_roulotte(
+            user_id=user.user_id,
+            lat=body.get("lat"),
+            lng=body.get("lng"),
+            menu_today=body.get("menu_today")
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.post("/roulotte/close")
+async def close_roulotte(request: Request):
+    """Signal that roulotte is closed"""
+    user = await require_auth(request)
+    _, _, _, _, _, roulotte = get_app_services()
+    
+    try:
+        return await roulotte.close_roulotte(user.user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.post("/roulotte/extend")
+async def extend_roulotte_opening(request: Request):
+    """Extend opening time"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    _, _, _, _, _, roulotte = get_app_services()
+    
+    try:
+        return await roulotte.extend_opening(
+            user_id=user.user_id,
+            hours=body.get("hours", 2)
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.post("/roulotte/menu")
+async def add_menu_item(request: Request):
+    """Add item to menu"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    _, _, _, _, _, roulotte = get_app_services()
+    
+    try:
+        return await roulotte.add_menu_item(
+            user_id=user.user_id,
+            name=body.get("name"),
+            price=body.get("price"),
+            photo_url=body.get("photo_url"),
+            description=body.get("description")
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.delete("/roulotte/menu/{item_id}")
+async def remove_menu_item(item_id: str, request: Request):
+    """Remove item from menu"""
+    user = await require_auth(request)
+    _, _, _, _, _, roulotte = get_app_services()
+    
+    try:
+        return await roulotte.remove_menu_item(user.user_id, item_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.post("/roulotte/{vendor_id}/review")
+async def add_roulotte_review(vendor_id: str, request: Request):
+    """Add review for a roulotte"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    _, _, _, _, _, roulotte = get_app_services()
+    
+    try:
+        return await roulotte.add_review(
+            user_id=user.user_id,
+            vendor_id=vendor_id,
+            rating=body.get("rating"),
+            comment=body.get("comment")
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.post("/roulotte/{vendor_id}/subscribe")
+async def subscribe_to_roulotte(vendor_id: str, request: Request):
+    """Subscribe/unsubscribe to a roulotte"""
+    user = await require_auth(request)
+    _, _, _, _, _, roulotte = get_app_services()
+    
+    return await roulotte.subscribe_to_roulotte(user.user_id, vendor_id)
+
+@api_router.get("/roulotte/subscriptions")
+async def get_my_roulotte_subscriptions(request: Request):
+    """Get user's roulotte subscriptions"""
+    user = await require_auth(request)
+    _, _, _, _, _, roulotte = get_app_services()
+    
+    return await roulotte.get_user_subscriptions(user.user_id)
+
+@api_router.get("/roulotte/search")
+async def search_roulottes(
+    q: Optional[str] = None,
+    cuisine: Optional[str] = None,
+    is_open: Optional[bool] = None,
+    min_rating: Optional[float] = None,
+    limit: int = 20
+):
+    """Search for roulottes"""
+    _, _, _, _, _, roulotte = get_app_services()
+    
+    return await roulotte.search_roulottes(
+        query=q,
+        cuisine_type=cuisine,
+        is_open=is_open,
+        min_rating=min_rating,
+        limit=limit
+    )
+
+@api_router.get("/roulotte/open")
+async def get_open_roulottes(
+    lat: Optional[float] = None,
+    lng: Optional[float] = None,
+    radius_km: float = 10
+):
+    """Get currently open roulottes"""
+    _, _, _, _, _, roulotte = get_app_services()
+    
+    return await roulotte.get_open_roulottes(lat=lat, lng=lng, radius_km=radius_km)
 
 # Include router AFTER all routes are defined
 app.include_router(api_router)

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone, Shield, Settings, LogOut, ChevronUp } from 'lucide-react';
+import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone, Shield, Settings, LogOut, ChevronUp, MapPin, Truck } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -47,6 +47,7 @@ const MainLayout = ({ children, hideNav = false }) => {
 
   const navItems = [
     { icon: Home, label: 'Accueil', path: '/feed' },
+    { icon: MapPin, label: 'Pulse', path: '/pulse', highlight: true },
     { icon: Radio, label: 'Live', path: '/live' },
     { icon: Plus, label: 'Créer', path: '/create', isCreate: true },
     { icon: ShoppingBag, label: 'Marché', path: '/marketplace' },
@@ -303,6 +304,20 @@ const MainLayout = ({ children, hideNav = false }) => {
             <span className="ml-auto px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-bold animate-pulse">
               LIVE
             </span>
+          </Link>
+
+          {/* Vendor Dashboard Link */}
+          <Link
+            to="/vendor"
+            data-testid="right-nav-vendor"
+            className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
+              location.pathname === '/vendor' 
+                ? 'bg-gradient-to-r from-[#FF6B35]/10 to-[#00CED1]/10 text-[#FF6B35] font-semibold' 
+                : 'text-[#1A1A2E] hover:bg-gray-100'
+            }`}
+          >
+            <Truck size={24} strokeWidth={1.5} />
+            <span>Ma Roulotte</span>
           </Link>
 
           <div className="pt-4 border-t border-gray-100">

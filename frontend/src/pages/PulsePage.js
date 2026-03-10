@@ -1,0 +1,895 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  MapPin, Navigation, Filter, Plus, X, Truck, Flame, Waves, 
+  Calendar, Video, Cloud, ShoppingBag, Check, AlertTriangle,
+  Star, Phone, Clock, Users, Trophy, Award, Zap, ChevronRight,
+  Camera, Send, ThumbsUp, ThumbsDown, Loader2
+} from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
+import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
+import api from '../lib/api';
+
+// Marker icons mapping
+const MARKER_ICONS = {
+  truck: Truck,
+  flame: Flame,
+  waves: Waves,
+  calendar: Calendar,
+  video: Video,
+  cloud: Cloud,
+  'shopping-bag': ShoppingBag,
+  'map-pin': MapPin
+};
+
+// Pulse Page Component
+const PulsePage = () => {
+  const { user } = useAuth();
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markersLayerRef = useRef(null);
+  
+  const [islands, setIslands] = useState([]);
+  const [markerTypes, setMarkerTypes] = useState([]);
+  const [markers, setMarkers] = useState([]);
+  const [pulseStatus, setPulseStatus] = useState(null);
+  const [selectedIsland, setSelectedIsland] = useState('tahiti');
+  const [activeFilters, setActiveFilters] = useState([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showMarkerDetail, setShowMarkerDetail] = useState(null);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [userLocation, setUserLocation] = useState(null);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [manaBalance, setManaBalance] = useState(0);
+
+  // Load initial data
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  // Initialize map
+  useEffect(() => {
+    if (islands.length > 0 && !mapInstanceRef.current) {
+      initMap();
+    }
+  }, [islands]);
+
+  // Reload markers when filters change
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      loadMarkers();
+    }
+  }, [activeFilters, selectedIsland]);
+
+  const loadInitialData = async () => {
+    try {
+      const [islandsRes, typesRes, statusRes] = await Promise.all([
+        api.get('/pulse/islands'),
+        api.get('/pulse/marker-types'),
+        api.get('/pulse/status')
+      ]);
+      
+      setIslands(islandsRes.data);
+      setMarkerTypes(typesRes.data);
+      setPulseStatus(statusRes.data);
+      
+      // Load mana if logged in
+      if (user) {
+        try {
+          const manaRes = await api.get('/pulse/mana');
+          setManaBalance(manaRes.data.balance || 0);
+        } catch (e) {
+          console.error('Error loading mana:', e);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading pulse data:', error);
+      toast.error('Erreur de chargement');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const initMap = () => {
+    // Load Leaflet CSS
+    if (!document.querySelector('link[href*="leaflet"]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
+
+    // Load Leaflet JS
+    if (!window.L) {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.onload = () => createMap();
+      document.head.appendChild(script);
+    } else {
+      createMap();
+    }
+  };
+
+  const createMap = () => {
+    if (mapInstanceRef.current) return;
+
+    const tahiti = islands.find(i => i.id === 'tahiti') || { lat: -17.6509, lng: -149.4260, zoom: 11 };
+    
+    const map = window.L.map(mapRef.current, {
+      zoomControl: false
+    }).setView([tahiti.lat, tahiti.lng], tahiti.zoom);
+
+    // Add tile layer (OpenStreetMap)
+    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Add zoom control to top right
+    window.L.control.zoom({ position: 'topright' }).addTo(map);
+
+    // Create markers layer
+    markersLayerRef.current = window.L.layerGroup().addTo(map);
+
+    mapInstanceRef.current = map;
+    
+    // Load markers
+    loadMarkers();
+  };
+
+  const loadMarkers = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (activeFilters.length > 0) {
+        params.append('types', activeFilters.join(','));
+      }
+      if (selectedIsland) {
+        params.append('island', selectedIsland);
+      }
+      
+      const response = await api.get(`/pulse/markers?${params.toString()}`);
+      setMarkers(response.data);
+      
+      // Update map markers
+      if (markersLayerRef.current && window.L) {
+        markersLayerRef.current.clearLayers();
+        
+        response.data.forEach(marker => {
+          const markerType = markerTypes.find(t => t.type === marker.marker_type) || {};
+          
+          // Create custom icon
+          const iconHtml = `
+            <div style="
+              background-color: ${marker.color || markerType.color || '#FF6B35'};
+              width: 36px;
+              height: 36px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border: 3px solid white;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+              ${marker.is_verified ? 'border-color: #22C55E;' : ''}
+            ">
+              <span style="color: white; font-size: 16px;">
+                ${getMarkerEmoji(marker.marker_type)}
+              </span>
+            </div>
+          `;
+          
+          const icon = window.L.divIcon({
+            html: iconHtml,
+            className: 'custom-marker',
+            iconSize: [36, 36],
+            iconAnchor: [18, 18]
+          });
+          
+          const leafletMarker = window.L.marker([marker.lat, marker.lng], { icon })
+            .addTo(markersLayerRef.current)
+            .on('click', () => setShowMarkerDetail(marker));
+        });
+      }
+    } catch (error) {
+      console.error('Error loading markers:', error);
+    }
+  };
+
+  const getMarkerEmoji = (type) => {
+    const emojis = {
+      roulotte: '🚚',
+      accident: '🔥',
+      surf: '🌊',
+      event: '📅',
+      live: '📹',
+      weather: '☁️',
+      market: '🛍️',
+      other: '📍'
+    };
+    return emojis[type] || '📍';
+  };
+
+  const navigateToIsland = (islandId) => {
+    const island = islands.find(i => i.id === islandId);
+    if (island && mapInstanceRef.current) {
+      mapInstanceRef.current.setView([island.lat, island.lng], island.zoom);
+      setSelectedIsland(islandId);
+    }
+  };
+
+  const toggleFilter = (type) => {
+    setActiveFilters(prev => 
+      prev.includes(type) 
+        ? prev.filter(t => t !== type)
+        : [...prev, type]
+    );
+  };
+
+  const goToMyLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
+          
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.setView([latitude, longitude], 15);
+            
+            // Add user location marker
+            if (window.L) {
+              const userIcon = window.L.divIcon({
+                html: `<div style="
+                  width: 20px;
+                  height: 20px;
+                  background: #3B82F6;
+                  border: 3px solid white;
+                  border-radius: 50%;
+                  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+                "></div>`,
+                className: 'user-location-marker',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+              });
+              
+              window.L.marker([latitude, longitude], { icon: userIcon })
+                .addTo(mapInstanceRef.current)
+                .bindPopup('Vous êtes ici');
+            }
+          }
+          
+          toast.success('Position trouvée !');
+        },
+        (error) => {
+          toast.error('Impossible d\'obtenir votre position');
+        }
+      );
+    }
+  };
+
+  const loadLeaderboard = async () => {
+    try {
+      const response = await api.get(`/pulse/leaderboard?island=${selectedIsland}`);
+      setLeaderboard(response.data);
+      setShowLeaderboard(true);
+    } catch (error) {
+      console.error('Error loading leaderboard:', error);
+    }
+  };
+
+  const confirmMarker = async (markerId, isConfirmed) => {
+    try {
+      await api.post(`/pulse/markers/${markerId}/confirm`, { is_confirmed: isConfirmed });
+      toast.success(isConfirmed ? 'Signalement confirmé !' : 'Signalement marqué comme faux');
+      loadMarkers();
+      setShowMarkerDetail(null);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#FF6B35] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Chargement de Fenua Pulse...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen flex flex-col bg-gray-100 overflow-hidden">
+      {/* Header with Pulse Status */}
+      <div className="bg-white shadow-sm z-20 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
+              style={{ backgroundColor: pulseStatus?.color + '20' }}
+            >
+              {pulseStatus?.emoji}
+            </div>
+            <div>
+              <h1 className="font-bold text-[#1A1A2E]">Fenua Pulse</h1>
+              <p className="text-sm text-gray-500">{pulseStatus?.text}</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {/* Mana Balance */}
+            {user && (
+              <div className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-purple-100 to-pink-100 rounded-full">
+                <Zap size={16} className="text-purple-500" />
+                <span className="font-bold text-purple-700">{manaBalance}</span>
+                <span className="text-xs text-purple-500">Mana</span>
+              </div>
+            )}
+            
+            {/* Leaderboard Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={loadLeaderboard}
+              className="rounded-xl"
+            >
+              <Trophy size={20} className="text-[#FF6B35]" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Island Navigation */}
+        <div className="flex gap-2 mt-3 overflow-x-auto hide-scrollbar pb-1">
+          {islands.map(island => (
+            <button
+              key={island.id}
+              onClick={() => navigateToIsland(island.id)}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                selectedIsland === island.id
+                  ? 'bg-[#FF6B35] text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {island.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white/80 backdrop-blur-sm px-4 py-2 flex gap-2 overflow-x-auto hide-scrollbar z-10 border-b">
+        {markerTypes.map(type => {
+          const isActive = activeFilters.includes(type.type);
+          return (
+            <button
+              key={type.type}
+              onClick={() => toggleFilter(type.type)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                isActive
+                  ? 'text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              style={isActive ? { backgroundColor: type.color } : {}}
+            >
+              <span>{getMarkerEmoji(type.type)}</span>
+              {type.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Map Container */}
+      <div className="flex-1 relative">
+        <div ref={mapRef} className="w-full h-full" />
+        
+        {/* My Location Button */}
+        <button
+          onClick={goToMyLocation}
+          className="absolute bottom-24 right-4 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 z-10"
+          data-testid="my-location-btn"
+        >
+          <Navigation size={22} className="text-[#3B82F6]" />
+        </button>
+
+        {/* Create Signal Button */}
+        {user && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="absolute bottom-24 left-4 w-14 h-14 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] rounded-full shadow-lg flex items-center justify-center hover:opacity-90 z-10"
+            data-testid="create-signal-btn"
+          >
+            <Plus size={28} className="text-white" />
+          </button>
+        )}
+
+        {/* Active Markers Count */}
+        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg z-10">
+          <p className="text-sm font-medium text-[#1A1A2E]">
+            {markers.length} signalement{markers.length > 1 ? 's' : ''} actif{markers.length > 1 ? 's' : ''}
+          </p>
+        </div>
+      </div>
+
+      {/* Create Signal Modal */}
+      <CreateSignalModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        markerTypes={markerTypes}
+        userLocation={userLocation}
+        onSuccess={() => {
+          loadMarkers();
+          loadInitialData();
+        }}
+      />
+
+      {/* Marker Detail Modal */}
+      <MarkerDetailModal
+        marker={showMarkerDetail}
+        onClose={() => setShowMarkerDetail(null)}
+        onConfirm={confirmMarker}
+        currentUserId={user?.user_id}
+      />
+
+      {/* Leaderboard Modal */}
+      <LeaderboardModal
+        isOpen={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
+        leaderboard={leaderboard}
+        selectedIsland={selectedIsland}
+        islands={islands}
+      />
+    </div>
+  );
+};
+
+// Create Signal Modal
+const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSuccess }) => {
+  const [step, setStep] = useState(1);
+  const [selectedType, setSelectedType] = useState(null);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [location, setLocation] = useState(userLocation);
+  const [loading, setLoading] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && !location) {
+      getLocation();
+    }
+  }, [isOpen]);
+
+  const getLocation = () => {
+    if (navigator.geolocation) {
+      setGettingLocation(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+          setGettingLocation(false);
+        },
+        () => {
+          toast.error('Position GPS requise pour signaler');
+          setGettingLocation(false);
+        }
+      );
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedType || !title || !location) {
+      toast.error('Veuillez remplir tous les champs');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.post('/pulse/markers', {
+        marker_type: selectedType,
+        lat: location.lat,
+        lng: location.lng,
+        title,
+        description
+      });
+      
+      toast.success('Signalement créé ! +5 Mana');
+      onSuccess();
+      onClose();
+      resetForm();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur lors de la création');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setStep(1);
+    setSelectedType(null);
+    setTitle('');
+    setDescription('');
+  };
+
+  const getMarkerEmoji = (type) => {
+    const emojis = {
+      roulotte: '🚚',
+      accident: '🔥',
+      surf: '🌊',
+      event: '📅',
+      live: '📹',
+      weather: '☁️',
+      market: '🛍️',
+      other: '📍'
+    };
+    return emojis[type] || '📍';
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center justify-center"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '100%' }}
+          onClick={(e) => e.stopPropagation()}
+          className="bg-white w-full lg:w-[500px] lg:rounded-3xl rounded-t-3xl max-h-[85vh] overflow-hidden"
+        >
+          <div className="flex items-center justify-between p-4 border-b">
+            <h2 className="text-lg font-bold text-[#1A1A2E]">
+              {step === 1 ? 'Nouveau signalement' : 'Détails'}
+            </h2>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="p-4 overflow-y-auto max-h-[60vh]">
+            {/* Step 1: Choose type */}
+            {step === 1 && (
+              <div className="grid grid-cols-2 gap-3">
+                {markerTypes.filter(t => t.type !== 'roulotte').map(type => (
+                  <button
+                    key={type.type}
+                    onClick={() => {
+                      setSelectedType(type.type);
+                      setStep(2);
+                    }}
+                    className="p-4 rounded-2xl border-2 hover:border-[#FF6B35] transition-colors flex flex-col items-center gap-2"
+                    style={{ borderColor: selectedType === type.type ? type.color : '#e5e7eb' }}
+                  >
+                    <span className="text-3xl">{getMarkerEmoji(type.type)}</span>
+                    <span className="text-sm font-medium text-center">{type.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Step 2: Details */}
+            {step === 2 && (
+              <div className="space-y-4">
+                {/* Location Status */}
+                <div className={`p-3 rounded-xl flex items-center gap-3 ${location ? 'bg-green-50' : 'bg-yellow-50'}`}>
+                  {gettingLocation ? (
+                    <>
+                      <Loader2 size={20} className="animate-spin text-yellow-500" />
+                      <span className="text-yellow-700">Localisation en cours...</span>
+                    </>
+                  ) : location ? (
+                    <>
+                      <Check size={20} className="text-green-500" />
+                      <span className="text-green-700">Position GPS détectée</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle size={20} className="text-yellow-500" />
+                      <span className="text-yellow-700">Position GPS requise</span>
+                      <button onClick={getLocation} className="ml-auto text-sm text-[#FF6B35] font-medium">
+                        Réessayer
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Title */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Titre</label>
+                  <Input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Ex: Grosse houle à Teahupo'o"
+                    className="rounded-xl"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Description (optionnel)</label>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Ajoutez des détails..."
+                    className="rounded-xl resize-none"
+                    rows={3}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="p-4 border-t flex gap-3">
+            {step === 2 && (
+              <Button
+                variant="outline"
+                onClick={() => setStep(1)}
+                className="flex-1 rounded-xl"
+              >
+                Retour
+              </Button>
+            )}
+            {step === 2 && (
+              <Button
+                onClick={handleSubmit}
+                disabled={loading || !location || !title}
+                className="flex-1 rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493]"
+              >
+                {loading ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <>
+                    <Send size={18} className="mr-2" />
+                    Signaler
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+// Marker Detail Modal
+const MarkerDetailModal = ({ marker, onClose, onConfirm, currentUserId }) => {
+  if (!marker) return null;
+
+  const canVote = currentUserId && 
+    !marker.confirmed_by?.includes(currentUserId) && 
+    !marker.denied_by?.includes(currentUserId) &&
+    marker.user_id !== currentUserId;
+
+  const getMarkerEmoji = (type) => {
+    const emojis = {
+      roulotte: '🚚',
+      accident: '🔥',
+      surf: '🌊',
+      event: '📅',
+      live: '📹',
+      weather: '☁️',
+      market: '🛍️',
+      other: '📍'
+    };
+    return emojis[type] || '📍';
+  };
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center justify-center"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '100%' }}
+          onClick={(e) => e.stopPropagation()}
+          className="bg-white w-full lg:w-[450px] lg:rounded-3xl rounded-t-3xl overflow-hidden"
+        >
+          {/* Header */}
+          <div 
+            className="p-4 text-white"
+            style={{ backgroundColor: marker.color }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">{getMarkerEmoji(marker.marker_type)}</span>
+                <div>
+                  <h2 className="font-bold text-lg">{marker.title}</h2>
+                  <p className="text-white/80 text-sm">
+                    {new Date(marker.created_at).toLocaleString('fr-FR')}
+                  </p>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+
+          <div className="p-4 space-y-4">
+            {/* Verified Badge */}
+            {marker.is_verified && (
+              <div className="flex items-center gap-2 p-3 bg-green-50 rounded-xl text-green-700">
+                <Check size={20} />
+                <span className="font-medium">Signalement vérifié par la communauté</span>
+              </div>
+            )}
+
+            {/* Description */}
+            {marker.description && (
+              <p className="text-gray-700">{marker.description}</p>
+            )}
+
+            {/* Photo */}
+            {marker.photo_url && (
+              <img 
+                src={marker.photo_url} 
+                alt={marker.title}
+                className="w-full rounded-xl"
+              />
+            )}
+
+            {/* Reporter */}
+            {marker.user && (
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                <Avatar className="w-10 h-10 rounded-xl">
+                  <AvatarImage src={marker.user.picture} className="rounded-xl" />
+                  <AvatarFallback className="bg-[#FF6B35] text-white rounded-xl">
+                    {marker.user.name?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium text-[#1A1A2E]">{marker.user.name}</p>
+                  <p className="text-xs text-gray-500">A signalé ceci</p>
+                </div>
+              </div>
+            )}
+
+            {/* Confirmations */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+              <div className="flex items-center gap-2">
+                <ThumbsUp size={18} className="text-green-500" />
+                <span className="text-sm">{marker.confirmations || 0} confirmation{marker.confirmations > 1 ? 's' : ''}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ThumbsDown size={18} className="text-red-500" />
+                <span className="text-sm">{marker.denied_by?.length || 0} contestation{marker.denied_by?.length > 1 ? 's' : ''}</span>
+              </div>
+            </div>
+
+            {/* Vote Buttons */}
+            {canVote && (
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => onConfirm(marker.marker_id, true)}
+                  className="flex-1 bg-green-500 hover:bg-green-600 rounded-xl"
+                >
+                  <ThumbsUp size={18} className="mr-2" />
+                  C'est vrai !
+                </Button>
+                <Button
+                  onClick={() => onConfirm(marker.marker_id, false)}
+                  variant="outline"
+                  className="flex-1 border-red-300 text-red-600 hover:bg-red-50 rounded-xl"
+                >
+                  <ThumbsDown size={18} className="mr-2" />
+                  Faux / Résolu
+                </Button>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+// Leaderboard Modal
+const LeaderboardModal = ({ isOpen, onClose, leaderboard, selectedIsland, islands }) => {
+  if (!isOpen) return null;
+
+  const islandName = islands.find(i => i.id === selectedIsland)?.name || selectedIsland;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          onClick={(e) => e.stopPropagation()}
+          className="bg-white w-full max-w-md rounded-3xl overflow-hidden"
+        >
+          <div className="p-4 border-b bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Trophy size={24} />
+                <div>
+                  <h2 className="font-bold text-lg">Classement</h2>
+                  <p className="text-white/80 text-sm">{islandName} - Cette semaine</p>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+
+          <div className="p-4 max-h-[60vh] overflow-y-auto">
+            {leaderboard.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">
+                Aucun contributeur cette semaine
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {leaderboard.map((entry, index) => (
+                  <div
+                    key={entry.user?.user_id || index}
+                    className={`flex items-center gap-4 p-3 rounded-xl ${
+                      index === 0 ? 'bg-yellow-50 border-2 border-yellow-300' :
+                      index === 1 ? 'bg-gray-100 border-2 border-gray-300' :
+                      index === 2 ? 'bg-orange-50 border-2 border-orange-300' :
+                      'bg-gray-50'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                      index === 0 ? 'bg-yellow-400 text-white' :
+                      index === 1 ? 'bg-gray-400 text-white' :
+                      index === 2 ? 'bg-orange-400 text-white' :
+                      'bg-gray-200 text-gray-600'
+                    }`}>
+                      {entry.rank}
+                    </div>
+                    
+                    <Avatar className="w-12 h-12 rounded-xl">
+                      <AvatarImage src={entry.user?.picture} className="rounded-xl" />
+                      <AvatarFallback className="bg-[#FF6B35] text-white rounded-xl">
+                        {entry.user?.name?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="flex-1">
+                      <p className="font-bold text-[#1A1A2E]">{entry.user?.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {entry.confirmed_count} confirmés · {entry.verified_count} vérifiés
+                      </p>
+                    </div>
+                    
+                    <div className="text-right">
+                      <p className="font-bold text-[#FF6B35]">{entry.user?.mana_points || 0}</p>
+                      <p className="text-xs text-gray-500">Mana</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+export default PulsePage;
