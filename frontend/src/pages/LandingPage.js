@@ -77,7 +77,7 @@ const LandingPage = () => {
           
           {/* Background image overlay - Huahine Island aerial view */}
           <div 
-            className="absolute inset-0 opacity-30 bg-cover bg-center"
+            className="absolute inset-0 opacity-50 bg-cover bg-center"
             style={{ backgroundImage: 'url(https://images.pexels.com/photos/34010769/pexels-photo-34010769.jpeg?auto=compress&cs=tinysrgb&w=1920)' }}
           ></div>
         </div>

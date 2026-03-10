@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Camera, User, MapPin, FileText, ArrowLeft, Save, X, Eye, EyeOff, Lock } from 'lucide-react';
+import { Camera, User, MapPin, FileText, ArrowLeft, Save, X, Eye, EyeOff, Lock, Trash2, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -13,7 +13,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const EditProfilePage = () => {
   const navigate = useNavigate();
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const fileInputRef = useRef(null);
   
   const [formData, setFormData] = useState({
@@ -29,6 +29,27 @@ const EditProfilePage = () => {
   const [previewImage, setPreviewImage] = useState(user?.picture || null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Handle account deletion
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    try {
+      await axios.delete(`${API_URL}/api/account`, {
+        withCredentials: true
+      });
+      toast.success('Votre compte a été supprimé');
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Erreur lors de la suppression du compte');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   // Update visibility settings
   const handleVisibilityChange = async (key, value) => {
@@ -317,6 +338,67 @@ const EditProfilePage = () => {
               </>
             )}
           </Button>
+        </div>
+
+        {/* Delete Account Section */}
+        <div className="bg-red-50 rounded-3xl p-6 border border-red-200">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+              <Trash2 size={24} className="text-red-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-red-700 mb-1">Supprimer mon compte</h3>
+              <p className="text-sm text-red-600/70 mb-4">
+                Cette action est irréversible. Toutes vos données, photos, vidéos et messages seront définitivement supprimés.
+              </p>
+              
+              {!showDeleteConfirm ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  data-testid="delete-account-btn"
+                  className="border-red-300 text-red-600 hover:bg-red-100"
+                >
+                  <Trash2 size={18} className="mr-2" />
+                  Supprimer mon compte
+                </Button>
+              ) : (
+                <div className="bg-white rounded-xl p-4 border border-red-300">
+                  <div className="flex items-center gap-2 text-red-600 mb-3">
+                    <AlertTriangle size={20} />
+                    <span className="font-medium">Êtes-vous sûr ?</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Tapez "SUPPRIMER" pour confirmer la suppression définitive de votre compte.
+                  </p>
+                  <div className="flex gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1"
+                    >
+                      Annuler
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleDeleteAccount}
+                      disabled={deleteLoading}
+                      data-testid="confirm-delete-btn"
+                      className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                    >
+                      {deleteLoading ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        'Supprimer définitivement'
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </motion.form>
     </div>

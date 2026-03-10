@@ -2277,41 +2277,46 @@ async def request_data_download(request: Request):
 
 @api_router.delete("/account")
 async def delete_account(request: Request):
-    """Delete user account (GDPR right to be forgotten)"""
+    """Delete user account immediately (GDPR right to be forgotten)"""
     user = await require_auth(request)
-    body = await request.json()
     
-    # Require password confirmation
-    password = body.get("password")
-    if not password:
-        raise HTTPException(status_code=400, detail="Mot de passe requis pour supprimer le compte")
+    # Delete all user's media files
+    user_media = await db.media_files.find({"user_id": user.user_id}).to_list(10000)
+    for media in user_media:
+        file_path = media.get("file_path", "").replace("/uploads/", "/app/uploads/")
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except:
+                pass
     
-    # Verify password
-    import hashlib
-    hashed = hashlib.sha256(password.encode()).hexdigest()
-    db_user = await db.users.find_one({"user_id": user.user_id})
+    # Delete user's posts
+    await db.posts.delete_many({"user_id": user.user_id})
     
-    if not db_user or db_user.get("password_hash") != hashed:
-        raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+    # Delete user's stories
+    await db.stories.delete_many({"user_id": user.user_id})
     
-    # Soft delete - mark as deleted but keep for legal purposes
-    await db.users.update_one(
-        {"user_id": user.user_id},
-        {
-            "$set": {
-                "deleted": True,
-                "deleted_at": datetime.now(timezone.utc).isoformat(),
-                "email": f"deleted_{user.user_id}@deleted.local",
-                "name": "Compte supprimé",
-                "picture": None,
-                "bio": None
-            }
-        }
-    )
+    # Delete user's media records
+    await db.media_files.delete_many({"user_id": user.user_id})
+    
+    # Delete user's conversations and messages
+    await db.messages.delete_many({"$or": [{"sender_id": user.user_id}, {"receiver_id": user.user_id}]})
+    await db.conversations.delete_many({"participants": user.user_id})
+    
+    # Delete user's notifications
+    await db.notifications.delete_many({"user_id": user.user_id})
+    
+    # Delete user's products/services
+    await db.products.delete_many({"user_id": user.user_id})
+    await db.services.delete_many({"user_id": user.user_id})
     
     # Delete sessions
-    await db.sessions.delete_many({"user_id": user.user_id})
+    await db.user_sessions.delete_many({"user_id": user.user_id})
     
+    # Finally delete the user
+    await db.users.delete_one({"user_id": user.user_id})
+    
+    logger.info(f"Account deleted: {user.user_id}")
     return {"success": True, "message": "Votre compte a été supprimé"}
 
 app.add_middleware(
