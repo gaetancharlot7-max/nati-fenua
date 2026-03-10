@@ -89,9 +89,8 @@ const CreatePostPage = () => {
 
   const postTypes = [
     { id: 'photo', icon: Image, label: 'Photo', description: 'Partagez une image' },
-    { id: 'video', icon: Film, label: 'Vidéo', description: 'Publiez une vidéo' },
-    { id: 'reel', icon: Sparkles, label: 'Reel', description: 'Vidéo courte verticale' },
-    { id: 'story', icon: Camera, label: 'Story', description: 'Disparaît après 24h' },
+    { id: 'video', icon: Film, label: 'Vidéo', description: 'Max 30 secondes' },
+    { id: 'story', icon: Camera, label: 'Story', description: '3 jours dans le fil' },
     { id: 'link', icon: Link2, label: 'Lien', description: 'YouTube, articles, etc.' }
   ];
 
@@ -197,6 +196,33 @@ const CreatePostPage = () => {
       return;
     }
 
+    // Validate video duration (max 30 seconds)
+    if (file.type.startsWith('video/')) {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      
+      const durationCheck = new Promise((resolve, reject) => {
+        video.onloadedmetadata = () => {
+          window.URL.revokeObjectURL(video.src);
+          if (video.duration > 30) {
+            reject(new Error('Vidéo trop longue'));
+          } else {
+            resolve(video.duration);
+          }
+        };
+        video.onerror = () => reject(new Error('Erreur de lecture'));
+      });
+
+      video.src = URL.createObjectURL(file);
+      
+      try {
+        await durationCheck;
+      } catch (error) {
+        toast.error('La vidéo ne doit pas dépasser 30 secondes');
+        return;
+      }
+    }
+
     // Show local preview immediately
     const localPreview = URL.createObjectURL(file);
     setPreviewUrl(localPreview);
@@ -244,7 +270,7 @@ const CreatePostPage = () => {
         </div>
 
         {/* Post Type Selection */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           {postTypes.map((type) => (
             <button
               key={type.id}

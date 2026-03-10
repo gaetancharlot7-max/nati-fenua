@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Settings, Grid3X3, Film, Bookmark, ShoppingBag, MoreHorizontal, MapPin, Link as LinkIcon, LogOut } from 'lucide-react';
+import { Settings, Grid3X3, Bookmark, ShoppingBag, MapPin } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
@@ -21,6 +21,7 @@ const demoPosts = [
 
 const ProfilePage = () => {
   const { userId } = useParams();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [profileUser, setProfileUser] = useState(null);
   const [posts, setPosts] = useState(demoPosts);
@@ -109,18 +110,11 @@ const ProfilePage = () => {
                   <Button 
                     variant="outline" 
                     data-testid="edit-profile-btn"
+                    onClick={() => navigate('/profile/edit')}
                     className="rounded-full"
                   >
                     <Settings size={18} className="mr-2" />
                     Modifier
-                  </Button>
-                  <Button 
-                    variant="ghost"
-                    data-testid="logout-btn"
-                    onClick={handleLogout}
-                    className="rounded-full text-red-500 hover:text-red-600 hover:bg-red-50"
-                  >
-                    <LogOut size={18} />
                   </Button>
                 </div>
               ) : (
@@ -187,14 +181,6 @@ const ProfilePage = () => {
             <Grid3X3 size={18} className="mr-2" />
             Publications
           </TabsTrigger>
-          <TabsTrigger 
-            value="reels"
-            data-testid="reels-tab"
-            className="flex-1 rounded-full data-[state=active]:bg-[#00899B] data-[state=active]:text-white py-3"
-          >
-            <Film size={18} className="mr-2" />
-            Reels
-          </TabsTrigger>
           {isOwnProfile && (
             <TabsTrigger 
               value="saved"
@@ -224,11 +210,6 @@ const ProfilePage = () => {
                   alt=""
                   className="w-full h-full object-cover"
                 />
-                {post.content_type === 'video' && (
-                  <div className="absolute top-2 right-2">
-                    <Film size={20} className="text-white drop-shadow-lg" />
-                  </div>
-                )}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-6">
                   <div className="text-white flex items-center gap-1">
                     <span className="font-bold">{post.likes_count || 0}</span>
@@ -247,38 +228,6 @@ const ProfilePage = () => {
             <div className="text-center py-16">
               <Grid3X3 size={48} className="mx-auto text-gray-300 mb-4" />
               <p className="text-gray-500">Aucune publication</p>
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Reels Grid */}
-        <TabsContent value="reels">
-          <div className="profile-grid">
-            {posts.filter(p => p.content_type === 'video' || p.content_type === 'reel').map((post, index) => (
-              <motion.div
-                key={post.post_id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
-                className="aspect-[9/16] relative group cursor-pointer overflow-hidden rounded-xl"
-              >
-                <img 
-                  src={post.media_url || post.thumbnail_url}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-sm">
-                  <Film size={14} />
-                  <span>{post.views_count || 0}</span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {posts.filter(p => p.content_type === 'video' || p.content_type === 'reel').length === 0 && (
-            <div className="text-center py-16">
-              <Film size={48} className="mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500">Aucun Reel</p>
             </div>
           )}
         </TabsContent>

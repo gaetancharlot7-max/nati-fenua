@@ -157,7 +157,10 @@ class StoryBase(BaseModel):
     duration: int = 5
     views_count: int = 0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    expires_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(hours=24))
+    # Stories visible in feed for 3 days
+    expires_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=3))
+    # Stories kept on profile for 30 days
+    profile_expires_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=30))
 
 class StoryCreate(BaseModel):
     media_url: str
@@ -941,6 +944,7 @@ async def create_comment(post_id: str, comment_data: CommentCreate, request: Req
 
 @api_router.get("/stories")
 async def get_stories():
+    """Get stories for the feed (expires after 3 days)"""
     now = datetime.now(timezone.utc).isoformat()
     stories = await db.stories.find({"expires_at": {"$gt": now}}, {"_id": 0}).sort("created_at", -1).to_list(100)
     
@@ -954,6 +958,21 @@ async def get_stories():
     
     return list(users_stories.values())
 
+@api_router.get("/stories/profile/{user_id}")
+async def get_profile_stories(user_id: str):
+    """Get stories for a user profile (expires after 30 days)"""
+    now = datetime.now(timezone.utc).isoformat()
+    # Use profile_expires_at for profile view
+    stories = await db.stories.find({
+        "user_id": user_id,
+        "$or": [
+            {"profile_expires_at": {"$gt": now}},
+            {"profile_expires_at": {"$exists": False}, "expires_at": {"$gt": now}}
+        ]
+    }, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    return stories
+
 @api_router.post("/stories")
 async def create_story(story_data: StoryCreate, request: Request):
     user = await require_auth(request)
@@ -965,6 +984,7 @@ async def create_story(story_data: StoryCreate, request: Request):
     story_dict = story.model_dump()
     story_dict["created_at"] = story_dict["created_at"].isoformat()
     story_dict["expires_at"] = story_dict["expires_at"].isoformat()
+    story_dict["profile_expires_at"] = story_dict["profile_expires_at"].isoformat()
     
     await db.stories.insert_one(story_dict)
     

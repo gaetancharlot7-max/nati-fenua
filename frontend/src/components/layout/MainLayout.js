@@ -47,7 +47,6 @@ const MainLayout = ({ children, hideNav = false }) => {
 
   const navItems = [
     { icon: Home, label: 'Accueil', path: '/feed' },
-    { icon: Film, label: 'Reels', path: '/reels' },
     { icon: Radio, label: 'Live', path: '/live' },
     { icon: Plus, label: 'Créer', path: '/create', isCreate: true },
     { icon: ShoppingBag, label: 'Marché', path: '/marketplace' },
