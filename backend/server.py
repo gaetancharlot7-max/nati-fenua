@@ -2454,6 +2454,23 @@ async def admin_dashboard(request: Request):
         }
         await db.moderation_settings.insert_one(mod_settings)
     
+    # Get ads settings
+    ads_settings = await db.ads_settings.find_one({"setting_id": "global"}, {"_id": 0})
+    if not ads_settings:
+        ads_settings = {
+            "setting_id": "global",
+            "ads_enabled": False,
+            "sponsored_posts_enabled": False,
+            "promoted_accounts_enabled": False,
+            "story_ads_enabled": False,
+            "feed_ad_frequency": 5,
+            "min_ad_budget": 10
+        }
+        await db.ads_settings.insert_one(ads_settings)
+    
+    # Get storage stats
+    storage_stats = await get_storage_stats(db)
+    
     return {
         "stats": {
             "total_users": total_users,
@@ -2465,7 +2482,9 @@ async def admin_dashboard(request: Request):
         "posts": posts,
         "reports": reports,
         "lives": lives,
-        "moderation_settings": mod_settings
+        "moderation_settings": mod_settings,
+        "ads_settings": ads_settings,
+        "storage_stats": storage_stats
     }
 
 @api_router.put("/admin/moderation/settings")
@@ -2563,6 +2582,25 @@ async def admin_storage_stats(request: Request):
     
     stats = await get_storage_stats(db)
     return stats
+
+@api_router.put("/admin/ads/settings")
+async def update_ads_settings(request: Request):
+    """Update advertising settings"""
+    await verify_admin_token(request)
+    body = await request.json()
+    
+    allowed_fields = ["ads_enabled", "sponsored_posts_enabled", "promoted_accounts_enabled", 
+                      "story_ads_enabled", "feed_ad_frequency", "min_ad_budget"]
+    updates = {k: v for k, v in body.items() if k in allowed_fields}
+    
+    await db.ads_settings.update_one(
+        {"setting_id": "global"},
+        {"$set": updates},
+        upsert=True
+    )
+    
+    logger.info(f"Ads settings updated: {updates}")
+    return {"success": True, "updated": updates}
 
 @api_router.post("/admin/storage/cleanup")
 async def admin_trigger_cleanup(request: Request):

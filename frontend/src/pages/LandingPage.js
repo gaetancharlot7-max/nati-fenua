@@ -3,23 +3,25 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Users, ShoppingBag, Play, Heart, MapPin, MessageCircle, Radio, Sparkles, Camera, Film } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
-// Fenua Logo Component
-const FenuaLogo = ({ size = 'lg' }) => {
+// My Fenua Logo Component
+const MyFenuaLogo = ({ size = 'lg' }) => {
   const sizes = {
-    md: 'w-16 h-16 text-3xl',
-    lg: 'w-24 h-24 text-5xl',
-    xl: 'w-32 h-32 text-6xl'
+    md: 'w-16 h-16',
+    lg: 'w-24 h-24',
+    xl: 'w-32 h-32'
   };
   
   return (
     <motion.div 
-      className={`${sizes[size]} rounded-3xl bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#9400D3] p-1 rotate-6`}
-      animate={{ rotate: [6, -6, 6] }}
-      transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+      className={`${sizes[size]} rounded-3xl overflow-hidden shadow-2xl`}
+      animate={{ y: [0, -5, 0] }}
+      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
     >
-      <div className="w-full h-full rounded-[20px] bg-white flex items-center justify-center">
-        <span className={`font-black bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent`}>F</span>
-      </div>
+      <img 
+        src="https://static.prod-images.emergentagent.com/jobs/fecb01da-c8a1-4ae3-9411-d61d4c769bae/images/2625358fee9113dc5b57d3a22d7ca3621c190a5cef495543d5d0fc1c336c61be.png"
+        alt="My Fenua"
+        className="w-full h-full object-cover"
+      />
     </motion.div>
   );
 };
@@ -91,13 +93,13 @@ const LandingPage = () => {
           >
             {/* Logo */}
             <div className="flex justify-center mb-8">
-              <FenuaLogo size="xl" />
+              <MyFenuaLogo size="xl" />
             </div>
 
             <h1 className="text-6xl md:text-8xl font-black text-white mb-4 tracking-tight">
-              <span className="bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent">Fenua</span>
+              <span className="bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent">My</span>
               {' '}
-              <span className="text-white">Social</span>
+              <span className="text-white">Fenua</span>
             </h1>
             
             <p className="text-2xl md:text-3xl text-white/90 mb-4 font-light">
@@ -294,7 +296,7 @@ const LandingPage = () => {
                 Téléchargez l'application
               </h2>
               <p className="text-lg text-white/70 mb-8 leading-relaxed">
-                Fenua Social est disponible sur votre smartphone. 
+                My Fenua est disponible sur votre smartphone. 
                 Installez l'application et restez connecté à la communauté polynésienne.
               </p>
               
@@ -387,15 +389,15 @@ const LandingPage = () => {
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <FenuaLogo size="md" />
+              <MyFenuaLogo size="md" />
               <div>
-                <span className="text-white font-black text-xl">Fenua Social</span>
+                <span className="text-white font-black text-xl">My Fenua</span>
                 <p className="text-white/50 text-sm">Polynésie Française</p>
               </div>
             </div>
             
             <p className="text-white/50 text-sm">
-              © 2026 Fenua Social. Fait avec ❤️ à Tahiti
+              © 2026 My Fenua. Fait avec ❤️ à Tahiti
             </p>
           </div>
         </div>

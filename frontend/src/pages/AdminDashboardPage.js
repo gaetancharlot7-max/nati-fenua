@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { 
   Shield, Users, FileText, Radio, ShoppingBag, Flag, Settings, 
   LogOut, Eye, Ban, CheckCircle, XCircle, AlertTriangle, TrendingUp,
-  MessageSquare, ToggleLeft, ToggleRight, Search, Filter, RefreshCw
+  MessageSquare, ToggleLeft, ToggleRight, Search, Filter, RefreshCw,
+  DollarSign, Megaphone, BarChart3, HardDrive
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -21,11 +22,20 @@ const AdminDashboardPage = () => {
   const [posts, setPosts] = useState([]);
   const [reports, setReports] = useState([]);
   const [lives, setLives] = useState([]);
+  const [storageStats, setStorageStats] = useState(null);
   const [moderationSettings, setModerationSettings] = useState({
     live_moderation_enabled: false,
     bad_words_filter: false,
     adult_content_filter: false,
     hate_speech_filter: false
+  });
+  const [adsSettings, setAdsSettings] = useState({
+    ads_enabled: false,
+    sponsored_posts_enabled: false,
+    promoted_accounts_enabled: false,
+    story_ads_enabled: false,
+    feed_ad_frequency: 5,
+    min_ad_budget: 10
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,6 +63,8 @@ const AdminDashboardPage = () => {
       setReports(response.data.reports || []);
       setLives(response.data.lives || []);
       setModerationSettings(response.data.moderation_settings || moderationSettings);
+      setAdsSettings(response.data.ads_settings || adsSettings);
+      setStorageStats(response.data.storage_stats || null);
     } catch (error) {
       if (error.response?.status === 401) {
         localStorage.removeItem('admin_token');
@@ -69,6 +81,21 @@ const AdminDashboardPage = () => {
     localStorage.removeItem('admin_token');
     navigate('/admin/login');
     toast.success('Déconnexion réussie');
+  };
+
+  const toggleAdsSetting = async (setting) => {
+    try {
+      const newValue = !adsSettings[setting];
+      await axios.put(
+        `${API_URL}/api/admin/ads/settings`,
+        { [setting]: newValue },
+        getAuthHeaders()
+      );
+      setAdsSettings(prev => ({ ...prev, [setting]: newValue }));
+      toast.success(`${setting.replace(/_/g, ' ')} ${newValue ? 'activé' : 'désactivé'}`);
+    } catch (error) {
+      toast.error('Erreur lors de la mise à jour');
+    }
   };
 
   const toggleModerationSetting = async (setting) => {
@@ -140,6 +167,8 @@ const AdminDashboardPage = () => {
     { id: 'lives', label: 'Lives', icon: Radio },
     { id: 'reports', label: 'Signalements', icon: Flag },
     { id: 'moderation', label: 'Modération', icon: Shield },
+    { id: 'advertising', label: 'Publicité Pro', icon: Megaphone },
+    { id: 'storage', label: 'Stockage', icon: HardDrive },
   ];
 
   if (loading) {
@@ -160,7 +189,7 @@ const AdminDashboardPage = () => {
           </div>
           <div>
             <h1 className="font-bold">Admin Panel</h1>
-            <p className="text-xs text-white/50">Fenua Social</p>
+            <p className="text-xs text-white/50">My Fenua</p>
           </div>
         </div>
 
@@ -580,6 +609,221 @@ const AdminDashboardPage = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Advertising Tab */}
+        {activeTab === 'advertising' && (
+          <div className="space-y-6">
+            <div className="bg-[#16213E] rounded-2xl border border-white/10 p-6">
+              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                <Megaphone size={24} className="text-[#FF6B35]" />
+                Système publicitaire Pro (Style Facebook/Instagram)
+              </h2>
+              
+              <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="text-orange-500 flex-shrink-0 mt-0.5" size={20} />
+                  <div>
+                    <p className="font-medium text-orange-500">Système désactivé au lancement</p>
+                    <p className="text-sm text-white/70 mt-1">
+                      Le système publicitaire est prêt mais désactivé par défaut. Activez-le quand vous êtes prêt à monétiser votre plateforme.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {/* Main Toggle */}
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-500/20 to-blue-500/20 rounded-xl border border-green-500/30">
+                  <div>
+                    <p className="font-medium text-lg">Activer les publicités</p>
+                    <p className="text-sm text-white/50">Active/désactive tout le système publicitaire</p>
+                  </div>
+                  <button
+                    onClick={() => toggleAdsSetting('ads_enabled')}
+                    className={`w-16 h-9 rounded-full transition-all ${
+                      adsSettings.ads_enabled ? 'bg-green-500' : 'bg-white/20'
+                    }`}
+                  >
+                    <div className={`w-7 h-7 rounded-full bg-white shadow transition-transform ${
+                      adsSettings.ads_enabled ? 'translate-x-8' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+
+                {/* Sponsored Posts */}
+                <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                      <FileText size={20} className="text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Posts sponsorisés</p>
+                      <p className="text-sm text-white/50">Les entreprises peuvent promouvoir leurs posts</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => toggleAdsSetting('sponsored_posts_enabled')}
+                    disabled={!adsSettings.ads_enabled}
+                    className={`w-14 h-8 rounded-full transition-all ${
+                      adsSettings.sponsored_posts_enabled && adsSettings.ads_enabled 
+                        ? 'bg-green-500' : 'bg-white/20'
+                    } ${!adsSettings.ads_enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <div className={`w-6 h-6 rounded-full bg-white shadow transition-transform ${
+                      adsSettings.sponsored_posts_enabled && adsSettings.ads_enabled 
+                        ? 'translate-x-7' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+
+                {/* Promoted Accounts */}
+                <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                      <Users size={20} className="text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Comptes promus</p>
+                      <p className="text-sm text-white/50">Suggérer des comptes Pro aux utilisateurs</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => toggleAdsSetting('promoted_accounts_enabled')}
+                    disabled={!adsSettings.ads_enabled}
+                    className={`w-14 h-8 rounded-full transition-all ${
+                      adsSettings.promoted_accounts_enabled && adsSettings.ads_enabled 
+                        ? 'bg-green-500' : 'bg-white/20'
+                    } ${!adsSettings.ads_enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <div className={`w-6 h-6 rounded-full bg-white shadow transition-transform ${
+                      adsSettings.promoted_accounts_enabled && adsSettings.ads_enabled 
+                        ? 'translate-x-7' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+
+                {/* Story Ads */}
+                <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-pink-500/20 flex items-center justify-center">
+                      <Eye size={20} className="text-pink-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Publicités Stories</p>
+                      <p className="text-sm text-white/50">Afficher des pubs entre les stories</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => toggleAdsSetting('story_ads_enabled')}
+                    disabled={!adsSettings.ads_enabled}
+                    className={`w-14 h-8 rounded-full transition-all ${
+                      adsSettings.story_ads_enabled && adsSettings.ads_enabled 
+                        ? 'bg-green-500' : 'bg-white/20'
+                    } ${!adsSettings.ads_enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <div className={`w-6 h-6 rounded-full bg-white shadow transition-transform ${
+                      adsSettings.story_ads_enabled && adsSettings.ads_enabled 
+                        ? 'translate-x-7' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Pricing Info */}
+              <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl p-4 border border-purple-500/30">
+                  <DollarSign size={24} className="text-purple-400 mb-2" />
+                  <p className="font-medium">Post sponsorisé</p>
+                  <p className="text-2xl font-bold mt-1">À partir de 5€/jour</p>
+                </div>
+                <div className="bg-gradient-to-br from-blue-500/20 to-teal-500/20 rounded-xl p-4 border border-blue-500/30">
+                  <Users size={24} className="text-blue-400 mb-2" />
+                  <p className="font-medium">Compte promu</p>
+                  <p className="text-2xl font-bold mt-1">À partir de 10€/jour</p>
+                </div>
+                <div className="bg-gradient-to-br from-pink-500/20 to-orange-500/20 rounded-xl p-4 border border-pink-500/30">
+                  <BarChart3 size={24} className="text-pink-400 mb-2" />
+                  <p className="font-medium">Story Ad</p>
+                  <p className="text-2xl font-bold mt-1">À partir de 15€/jour</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Storage Tab */}
+        {activeTab === 'storage' && (
+          <div className="space-y-6">
+            <div className="bg-[#16213E] rounded-2xl border border-white/10 p-6">
+              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                <HardDrive size={24} className="text-[#FF6B35]" />
+                Gestion du stockage
+              </h2>
+              
+              {storageStats ? (
+                <>
+                  {/* Storage Overview */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl p-4 border border-blue-500/30">
+                      <p className="text-sm text-white/60">Stockage total utilisé</p>
+                      <p className="text-3xl font-bold">{storageStats.total_storage_gb || 0} GB</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-500/20 to-teal-500/20 rounded-xl p-4 border border-green-500/30">
+                      <p className="text-sm text-white/60">Nombre de fichiers</p>
+                      <p className="text-3xl font-bold">{storageStats.total_files || 0}</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-xl p-4 border border-orange-500/30">
+                      <p className="text-sm text-white/60">Limite par utilisateur</p>
+                      <p className="text-3xl font-bold">5 GB</p>
+                    </div>
+                  </div>
+
+                  {/* Top Users */}
+                  <h3 className="font-semibold mb-4">Top 10 utilisateurs par stockage</h3>
+                  <div className="bg-white/5 rounded-xl overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-white/5">
+                        <tr>
+                          <th className="text-left p-4 text-white/60 font-medium">#</th>
+                          <th className="text-left p-4 text-white/60 font-medium">Utilisateur</th>
+                          <th className="text-left p-4 text-white/60 font-medium">Email</th>
+                          <th className="text-left p-4 text-white/60 font-medium">Stockage utilisé</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(storageStats.top_users || []).map((user, index) => (
+                          <tr key={user.user_id} className="border-t border-white/5">
+                            <td className="p-4 text-white/50">{index + 1}</td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={user.picture || `https://ui-avatars.com/api/?name=${user.name}`}
+                                  alt={user.name}
+                                  className="w-8 h-8 rounded-lg"
+                                />
+                                <span>{user.name}</span>
+                              </div>
+                            </td>
+                            <td className="p-4 text-white/60">{user.email}</td>
+                            <td className="p-4">
+                              <span className="px-2 py-1 rounded-lg bg-blue-500/20 text-blue-400">
+                                {user.storage_mb} MB
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8 text-white/50">
+                  Chargement des statistiques de stockage...
+                </div>
+              )}
             </div>
           </div>
         )}

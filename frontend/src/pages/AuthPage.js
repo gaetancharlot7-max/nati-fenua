@@ -59,19 +59,21 @@ const AuthPage = () => {
     window.location.href = `${API_URL}/api/auth/facebook`;
   };
 
-  // Fenua Social Logo Component
-  const FenuaLogo = ({ size = 'md' }) => {
+  // My Fenua Logo Component
+  const MyFenuaLogo = ({ size = 'md' }) => {
     const sizes = {
-      sm: { outer: 'w-10 h-10', inner: 'text-lg' },
-      md: { outer: 'w-14 h-14', inner: 'text-2xl' },
-      lg: { outer: 'w-16 h-16', inner: 'text-3xl' }
+      sm: 'w-10 h-10',
+      md: 'w-14 h-14',
+      lg: 'w-16 h-16'
     };
     
     return (
-      <div className={`${sizes[size].outer} rounded-2xl bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#9400D3] p-0.5 rotate-3`}>
-        <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
-          <span className={`${sizes[size].inner} font-black bg-gradient-to-r from-[#FF6B35] to-[#00CED1] bg-clip-text text-transparent`}>F</span>
-        </div>
+      <div className={`${sizes[size]} rounded-xl overflow-hidden shadow-lg`}>
+        <img 
+          src="https://static.prod-images.emergentagent.com/jobs/fecb01da-c8a1-4ae3-9411-d61d4c769bae/images/2625358fee9113dc5b57d3a22d7ca3621c190a5cef495543d5d0fc1c336c61be.png"
+          alt="My Fenua"
+          className="w-full h-full object-cover"
+        />
       </div>
     );
   };
@@ -91,9 +93,9 @@ const AuthPage = () => {
         
         <div className="relative z-10 p-12 flex flex-col justify-between">
           <div className="flex items-center gap-3">
-            <FenuaLogo size="md" />
+            <MyFenuaLogo size="md" />
             <h1 className="text-3xl font-black text-white">
-              Fenua <span className="text-white/90">Social</span>
+              My <span className="text-white/90">Fenua</span>
             </h1>
           </div>
           
@@ -118,10 +120,10 @@ const AuthPage = () => {
         >
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-            <FenuaLogo size="md" />
+            <MyFenuaLogo size="md" />
             <h1 className="text-3xl font-black">
-              <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">Fenua</span>
-              <span className="text-[#1A1A2E]"> Social</span>
+              <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">My</span>
+              <span className="text-[#1A1A2E]"> Fenua</span>
             </h1>
           </div>
 
@@ -132,7 +134,7 @@ const AuthPage = () => {
             <p className="text-gray-500 mb-8">
               {isLogin 
                 ? 'Heureux de vous revoir !' 
-                : 'Créez votre compte Fenua Social'}
+                : 'Créez votre compte My Fenua'}
             </p>
 
             {/* Google Login Button */}
