@@ -574,7 +574,7 @@ const MarketplacePage = () => {
         isOpen={!!shareItem}
         onClose={() => setShareItem(null)}
         url={shareItem ? `${window.location.origin}/marketplace/${shareItem.product_id || shareItem.service_id}` : ''}
-        title={shareItem?.title || 'Découvrez cette annonce sur My Fenua'}
+        title={shareItem?.title || 'Découvrez cette annonce sur Hui Fenua'}
       />
 
       {/* Report Modal */}

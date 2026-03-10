@@ -84,7 +84,7 @@ const SearchPage = () => {
           <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <Input
             data-testid="search-input"
-            placeholder="Rechercher sur My Fenua..."
+            placeholder="Rechercher sur Hui Fenua..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="pl-12 pr-12 py-6 rounded-xl bg-white border-gray-200"

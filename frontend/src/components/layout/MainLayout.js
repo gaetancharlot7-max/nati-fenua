@@ -5,21 +5,19 @@ import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import NotificationBell from '../NotificationBell';
 
-// My Fenua Logo Component
-const MyFenuaLogo = ({ size = 'md' }) => {
+// Hui Fenua Logo Component - Style original
+const HuiFenuaLogo = ({ size = 'md' }) => {
   const sizes = {
-    sm: 'w-8 h-8',
-    md: 'w-10 h-10',
-    lg: 'w-14 h-14'
+    sm: { outer: 'w-8 h-8', inner: 'text-lg' },
+    md: { outer: 'w-10 h-10', inner: 'text-xl' },
+    lg: { outer: 'w-14 h-14', inner: 'text-2xl' }
   };
   
   return (
-    <div className={`${sizes[size]} rounded-xl overflow-hidden shadow-md hover:scale-105 transition-transform duration-300`}>
-      <img 
-        src="https://static.prod-images.emergentagent.com/jobs/fecb01da-c8a1-4ae3-9411-d61d4c769bae/images/2625358fee9113dc5b57d3a22d7ca3621c190a5cef495543d5d0fc1c336c61be.png"
-        alt="My Fenua"
-        className="w-full h-full object-cover"
-      />
+    <div className={`${sizes[size].outer} rounded-2xl bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] p-0.5 rotate-3 hover:rotate-0 transition-transform duration-300`}>
+      <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
+        <span className={`${sizes[size].inner} font-black bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent`}>H</span>
+      </div>
     </div>
   );
 };
@@ -62,10 +60,10 @@ const MainLayout = ({ children, hideNav = false }) => {
         {/* Logo */}
         <div className="p-6 border-b border-gray-100">
           <Link to="/feed" className="flex items-center gap-3">
-            <MyFenuaLogo size="md" />
+            <HuiFenuaLogo size="md" />
             <div>
               <h1 className="text-2xl font-black">
-                <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">My</span>
+                <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">Hui</span>
                 <span className="text-[#1A1A2E]"> Fenua</span>
               </h1>
               <p className="text-xs text-gray-400 font-medium">Polynésie Française</p>
@@ -260,7 +258,7 @@ const MainLayout = ({ children, hideNav = false }) => {
             className="flex items-center gap-3 w-full px-5 py-2.5 bg-gray-100 rounded-2xl text-gray-500 hover:bg-gray-200 transition-all"
           >
             <Search size={20} strokeWidth={1.5} />
-            <span>Rechercher sur My Fenua...</span>
+            <span>Rechercher sur Hui Fenua...</span>
           </Link>
         </div>
         
@@ -272,9 +270,9 @@ const MainLayout = ({ children, hideNav = false }) => {
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-14 glass z-30 flex items-center justify-between px-4">
         <Link to="/feed" className="flex items-center gap-2">
-          <MyFenuaLogo size="sm" />
+          <HuiFenuaLogo size="sm" />
           <h1 className="text-xl font-black">
-            <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">My Fenua</span>
+            <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">Hui Fenua</span>
           </h1>
         </Link>
         

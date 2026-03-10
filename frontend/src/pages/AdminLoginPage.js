@@ -53,7 +53,7 @@ const AdminLoginPage = () => {
               <Shield size={32} className="text-white" />
             </div>
             <h1 className="text-2xl font-bold text-white">Administration</h1>
-            <p className="text-white/60 text-sm mt-1">My Fenua</p>
+            <p className="text-white/60 text-sm mt-1">Hui Fenua</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">

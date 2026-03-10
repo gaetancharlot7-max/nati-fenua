@@ -511,7 +511,7 @@ const LivePage = () => {
         isOpen={!!shareLive}
         onClose={() => setShareLive(null)}
         url={shareLive ? `${window.location.origin}/live/${shareLive.live_id}` : ''}
-        title={shareLive?.title || 'Regardez ce live sur My Fenua'}
+        title={shareLive?.title || 'Regardez ce live sur Hui Fenua'}
       />
     </div>
   );
