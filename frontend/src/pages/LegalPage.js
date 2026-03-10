@@ -87,7 +87,7 @@ const LegalPage = () => {
                   <li>Partager des photos, vidéos et stories</li>
                   <li>Interagir avec d'autres utilisateurs (likes, commentaires, messages)</li>
                   <li>Participer à des lives en direct</li>
-                  <li>Utiliser la marketplace pour acheter/vendre des produits et services</li>
+                  <li>Utiliser le marché pour acheter/vendre des produits et services</li>
                 </ul>
               </section>
 
@@ -131,7 +131,7 @@ const LegalPage = () => {
                 <h3 className="text-lg font-semibold text-[#1A1A2E]">8. Limitation de responsabilité</h3>
                 <p className="text-gray-600">
                   Hui Fenua ne peut être tenu responsable des contenus publiés par les utilisateurs, 
-                  ni des transactions effectuées via la marketplace.
+                  ni des transactions effectuées via le marché.
                 </p>
               </section>
             </div>

@@ -53,7 +53,7 @@ const LandingPage = () => {
     },
     {
       icon: ShoppingBag,
-      title: 'Marketplace',
+      title: 'Marché',
       description: 'Perles, monoï, artisanat... Achetez et vendez local.',
       color: 'from-[#FFD700] to-[#FF6B35]'
     },
@@ -106,7 +106,7 @@ const LandingPage = () => {
             </p>
             
             <p className="text-lg text-white/60 mb-10 max-w-2xl mx-auto">
-              Photos • Vidéos • Stories • Reels • Lives • Marketplace • Chat
+              Photos • Vidéos • Stories • Reels • Lives • Marché • Chat
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -238,7 +238,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Marketplace Preview */}
+      {/* Marché Preview */}
       <section className="py-24 bg-[#FFF5E6]">
         <div className="max-w-6xl mx-auto px-4">
           <motion.div 
@@ -248,7 +248,7 @@ const LandingPage = () => {
             viewport={{ once: true }}
           >
             <h2 className="text-4xl md:text-5xl font-black text-[#1A1A2E] mb-4">
-              Marketplace <span className="bg-gradient-to-r from-[#FF6B35] to-[#00CED1] bg-clip-text text-transparent">Local</span>
+              Marché <span className="bg-gradient-to-r from-[#FF6B35] to-[#00CED1] bg-clip-text text-transparent">Local</span>
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Les trésors de notre Fenua à portée de main

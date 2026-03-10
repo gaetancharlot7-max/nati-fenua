@@ -58,7 +58,7 @@ const CreateProductPage = () => {
           images: formData.images.filter(img => img),
           location: formData.location
         });
-        toast.success('Produit ajouté au marketplace !');
+        toast.success('Produit ajouté au marché !');
       } else {
         await marketplaceApi.createService({
           title: formData.title,
@@ -68,7 +68,7 @@ const CreateProductPage = () => {
           images: formData.images.filter(img => img),
           location: formData.location
         });
-        toast.success('Service ajouté au marketplace !');
+        toast.success('Service ajouté au marché !');
       }
       navigate('/marketplace');
     } catch (error) {

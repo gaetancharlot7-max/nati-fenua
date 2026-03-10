@@ -207,7 +207,7 @@ const BusinessDashboard = () => {
             {/* Products Stats */}
             <Card className="border-none shadow-sm">
               <CardHeader>
-                <CardTitle className="text-lg font-serif text-[#2F2F31]">Marketplace</CardTitle>
+                <CardTitle className="text-lg font-serif text-[#2F2F31]">Marché</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
