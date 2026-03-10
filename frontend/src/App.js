@@ -21,6 +21,8 @@ import ChatPage from './pages/ChatPage';
 import CreateAdPage from './pages/CreateAdPage';
 import SecuritySettingsPage from './pages/SecuritySettingsPage';
 import NotificationSettingsPage from './pages/NotificationSettingsPage';
+import AdminLoginPage from './pages/AdminLoginPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 // Layout
 import MainLayout from './components/layout/MainLayout';
@@ -187,6 +189,10 @@ function AppRouter() {
           </MainLayout>
         </ProtectedRoute>
       } />
+      
+      {/* Admin Routes (no auth provider needed) */}
+      <Route path="/admin/login" element={<AdminLoginPage />} />
+      <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
       
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -2132,9 +2132,6 @@ async def delete_account(request: Request):
     
     return {"success": True, "message": "Votre compte a été supprimé"}
 
-# Include router and middleware
-app.include_router(api_router)
-
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -2146,6 +2143,231 @@ app.add_middleware(
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+# ==================== ADMIN ROUTES ====================
+
+import hashlib
+import secrets
+
+# Admin credentials (should be in env in production)
+ADMIN_EMAIL = "admin@fenuasocial.com"
+ADMIN_PASSWORD_HASH = None  # Will be set on first access or via env
+
+async def get_or_create_admin():
+    """Get or create admin account"""
+    admin = await db.admin_users.find_one({"email": ADMIN_EMAIL}, {"_id": 0})
+    if not admin:
+        # Create default admin with password "FenuaAdmin2024!"
+        default_password = "FenuaAdmin2024!"
+        password_hash = hashlib.sha256(default_password.encode()).hexdigest()
+        admin = {
+            "admin_id": f"admin_{uuid.uuid4().hex[:12]}",
+            "email": ADMIN_EMAIL,
+            "password_hash": password_hash,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.admin_users.insert_one(admin)
+        logger.info(f"Created default admin account: {ADMIN_EMAIL}")
+    return admin
+
+async def verify_admin_token(request: Request):
+    """Verify admin token from Authorization header"""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Token admin requis")
+    
+    token = auth_header.split(" ")[1]
+    session = await db.admin_sessions.find_one({"token": token}, {"_id": 0})
+    
+    if not session:
+        raise HTTPException(status_code=401, detail="Token invalide")
+    
+    expires_at = datetime.fromisoformat(session["expires_at"])
+    if expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=401, detail="Token expiré")
+    
+    return session
+
+@api_router.post("/admin/login")
+async def admin_login(request: Request):
+    """Admin login endpoint"""
+    body = await request.json()
+    email = body.get("email")
+    password = body.get("password")
+    
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email et mot de passe requis")
+    
+    admin = await get_or_create_admin()
+    
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+    
+    if email != admin["email"] or password_hash != admin["password_hash"]:
+        raise HTTPException(status_code=401, detail="Identifiants incorrects")
+    
+    # Create session token
+    token = secrets.token_urlsafe(32)
+    session = {
+        "admin_id": admin["admin_id"],
+        "token": token,
+        "expires_at": (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.admin_sessions.insert_one(session)
+    
+    logger.info(f"Admin login successful: {email}")
+    return {"success": True, "token": token}
+
+@api_router.get("/admin/dashboard")
+async def admin_dashboard(request: Request):
+    """Get admin dashboard data"""
+    await verify_admin_token(request)
+    
+    # Get stats
+    total_users = await db.users.count_documents({})
+    total_posts = await db.posts.count_documents({})
+    active_lives = await db.lives.count_documents({"status": "live"})
+    pending_reports = await db.reports.count_documents({"status": "pending"})
+    
+    # Get recent users
+    users = await db.users.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).limit(50).to_list(50)
+    
+    # Get recent posts with user info
+    posts = await db.posts.find({}, {"_id": 0}).sort("created_at", -1).limit(50).to_list(50)
+    for post in posts:
+        user = await db.users.find_one({"user_id": post["user_id"]}, {"_id": 0, "user_id": 1, "name": 1})
+        post["user"] = user
+    
+    # Get reports
+    reports = await db.reports.find({}, {"_id": 0}).sort("created_at", -1).limit(50).to_list(50)
+    for report in reports:
+        reporter = await db.users.find_one({"user_id": report.get("reporter_id")}, {"_id": 0, "name": 1})
+        report["reporter_name"] = reporter.get("name") if reporter else "Inconnu"
+    
+    # Get active lives
+    lives = await db.lives.find({"status": "live"}, {"_id": 0}).to_list(50)
+    for live in lives:
+        user = await db.users.find_one({"user_id": live["user_id"]}, {"_id": 0, "user_id": 1, "name": 1, "picture": 1})
+        live["user"] = user
+    
+    # Get moderation settings
+    mod_settings = await db.moderation_settings.find_one({"setting_id": "global"}, {"_id": 0})
+    if not mod_settings:
+        mod_settings = {
+            "setting_id": "global",
+            "live_moderation_enabled": False,
+            "bad_words_filter": False,
+            "adult_content_filter": False,
+            "hate_speech_filter": False
+        }
+        await db.moderation_settings.insert_one(mod_settings)
+    
+    return {
+        "stats": {
+            "total_users": total_users,
+            "total_posts": total_posts,
+            "active_lives": active_lives,
+            "pending_reports": pending_reports
+        },
+        "users": users,
+        "posts": posts,
+        "reports": reports,
+        "lives": lives,
+        "moderation_settings": mod_settings
+    }
+
+@api_router.put("/admin/moderation/settings")
+async def update_moderation_settings(request: Request):
+    """Update moderation settings"""
+    await verify_admin_token(request)
+    body = await request.json()
+    
+    allowed_fields = ["live_moderation_enabled", "bad_words_filter", "adult_content_filter", "hate_speech_filter"]
+    updates = {k: v for k, v in body.items() if k in allowed_fields}
+    
+    await db.moderation_settings.update_one(
+        {"setting_id": "global"},
+        {"$set": updates},
+        upsert=True
+    )
+    
+    logger.info(f"Moderation settings updated: {updates}")
+    return {"success": True, "updated": updates}
+
+@api_router.post("/admin/users/{user_id}/ban")
+async def ban_user(user_id: str, request: Request):
+    """Ban a user"""
+    await verify_admin_token(request)
+    
+    result = await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {"is_banned": True, "banned_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    # Delete their sessions
+    await db.user_sessions.delete_many({"user_id": user_id})
+    
+    logger.info(f"User banned: {user_id}")
+    return {"success": True}
+
+@api_router.delete("/admin/posts/{post_id}")
+async def admin_delete_post(post_id: str, request: Request):
+    """Delete a post as admin"""
+    await verify_admin_token(request)
+    
+    result = await db.posts.delete_one({"post_id": post_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Post non trouvé")
+    
+    logger.info(f"Post deleted by admin: {post_id}")
+    return {"success": True}
+
+@api_router.post("/admin/lives/{live_id}/end")
+async def admin_end_live(live_id: str, request: Request):
+    """End a live stream as admin"""
+    await verify_admin_token(request)
+    
+    result = await db.lives.update_one(
+        {"live_id": live_id},
+        {"$set": {"status": "ended", "ended_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Live non trouvé")
+    
+    logger.info(f"Live ended by admin: {live_id}")
+    return {"success": True}
+
+@api_router.post("/admin/reports/{report_id}/resolve")
+async def resolve_report(report_id: str, request: Request):
+    """Resolve a report"""
+    await verify_admin_token(request)
+    body = await request.json()
+    action = body.get("action", "dismiss")
+    
+    result = await db.reports.update_one(
+        {"report_id": report_id},
+        {"$set": {
+            "status": "resolved",
+            "action_taken": action,
+            "resolved_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Signalement non trouvé")
+    
+    logger.info(f"Report resolved: {report_id}, action: {action}")
+    return {"success": True}
+
+# Include router AFTER all routes are defined
+app.include_router(api_router)
+
+# ==================== STARTUP EVENT ====================
 
 @app.on_event("startup")
 async def seed_polynesian_content():

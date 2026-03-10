@@ -217,7 +217,7 @@ const MainLayout = ({ children, hideNav = false }) => {
       </header>
 
       {/* Main Content */}
-      <main className={`lg:ml-72 lg:pt-16 pt-14 ${hideNav ? '' : 'pb-24 lg:pb-6'}`}>
+      <main className={`lg:ml-72 lg:pt-16 pt-14 min-h-screen ${hideNav ? '' : 'pb-24 lg:pb-6'}`}>
         {children}
       </main>
 
