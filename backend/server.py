@@ -1,8 +1,10 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.security import HTTPBearer
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
@@ -23,6 +25,16 @@ from security import (
     validate_location, hash_ip, mask_email,
     LocationPrivacy, ReportType, REPORT_TYPES,
     validate_password_strength
+)
+
+# Import enhanced auth security
+from auth_security import (
+    hash_password, verify_password, verify_password_with_migration,
+    record_failed_login, is_account_locked, clear_failed_attempts,
+    check_rate_limit_enhanced, sanitize_input, validate_email,
+    generate_secure_token, generate_password_reset_token,
+    SECURITY_HEADERS, add_security_headers, create_session_token,
+    is_session_expired
 )
 
 # Import media processing module
@@ -392,25 +404,41 @@ async def require_auth(request: Request) -> UserBase:
 # ==================== AUTH ROUTES ====================
 
 @api_router.post("/auth/register")
-async def register(user_data: UserCreate, response: Response):
-    existing = await db.users.find_one({"email": user_data.email}, {"_id": 0})
+async def register(user_data: UserCreate, request: Request, response: Response):
+    email = user_data.email.lower().strip()
+    
+    # Validate email format
+    if not validate_email(email):
+        raise HTTPException(status_code=400, detail="Format d'email invalide")
+    
+    # Validate password strength
+    is_valid, error_msg = validate_password_strength(user_data.password)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
+    
+    # Check for existing user
+    existing = await db.users.find_one({"email": email}, {"_id": 0})
     if existing:
         raise HTTPException(status_code=400, detail="Email déjà utilisé")
     
-    import hashlib
-    password_hash = hashlib.sha256(user_data.password.encode()).hexdigest()
+    # Hash password with bcrypt
+    password_hashed = hash_password(user_data.password)
+    
+    # Sanitize name
+    clean_name = sanitize_input(user_data.name, max_length=100)
     
     user_id = f"user_{uuid.uuid4().hex[:12]}"
     user = {
         "user_id": user_id,
-        "email": user_data.email,
-        "name": user_data.name,
-        "password_hash": password_hash,
-        "picture": f"https://ui-avatars.com/api/?name={user_data.name}&background=FF6B35&color=fff&bold=true",
+        "email": email,
+        "name": clean_name,
+        "password_hash": password_hashed,
+        "picture": f"https://ui-avatars.com/api/?name={clean_name}&background=FF6B35&color=fff&bold=true",
         "bio": None,
         "location": "Polynésie Française",
         "is_business": False,
         "is_verified": False,
+        "is_banned": False,
         "followers_count": 0,
         "following_count": 0,
         "posts_count": 0,
@@ -418,12 +446,17 @@ async def register(user_data: UserCreate, response: Response):
     }
     await db.users.insert_one(user)
     
-    session_token = f"sess_{uuid.uuid4().hex}"
+    # Create session with 7 day expiry
+    session_token, expiry = create_session_token()
+    client_ip = request.headers.get("x-forwarded-for", request.client.host).split(",")[0].strip()
+    
     session = {
         "user_id": user_id,
         "session_token": session_token,
-        "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "expires_at": expiry.isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "ip_address": client_ip,
+        "user_agent": request.headers.get("user-agent", "unknown")
     }
     await db.user_sessions.insert_one(session)
     
@@ -439,23 +472,81 @@ async def register(user_data: UserCreate, response: Response):
     
     user.pop("password_hash", None)
     user.pop("_id", None)
+    logger.info(f"New user registered: {email}")
     return {"user": user, "session_token": session_token}
 
 @api_router.post("/auth/login")
-async def login(user_data: UserLogin, response: Response):
-    import hashlib
-    password_hash = hashlib.sha256(user_data.password.encode()).hexdigest()
+async def login(user_data: UserLogin, request: Request, response: Response):
+    email = user_data.email.lower().strip()
     
-    user = await db.users.find_one({"email": user_data.email, "password_hash": password_hash}, {"_id": 0})
+    # Get client IP for rate limiting
+    client_ip = request.headers.get("x-forwarded-for", request.client.host).split(",")[0].strip()
+    identifier = f"{email}:{client_ip}"
+    
+    # Check if account is locked (brute force protection)
+    is_locked, remaining_minutes = is_account_locked(identifier)
+    if is_locked:
+        raise HTTPException(
+            status_code=429, 
+            detail=f"Compte temporairement bloqué. Réessayez dans {remaining_minutes} minutes."
+        )
+    
+    # Check rate limit
+    allowed, _ = check_rate_limit_enhanced(client_ip, "login")
+    if not allowed:
+        raise HTTPException(status_code=429, detail="Trop de tentatives. Réessayez dans une minute.")
+    
+    # Find user
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    
     if not user:
-        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+        # Record failed attempt
+        is_now_locked, remaining, lockout_mins = record_failed_login(identifier)
+        if is_now_locked:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Compte bloqué après trop de tentatives. Réessayez dans {lockout_mins} minutes."
+            )
+        raise HTTPException(status_code=401, detail=f"Email ou mot de passe incorrect. {remaining} tentative(s) restante(s).")
     
-    session_token = f"sess_{uuid.uuid4().hex}"
+    # Check if account is banned
+    if user.get("is_banned"):
+        raise HTTPException(status_code=403, detail="Ce compte a été suspendu")
+    
+    # Verify password with migration support (SHA256 -> bcrypt)
+    stored_hash = user.get("password_hash", "")
+    is_valid, new_hash = verify_password_with_migration(user_data.password, stored_hash)
+    
+    if not is_valid:
+        # Record failed attempt
+        is_now_locked, remaining, lockout_mins = record_failed_login(identifier)
+        if is_now_locked:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Compte bloqué après trop de tentatives. Réessayez dans {lockout_mins} minutes."
+            )
+        raise HTTPException(status_code=401, detail=f"Email ou mot de passe incorrect. {remaining} tentative(s) restante(s).")
+    
+    # Migrate password hash if needed
+    if new_hash:
+        await db.users.update_one(
+            {"user_id": user["user_id"]},
+            {"$set": {"password_hash": new_hash}}
+        )
+        logger.info(f"Password hash migrated to bcrypt for user {user['user_id']}")
+    
+    # Clear failed attempts on successful login
+    clear_failed_attempts(identifier)
+    
+    # Create session with 7 day expiry
+    session_token, expiry = create_session_token()
     session = {
         "user_id": user["user_id"],
         "session_token": session_token,
-        "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "expires_at": expiry.isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "ip_address": client_ip,
+        "user_agent": request.headers.get("user-agent", "unknown")
     }
     await db.user_sessions.insert_one(session)
     
@@ -470,6 +561,7 @@ async def login(user_data: UserLogin, response: Response):
     )
     
     user.pop("password_hash", None)
+    logger.info(f"Login successful for {email}")
     return {"user": user, "session_token": session_token}
 
 # REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
@@ -562,6 +654,105 @@ async def logout(request: Request, response: Response):
     
     response.delete_cookie(key="session_token", path="/")
     return {"message": "Déconnecté"}
+
+@api_router.post("/auth/logout-all")
+async def logout_all_devices(request: Request, response: Response):
+    """Logout from all devices"""
+    user = await require_auth(request)
+    
+    # Delete all sessions for this user
+    result = await db.user_sessions.delete_many({"user_id": user.user_id})
+    
+    response.delete_cookie(key="session_token", path="/")
+    return {
+        "success": True,
+        "message": f"Déconnecté de {result.deleted_count} appareil(s)"
+    }
+
+@api_router.post("/auth/request-password-reset")
+async def request_password_reset(request: Request):
+    """Request a password reset link"""
+    body = await request.json()
+    email = body.get("email", "").lower().strip()
+    
+    if not email or not validate_email(email):
+        raise HTTPException(status_code=400, detail="Email invalide")
+    
+    # Check if user exists
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    
+    # Always return success to prevent email enumeration
+    if not user:
+        return {"success": True, "message": "Si cet email existe, un lien de réinitialisation a été envoyé"}
+    
+    # Generate reset token
+    token, expiry = generate_password_reset_token()
+    
+    # Store reset token
+    await db.password_resets.delete_many({"email": email})  # Remove old tokens
+    await db.password_resets.insert_one({
+        "email": email,
+        "token": token,
+        "expires_at": expiry.isoformat(),
+        "used": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # In production, send email with reset link
+    # For now, just log it
+    logger.info(f"Password reset requested for {email}, token: {token}")
+    
+    return {"success": True, "message": "Si cet email existe, un lien de réinitialisation a été envoyé"}
+
+@api_router.post("/auth/reset-password")
+async def reset_password(request: Request):
+    """Reset password using token"""
+    body = await request.json()
+    token = body.get("token", "")
+    new_password = body.get("new_password", "")
+    
+    if not token or not new_password:
+        raise HTTPException(status_code=400, detail="Token et nouveau mot de passe requis")
+    
+    # Validate password strength
+    is_valid, error_msg = validate_password_strength(new_password)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
+    
+    # Find and validate token
+    reset_record = await db.password_resets.find_one({"token": token, "used": False}, {"_id": 0})
+    
+    if not reset_record:
+        raise HTTPException(status_code=400, detail="Lien de réinitialisation invalide ou expiré")
+    
+    # Check expiry
+    expiry = datetime.fromisoformat(reset_record["expires_at"])
+    if datetime.now(timezone.utc) > expiry:
+        await db.password_resets.delete_one({"token": token})
+        raise HTTPException(status_code=400, detail="Lien de réinitialisation expiré")
+    
+    # Hash new password with bcrypt
+    new_hash = hash_password(new_password)
+    
+    # Update password
+    await db.users.update_one(
+        {"email": reset_record["email"]},
+        {"$set": {"password_hash": new_hash}}
+    )
+    
+    # Mark token as used
+    await db.password_resets.update_one(
+        {"token": token},
+        {"$set": {"used": True}}
+    )
+    
+    # Logout all sessions
+    user = await db.users.find_one({"email": reset_record["email"]}, {"_id": 0})
+    if user:
+        await db.user_sessions.delete_many({"user_id": user.get("user_id")})
+    
+    logger.info(f"Password reset completed for {reset_record['email']}")
+    return {"success": True, "message": "Mot de passe réinitialisé avec succès"}
 
 # ==================== FACEBOOK OAUTH ====================
 
@@ -2318,6 +2509,19 @@ async def delete_account(request: Request):
     
     logger.info(f"Account deleted: {user.user_id}")
     return {"success": True, "message": "Votre compte a été supprimé"}
+
+# Security Headers Middleware
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        # Add security headers
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Shield, Lock, Eye, EyeOff, Bell, Users, MapPin, 
   Download, Trash2, AlertTriangle, Check, ChevronRight,
-  Smartphone, Key, UserX, FileText
+  Smartphone, Key, UserX, FileText, LogOut
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Switch } from '../components/ui/switch';
@@ -12,9 +13,11 @@ import api from '../lib/api';
 import { toast } from 'sonner';
 
 const SecuritySettingsPage = () => {
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loggingOutAll, setLoggingOutAll] = useState(false);
   const [securityStatus, setSecurityStatus] = useState(null);
   const [privacySettings, setPrivacySettings] = useState({
     profile_visibility: 'public',
@@ -45,6 +48,20 @@ const SecuritySettingsPage = () => {
       console.error('Error loading settings:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLogoutAllDevices = async () => {
+    setLoggingOutAll(true);
+    try {
+      const response = await api.post('/auth/logout-all');
+      toast.success(response.data.message || 'Déconnecté de tous les appareils');
+      await logout();
+      navigate('/auth');
+    } catch (error) {
+      toast.error('Erreur lors de la déconnexion');
+    } finally {
+      setLoggingOutAll(false);
     }
   };
 
