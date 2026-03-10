@@ -546,6 +546,167 @@ async def logout(request: Request, response: Response):
     response.delete_cookie(key="session_token", path="/")
     return {"message": "Déconnecté"}
 
+# ==================== FACEBOOK OAUTH ====================
+
+FACEBOOK_CLIENT_ID = os.environ.get("FACEBOOK_CLIENT_ID")
+FACEBOOK_CLIENT_SECRET = os.environ.get("FACEBOOK_CLIENT_SECRET")
+
+@api_router.get("/auth/facebook")
+async def facebook_login(request: Request):
+    """Initiate Facebook OAuth flow"""
+    # Get the redirect URI from request headers
+    forwarded_proto = request.headers.get('x-forwarded-proto', 'https')
+    forwarded_host = request.headers.get('x-forwarded-host', request.headers.get('host', ''))
+    
+    if forwarded_host:
+        redirect_uri = f"{forwarded_proto}://{forwarded_host}/api/auth/facebook/callback"
+    else:
+        base_url = str(request.base_url).rstrip('/').replace('http://', 'https://')
+        redirect_uri = f"{base_url}/api/auth/facebook/callback"
+    
+    # Facebook OAuth URL
+    facebook_auth_url = (
+        f"https://www.facebook.com/v18.0/dialog/oauth"
+        f"?client_id={FACEBOOK_CLIENT_ID}"
+        f"&redirect_uri={redirect_uri}"
+        f"&scope=email,public_profile"
+        f"&response_type=code"
+    )
+    
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url=facebook_auth_url)
+
+@api_router.get("/auth/facebook/callback")
+async def facebook_callback(request: Request, response: Response, code: str = None, error: str = None):
+    """Handle Facebook OAuth callback"""
+    from fastapi.responses import RedirectResponse
+    
+    if error:
+        logger.error(f"Facebook OAuth error: {error}")
+        return RedirectResponse(url="/auth?error=facebook_auth_failed")
+    
+    if not code:
+        return RedirectResponse(url="/auth?error=no_code")
+    
+    # Get the redirect URI (same as in login)
+    forwarded_proto = request.headers.get('x-forwarded-proto', 'https')
+    forwarded_host = request.headers.get('x-forwarded-host', request.headers.get('host', ''))
+    
+    if forwarded_host:
+        redirect_uri = f"{forwarded_proto}://{forwarded_host}/api/auth/facebook/callback"
+        frontend_url = f"{forwarded_proto}://{forwarded_host}"
+    else:
+        base_url = str(request.base_url).rstrip('/').replace('http://', 'https://')
+        redirect_uri = f"{base_url}/api/auth/facebook/callback"
+        frontend_url = base_url
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            # Exchange code for access token
+            token_response = await client.get(
+                "https://graph.facebook.com/v18.0/oauth/access_token",
+                params={
+                    "client_id": FACEBOOK_CLIENT_ID,
+                    "client_secret": FACEBOOK_CLIENT_SECRET,
+                    "redirect_uri": redirect_uri,
+                    "code": code
+                }
+            )
+            
+            if token_response.status_code != 200:
+                logger.error(f"Facebook token error: {token_response.text}")
+                return RedirectResponse(url="/auth?error=token_error")
+            
+            token_data = token_response.json()
+            access_token = token_data.get("access_token")
+            
+            # Get user info from Facebook
+            user_response = await client.get(
+                "https://graph.facebook.com/v18.0/me",
+                params={
+                    "fields": "id,name,email,picture.type(large)",
+                    "access_token": access_token
+                }
+            )
+            
+            if user_response.status_code != 200:
+                logger.error(f"Facebook user info error: {user_response.text}")
+                return RedirectResponse(url="/auth?error=user_info_error")
+            
+            fb_user = user_response.json()
+            
+            email = fb_user.get("email")
+            name = fb_user.get("name")
+            picture = fb_user.get("picture", {}).get("data", {}).get("url")
+            facebook_id = fb_user.get("id")
+            
+            # If no email, use facebook id as identifier
+            if not email:
+                email = f"fb_{facebook_id}@facebook.local"
+            
+            # Check if user exists
+            existing_user = await db.users.find_one({"email": email}, {"_id": 0})
+            
+            if existing_user:
+                user_id = existing_user["user_id"]
+                # Update user info
+                await db.users.update_one(
+                    {"email": email},
+                    {"$set": {
+                        "name": name or existing_user.get("name"),
+                        "picture": picture or existing_user.get("picture"),
+                        "facebook_id": facebook_id
+                    }}
+                )
+            else:
+                # Create new user
+                user_id = f"user_{uuid.uuid4().hex[:12]}"
+                user = {
+                    "user_id": user_id,
+                    "email": email,
+                    "name": name or "Utilisateur Facebook",
+                    "picture": picture or f"https://ui-avatars.com/api/?name={name or 'FB'}&background=FF6B35&color=fff&bold=true",
+                    "bio": None,
+                    "location": "Polynésie Française",
+                    "is_business": False,
+                    "is_verified": False,
+                    "followers_count": 0,
+                    "following_count": 0,
+                    "posts_count": 0,
+                    "facebook_id": facebook_id,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.users.insert_one(user)
+            
+            # Create session
+            session_token = f"sess_{uuid.uuid4().hex}"
+            session = {
+                "user_id": user_id,
+                "session_token": session_token,
+                "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.user_sessions.insert_one(session)
+            
+            # Set cookie and redirect to feed
+            redirect_response = RedirectResponse(url="/feed", status_code=302)
+            redirect_response.set_cookie(
+                key="session_token",
+                value=session_token,
+                httponly=True,
+                secure=True,
+                samesite="none",
+                path="/",
+                max_age=7*24*60*60
+            )
+            
+            logger.info(f"Facebook login successful for user: {email}")
+            return redirect_response
+            
+    except Exception as e:
+        logger.error(f"Facebook OAuth error: {str(e)}")
+        return RedirectResponse(url="/auth?error=oauth_error")
+
 # ==================== POSTS ROUTES ====================
 
 @api_router.get("/posts", response_model=List[dict])
