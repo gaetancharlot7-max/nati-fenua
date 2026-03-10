@@ -1,7 +1,8 @@
-import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone, Shield } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone, Shield, Settings, LogOut, ChevronUp } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import NotificationBell from '../NotificationBell';
 
 // Fenua Social Logo Component
@@ -23,7 +24,26 @@ const FenuaLogo = ({ size = 'md' }) => {
 
 const MainLayout = ({ children, hideNav = false }) => {
   const location = useLocation();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
 
   const navItems = [
     { icon: Home, label: 'Accueil', path: '/feed' },
@@ -53,7 +73,7 @@ const MainLayout = ({ children, hideNav = false }) => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
@@ -150,10 +170,59 @@ const MainLayout = ({ children, hideNav = false }) => {
           </div>
         </nav>
 
-        {/* User Section */}
+        {/* User Section with Dropdown Menu */}
         {user && (
-          <div className="p-4 border-t border-gray-100">
-            <Link to="/profile" className="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-100 transition-all">
+          <div className="p-4 border-t border-gray-100 relative" ref={profileMenuRef}>
+            {/* Profile Menu Dropdown */}
+            <AnimatePresence>
+              {showProfileMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50"
+                >
+                  <Link 
+                    to="/profile" 
+                    onClick={() => setShowProfileMenu(false)}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                  >
+                    <User size={20} className="text-gray-600" />
+                    <span className="text-[#1A1A2E]">Mon Profil</span>
+                  </Link>
+                  <Link 
+                    to="/profile/edit" 
+                    onClick={() => setShowProfileMenu(false)}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                  >
+                    <Settings size={20} className="text-gray-600" />
+                    <span className="text-[#1A1A2E]">Modifier le profil</span>
+                  </Link>
+                  <Link 
+                    to="/security" 
+                    onClick={() => setShowProfileMenu(false)}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                  >
+                    <Shield size={20} className="text-gray-600" />
+                    <span className="text-[#1A1A2E]">Sécurité</span>
+                  </Link>
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-red-500"
+                  >
+                    <LogOut size={20} />
+                    <span>Déconnexion</span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Profile Button */}
+            <button 
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              data-testid="profile-menu-btn"
+              className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-100 transition-all"
+            >
               <div className="relative">
                 <img 
                   src={user.picture || `https://ui-avatars.com/api/?name=${user.name}&background=FF6B35&color=fff&bold=true`} 
@@ -168,11 +237,15 @@ const MainLayout = ({ children, hideNav = false }) => {
                   </div>
                 )}
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 text-left">
                 <p className="font-semibold text-[#1A1A2E] truncate">{user.name}</p>
                 <p className="text-sm text-gray-500 truncate">{user.location}</p>
               </div>
-            </Link>
+              <ChevronUp 
+                size={20} 
+                className={`text-gray-400 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} 
+              />
+            </button>
           </div>
         )}
       </aside>

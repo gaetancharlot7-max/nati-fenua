@@ -23,6 +23,7 @@ import SecuritySettingsPage from './pages/SecuritySettingsPage';
 import NotificationSettingsPage from './pages/NotificationSettingsPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import EditProfilePage from './pages/EditProfilePage';
 
 // Layout
 import MainLayout from './components/layout/MainLayout';
@@ -114,6 +115,14 @@ function AppRouter() {
         <ProtectedRoute>
           <MainLayout>
             <ProfilePage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/profile/edit" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <EditProfilePage />
           </MainLayout>
         </ProtectedRoute>
       } />

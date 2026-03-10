@@ -1496,6 +1496,57 @@ async def update_profile(request: Request):
     updated_user = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "password_hash": 0})
     return updated_user
 
+@api_router.put("/users/me")
+async def update_my_profile(request: Request):
+    """Update current user profile with file upload support"""
+    user = await require_auth(request)
+    
+    content_type = request.headers.get("content-type", "")
+    
+    if "multipart/form-data" in content_type:
+        # Handle form data with file upload
+        form = await request.form()
+        update_data = {}
+        
+        # Text fields
+        if form.get("name"):
+            update_data["name"] = form.get("name")
+        if form.get("bio") is not None:
+            update_data["bio"] = form.get("bio")
+        if form.get("location"):
+            update_data["location"] = form.get("location")
+        
+        # Handle picture upload
+        picture = form.get("picture")
+        if picture and hasattr(picture, 'file'):
+            # Save file
+            import os
+            filename = f"profile_{user.user_id}_{uuid.uuid4().hex[:8]}.jpg"
+            upload_dir = "/app/uploads/profiles"
+            os.makedirs(upload_dir, exist_ok=True)
+            file_path = os.path.join(upload_dir, filename)
+            
+            content = await picture.read()
+            with open(file_path, "wb") as f:
+                f.write(content)
+            
+            # Get base URL for the file
+            update_data["picture"] = f"/uploads/profiles/{filename}"
+        
+        if update_data:
+            await db.users.update_one({"user_id": user.user_id}, {"$set": update_data})
+    else:
+        # Handle JSON body
+        body = await request.json()
+        allowed_fields = ["name", "bio", "location", "picture", "is_business"]
+        update_data = {k: v for k, v in body.items() if k in allowed_fields}
+        
+        if update_data:
+            await db.users.update_one({"user_id": user.user_id}, {"$set": update_data})
+    
+    updated_user = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "password_hash": 0})
+    return updated_user
+
 # ==================== ANALYTICS ROUTES ====================
 
 @api_router.post("/analytics/event")
@@ -2139,6 +2190,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount uploads directory for serving uploaded files
+import os
+os.makedirs("/app/uploads/profiles", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="/app/uploads"), name="uploads")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

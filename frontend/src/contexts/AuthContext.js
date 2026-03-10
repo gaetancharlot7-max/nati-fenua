@@ -81,6 +81,18 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
+  const refreshUser = async () => {
+    try {
+      const response = await axios.get(`${API}/auth/me`, {
+        withCredentials: true
+      });
+      setUser(response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Refresh user error:', error);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -91,6 +103,7 @@ export const AuthProvider = ({ children }) => {
       exchangeSession,
       logout,
       updateProfile,
+      refreshUser,
       checkAuth,
       setUser
     }}>

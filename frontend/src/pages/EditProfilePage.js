@@ -1,0 +1,229 @@
+import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Camera, User, MapPin, FileText, ArrowLeft, Save, X } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
+import axios from 'axios';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+const EditProfilePage = () => {
+  const navigate = useNavigate();
+  const { user, refreshUser } = useAuth();
+  const fileInputRef = useRef(null);
+  
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    bio: user?.bio || '',
+    location: user?.location || 'Polynésie Française'
+  });
+  const [previewImage, setPreviewImage] = useState(user?.picture || null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('L\'image ne doit pas dépasser 5 Mo');
+        return;
+      }
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('bio', formData.bio);
+      formDataToSend.append('location', formData.location);
+      
+      if (selectedFile) {
+        formDataToSend.append('picture', selectedFile);
+      }
+
+      const response = await axios.put(
+        `${API_URL}/api/users/me`,
+        formDataToSend,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          },
+          withCredentials: true
+        }
+      );
+
+      if (response.data) {
+        toast.success('Profil mis à jour avec succès !');
+        if (refreshUser) {
+          await refreshUser();
+        }
+        navigate('/profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error(error.response?.data?.detail || 'Erreur lors de la mise à jour');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-6 safe-bottom">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-8">
+        <button 
+          onClick={() => navigate(-1)}
+          className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+        >
+          <ArrowLeft size={24} className="text-[#1A1A2E]" />
+        </button>
+        <h1 className="text-2xl font-bold text-[#1A1A2E]">Modifier le profil</h1>
+      </div>
+
+      <motion.form
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        onSubmit={handleSubmit}
+        className="space-y-6"
+      >
+        {/* Profile Picture */}
+        <div className="bg-white rounded-3xl p-6 shadow-sm">
+          <Label className="text-gray-700 font-medium mb-4 block">Photo de profil</Label>
+          <div className="flex flex-col items-center">
+            <div 
+              onClick={handleImageClick}
+              className="relative cursor-pointer group"
+            >
+              <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-[#FF6B35]">
+                {previewImage ? (
+                  <img 
+                    src={previewImage} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-[#FF6B35] to-[#FF1493] flex items-center justify-center">
+                    <User size={48} className="text-white" />
+                  </div>
+                )}
+              </div>
+              <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera size={32} className="text-white" />
+              </div>
+              <div className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493] flex items-center justify-center shadow-lg">
+                <Camera size={20} className="text-white" />
+              </div>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+            />
+            <p className="text-sm text-gray-500 mt-3">Cliquez pour changer la photo</p>
+          </div>
+        </div>
+
+        {/* Name */}
+        <div className="bg-white rounded-3xl p-6 shadow-sm">
+          <Label htmlFor="name" className="text-gray-700 font-medium mb-2 flex items-center gap-2">
+            <User size={18} className="text-[#FF6B35]" />
+            Nom
+          </Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="Votre nom"
+            data-testid="edit-name-input"
+            className="rounded-xl border-gray-200 focus:border-[#FF6B35] py-6"
+          />
+        </div>
+
+        {/* Bio */}
+        <div className="bg-white rounded-3xl p-6 shadow-sm">
+          <Label htmlFor="bio" className="text-gray-700 font-medium mb-2 flex items-center gap-2">
+            <FileText size={18} className="text-[#FF6B35]" />
+            Bio / Description
+          </Label>
+          <textarea
+            id="bio"
+            value={formData.bio}
+            onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+            placeholder="Parlez de vous... (ex: Passionné de surf, amoureux de Tahiti 🌺)"
+            data-testid="edit-bio-input"
+            rows={4}
+            maxLength={300}
+            className="w-full rounded-xl border border-gray-200 focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] p-4 resize-none transition-colors"
+          />
+          <p className="text-sm text-gray-400 mt-2 text-right">{formData.bio.length}/300</p>
+        </div>
+
+        {/* Location */}
+        <div className="bg-white rounded-3xl p-6 shadow-sm">
+          <Label htmlFor="location" className="text-gray-700 font-medium mb-2 flex items-center gap-2">
+            <MapPin size={18} className="text-[#FF6B35]" />
+            Localisation
+          </Label>
+          <Input
+            id="location"
+            value={formData.location}
+            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+            placeholder="Votre localisation"
+            data-testid="edit-location-input"
+            className="rounded-xl border-gray-200 focus:border-[#FF6B35] py-6"
+          />
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate(-1)}
+            className="flex-1 py-6 rounded-2xl border-gray-200"
+          >
+            <X size={20} className="mr-2" />
+            Annuler
+          </Button>
+          <Button
+            type="submit"
+            disabled={loading}
+            data-testid="save-profile-btn"
+            className="flex-1 py-6 rounded-2xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:from-[#FF5722] hover:to-[#E91E63]"
+          >
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <>
+                <Save size={20} className="mr-2" />
+                Enregistrer
+              </>
+            )}
+          </Button>
+        </div>
+      </motion.form>
+    </div>
+  );
+};
+
+export default EditProfilePage;
