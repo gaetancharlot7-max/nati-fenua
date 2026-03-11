@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Shield, Users, FileText, Radio, ShoppingBag, Flag, Settings, 
   LogOut, Eye, Ban, CheckCircle, XCircle, AlertTriangle, TrendingUp,
   MessageSquare, ToggleLeft, ToggleRight, Search, Filter, RefreshCw,
-  DollarSign, Megaphone, BarChart3, HardDrive
+  DollarSign, Megaphone, BarChart3, HardDrive, Newspaper
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -169,6 +169,7 @@ const AdminDashboardPage = () => {
     { id: 'moderation', label: 'Modération', icon: Shield },
     { id: 'advertising', label: 'Publicité Pro', icon: Megaphone },
     { id: 'storage', label: 'Stockage', icon: HardDrive },
+    { id: 'auto-publish', label: 'Auto-Publish', icon: Newspaper, link: '/admin/auto-publish' },
   ];
 
   if (loading) {
@@ -195,24 +196,35 @@ const AdminDashboardPage = () => {
 
         <nav className="flex-1 space-y-1">
           {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              data-testid={`admin-tab-${tab.id}`}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                activeTab === tab.id
-                  ? 'bg-gradient-to-r from-[#FF6B35]/20 to-[#FF1493]/20 text-[#FF6B35]'
-                  : 'text-white/70 hover:bg-white/5'
-              }`}
-            >
-              <tab.icon size={20} />
-              <span>{tab.label}</span>
-              {tab.id === 'reports' && reports.filter(r => r.status === 'pending').length > 0 && (
-                <span className="ml-auto px-2 py-0.5 rounded-full bg-red-500 text-white text-xs">
-                  {reports.filter(r => r.status === 'pending').length}
-                </span>
-              )}
-            </button>
+            tab.link ? (
+              <Link
+                key={tab.id}
+                to={tab.link}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-white/70 hover:bg-white/5"
+              >
+                <tab.icon size={20} />
+                <span>{tab.label}</span>
+              </Link>
+            ) : (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                data-testid={`admin-tab-${tab.id}`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-gradient-to-r from-[#FF6B35]/20 to-[#FF1493]/20 text-[#FF6B35]'
+                    : 'text-white/70 hover:bg-white/5'
+                }`}
+              >
+                <tab.icon size={20} />
+                <span>{tab.label}</span>
+                {tab.id === 'reports' && reports.filter(r => r.status === 'pending').length > 0 && (
+                  <span className="ml-auto px-2 py-0.5 rounded-full bg-red-500 text-white text-xs">
+                    {reports.filter(r => r.status === 'pending').length}
+                  </span>
+                )}
+              </button>
+            )
           ))}
         </nav>
 

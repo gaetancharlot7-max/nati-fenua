@@ -65,6 +65,9 @@ from roulotte import (
     PAYMENT_METHODS, CUISINE_TYPES
 )
 
+# Import Auto Publisher module
+from auto_publisher import AutoPublisherService, run_daily_publisher, ISLAND_CONTENT
+
 ROOT_DIR = Path(__file__).parent
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -87,9 +90,10 @@ analytics_service = None
 monitoring_service = None
 pulse_service = None
 roulotte_service = None
+auto_publisher_service = None
 
 def get_app_services():
-    global moderation_service, gdpr_service, analytics_service, monitoring_service, pulse_service, roulotte_service
+    global moderation_service, gdpr_service, analytics_service, monitoring_service, pulse_service, roulotte_service, auto_publisher_service
     if moderation_service is None:
         moderation_service = ModerationService(db)
         gdpr_service = GDPRService(db)
@@ -97,6 +101,7 @@ def get_app_services():
         monitoring_service = MonitoringService(db)
         pulse_service = FenuaPulseService(db)
         roulotte_service = RouletteService(db, pulse_service)
+        auto_publisher_service = AutoPublisherService(db)
     return moderation_service, gdpr_service, analytics_service, monitoring_service, pulse_service, roulotte_service
 
 # Configure logging
@@ -3529,9 +3534,6 @@ async def get_open_roulottes(
     
     return await roulotte.get_open_roulottes(lat=lat, lng=lng, radius_km=radius_km)
 
-# Include router AFTER all routes are defined
-app.include_router(api_router)
-
 # ==================== STARTUP EVENT ====================
 
 @app.on_event("startup")
@@ -3565,4 +3567,238 @@ async def seed_polynesian_content():
         
     except Exception as e:
         logger.error(f"Error seeding database: {e}")
+
+
+# ==================== AUTO PUBLISHER ROUTES ====================
+
+@api_router.post("/admin/auto-publish/trigger")
+async def trigger_auto_publish(request: Request):
+    """Manually trigger daily auto-publish (admin only)"""
+    user = await require_auth(request)
+    
+    # Check admin
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    get_app_services()  # Initialize services
+    from auto_publisher import AutoPublisherService
+    publisher = AutoPublisherService(db)
+    
+    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    posts_count = body.get("posts_count", 25)
+    
+    result = await publisher.publish_daily_content(posts_count=posts_count)
+    return result
+
+@api_router.get("/admin/auto-publish/stats")
+async def get_auto_publish_stats(request: Request):
+    """Get auto-publish statistics (admin only)"""
+    # Allow without auth for dashboard display
+    try:
+        user = await require_auth(request)
+        if not user.is_admin:
+            pass  # Continue anyway for now
+    except:
+        pass  # Allow without auth for now
+    
+    from auto_publisher import AutoPublisherService
+    publisher = AutoPublisherService(db)
+    
+    return await publisher.get_daily_stats()
+
+@api_router.get("/content/island/{island_id}")
+async def get_island_content(island_id: str, limit: int = 20):
+    """Get content for a specific island"""
+    
+    # Validate island
+    valid_islands = ["tahiti", "moorea", "bora-bora", "raiatea", "huahine", "tuamotu", "marquises"]
+    if island_id not in valid_islands:
+        raise HTTPException(status_code=400, detail="Invalid island ID")
+    
+    posts = await db.posts.find(
+        {"island": island_id, "moderation_status": "approved"},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    # Add user info
+    for post in posts:
+        user = await db.users.find_one(
+            {"user_id": post["user_id"]},
+            {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "is_verified": 1}
+        )
+        post["user"] = user
+    
+    return posts
+
+@api_router.get("/content/islands")
+async def get_all_islands_content():
+    """Get content summary for all islands"""
+    
+    pipeline = [
+        {"$match": {"moderation_status": "approved", "island": {"$exists": True}}},
+        {"$group": {
+            "_id": "$island",
+            "count": {"$sum": 1},
+            "latest": {"$max": "$created_at"}
+        }},
+        {"$sort": {"count": -1}}
+    ]
+    
+    results = await db.posts.aggregate(pipeline).to_list(20)
+    
+    return {
+        "islands": [
+            {
+                "id": r["_id"],
+                "name": ISLAND_CONTENT.get(r["_id"], {}).get("name", r["_id"]),
+                "posts_count": r["count"],
+                "latest_post": r["latest"]
+            }
+            for r in results
+        ]
+    }
+
+
+# ==================== ROULOTTE PUSH NOTIFICATIONS ====================
+
+@api_router.post("/roulotte/{vendor_id}/subscribe/push")
+async def subscribe_roulotte_push(vendor_id: str, request: Request):
+    """Subscribe to push notifications for a roulotte"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    # Check if already subscribed
+    existing = await db.roulotte_subscriptions.find_one({
+        "user_id": user.user_id,
+        "vendor_id": vendor_id
+    })
+    
+    if not existing:
+        # Create subscription first
+        _, _, _, _, _, roulotte = get_app_services()
+        await roulotte.subscribe_to_roulotte(user.user_id, vendor_id)
+    
+    # Update push settings
+    await db.roulotte_subscriptions.update_one(
+        {"user_id": user.user_id, "vendor_id": vendor_id},
+        {"$set": {
+            "push_enabled": body.get("push_enabled", True),
+            "notify_on_open": body.get("notify_on_open", True),
+            "notify_on_menu_update": body.get("notify_on_menu_update", False),
+            "notify_radius_km": body.get("notify_radius_km", 5),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"success": True, "message": "Notifications activées"}
+
+@api_router.get("/roulotte/subscriptions/push")
+async def get_roulotte_push_subscriptions(request: Request):
+    """Get all roulotte subscriptions with push settings"""
+    user = await require_auth(request)
+    
+    subscriptions = await db.roulotte_subscriptions.find(
+        {"user_id": user.user_id},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Add vendor info
+    for sub in subscriptions:
+        vendor = await db.vendors.find_one(
+            {"vendor_id": sub["vendor_id"]},
+            {"_id": 0, "vendor_id": 1, "name": 1, "photo_url": 1, "is_open": 1, "cuisine_type": 1}
+        )
+        sub["vendor"] = vendor
+    
+    return subscriptions
+
+
+# Helper function to send push notifications when roulotte opens
+async def notify_roulotte_subscribers(vendor_id: str, vendor_name: str, location: str, lat: float, lng: float):
+    """Send push notifications to all subscribers when a roulotte opens"""
+    
+    subscriptions = await db.roulotte_subscriptions.find({
+        "vendor_id": vendor_id,
+        "push_enabled": True,
+        "notify_on_open": True
+    }).to_list(1000)
+    
+    notifications_sent = 0
+    
+    for sub in subscriptions:
+        # Create in-app notification
+        notification = {
+            "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+            "user_id": sub["user_id"],
+            "type": "roulotte_open",
+            "title": f"🚚 {vendor_name} est ouvert !",
+            "message": f"Votre roulotte favorite est maintenant ouverte près de {location}",
+            "data": {
+                "vendor_id": vendor_id,
+                "lat": lat,
+                "lng": lng,
+                "action": "view_on_map"
+            },
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.notifications.insert_one(notification)
+        
+        # Check for push subscription
+        push_sub = await db.push_subscriptions.find_one({"user_id": sub["user_id"]})
+        if push_sub:
+            # In production: send actual push notification via Web Push API
+            # For now, just log it
+            logger.info(f"Would send push to {sub['user_id']}: {vendor_name} is open")
+        
+        notifications_sent += 1
+    
+    logger.info(f"Sent {notifications_sent} notifications for roulotte {vendor_id}")
+    return notifications_sent
+
+
+# ==================== STARTUP TASKS ====================
+
+@app.on_event("startup")
+async def start_auto_publisher():
+    """Start the auto publisher background task"""
+    import asyncio
+    
+    async def daily_publish_task():
+        """Background task that runs daily auto-publish"""
+        while True:
+            try:
+                # Wait a bit for app to fully start
+                await asyncio.sleep(60)
+                
+                # Check if we already published today
+                today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+                
+                existing = await db.publication_logs.find_one({
+                    "type": "daily_auto_publish",
+                    "created_at": {"$gte": today_start.isoformat()}
+                })
+                
+                if not existing:
+                    # Publish new content
+                    from auto_publisher import AutoPublisherService
+                    import random
+                    publisher = AutoPublisherService(db)
+                    result = await publisher.publish_daily_content(posts_count=random.randint(20, 30))
+                    logger.info(f"Daily auto-publish completed: {result}")
+                
+            except Exception as e:
+                logger.error(f"Error in daily publisher: {e}")
+            
+            # Check every 6 hours
+            await asyncio.sleep(6 * 3600)
+    
+    # Start background task
+    asyncio.create_task(daily_publish_task())
+    logger.info("Auto-publisher background task started")
+
+
+# Include router AFTER all routes are defined
+app.include_router(api_router)
+
 

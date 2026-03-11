@@ -29,6 +29,7 @@ import GDPRSettingsPage from './pages/GDPRSettingsPage';
 import AdminAnalyticsPage from './pages/AdminAnalyticsPage';
 import AdminMonitoringPage from './pages/AdminMonitoringPage';
 import AdminModerationPage from './pages/AdminModerationPage';
+import AdminAutoPublishPage from './pages/AdminAutoPublishPage';
 import PulsePage from './pages/PulsePage';
 import VendorDashboardPage from './pages/VendorDashboardPage';
 import LiveViewPage from './pages/LiveViewPage';
@@ -222,6 +223,7 @@ function AppRouter() {
       <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
       <Route path="/admin/monitoring" element={<AdminMonitoringPage />} />
       <Route path="/admin/moderation" element={<AdminModerationPage />} />
+      <Route path="/admin/auto-publish" element={<AdminAutoPublishPage />} />
       
       {/* Fenua Pulse */}
       <Route path="/pulse" element={

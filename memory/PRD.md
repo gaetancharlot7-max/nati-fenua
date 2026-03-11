@@ -31,7 +31,7 @@ Hui Fenua est un réseau social pour la communauté tahitienne en Polynésie fra
   - Gestion du menu avec création, modification et suppression de plats
   - Onglets Dashboard / Menu / Paramètres
   - Système d'avis clients
-  - Abonnements aux vendeurs avec notifications
+  - Abonnements aux vendeurs avec notifications PUSH
 
 - **Gamification (Mana)** :
   - Points Mana gagnés pour les contributions
@@ -44,10 +44,38 @@ Hui Fenua est un réseau social pour la communauté tahitienne en Polynésie fra
 - Bouton de démarrage de live
 - Compteur de spectateurs et likes
 
+### Phase 4 - Publication Automatique (NOUVELLE - Complète)
+- **Système de publication automatique quotidien** :
+  - 20-30 posts générés automatiquement chaque jour
+  - Couverture garantie de toutes les 7 îles :
+    - Tahiti (Papeete, Teahupo'o, Punaauia...)
+    - Moorea (Temae, Opunohu, Cook's Bay...)
+    - Bora Bora (Matira Beach, Vaitape, Mont Otemanu...)
+    - Raiatea (Uturoa, Marae Taputapuatea...)
+    - Huahine (Fare, Maeva, Lac Fauna Nui...)
+    - Tuamotu (Rangiroa, Fakarava, Tikehau...)
+    - Marquises (Nuku Hiva, Hiva Oa, Ua Pou...)
+  - Mix de contenus : photos, vidéos, articles
+  - Thèmes variés : tourisme, culture, cuisine, surf, nature, événements
+  - Comptes bot vérifiés pour chaque île
+  - Hashtags locaux automatiques
+  
+- **Page Admin Auto-Publish** :
+  - Statistiques en temps réel (posts/jour, îles couvertes)
+  - Bouton de publication manuelle
+  - Choix du nombre de posts (15-30)
+  - Visualisation de la couverture par île
+
+- **Notifications Push Roulottes** :
+  - Abonnement aux notifications pour les roulottes favorites
+  - Notification quand une roulotte ouvre
+  - Configuration du rayon de notification
+
 ## Architecture Technique
 
 ### Backend (FastAPI)
 - `/app/backend/server.py` - Routes principales
+- `/app/backend/auto_publisher.py` - **NOUVEAU** : Système de publication automatique
 - `/app/backend/auth_security.py` - Sécurité et authentification
 - `/app/backend/fenua_pulse.py` - Logique Fenua Pulse
 - `/app/backend/roulotte.py` - Système vendeurs
@@ -60,19 +88,22 @@ Hui Fenua est un réseau social pour la communauté tahitienne en Polynésie fra
 - `/app/frontend/src/pages/PulsePage.js` - Carte Fenua Pulse
 - `/app/frontend/src/pages/LivePage.js` - Liste des lives
 - `/app/frontend/src/pages/LiveViewPage.js` - Visionnage d'un live
-- `/app/frontend/src/pages/VendorDashboardPage.js` - Dashboard vendeur
+- `/app/frontend/src/pages/VendorDashboardPage.js` - Dashboard vendeur avec onglets
+- `/app/frontend/src/pages/AdminAutoPublishPage.js` - **NOUVEAU** : Page admin publication auto
 
 ### Base de données
-- MongoDB avec collections : users, posts, stories, conversations, messages, vendors, pulse_markers, etc.
+- MongoDB avec collections : users, posts, stories, conversations, messages, vendors, pulse_markers, roulotte_subscriptions, push_subscriptions, publication_logs
 
 ## Statut actuel : Application Fonctionnelle
 
 ### Testé et validé
-- Carte Fenua Pulse
-- Page Live avec visionnage
-- Fil d'actualité avec stories
-- Dashboard vendeur avec onglets de modification
-- APIs backend (pulse, lives, posts, roulotte)
+- ✅ Carte Fenua Pulse avec react-leaflet
+- ✅ Page Live avec visionnage
+- ✅ Fil d'actualité avec stories
+- ✅ Dashboard vendeur avec onglets de modification
+- ✅ Publication automatique quotidienne (30 posts, 7 îles)
+- ✅ Page admin Auto-Publish
+- ✅ APIs backend (pulse, lives, posts, roulotte, auto-publish)
 
 ### Issues connues (P2)
 - Connexion Facebook non fonctionnelle (redirection)

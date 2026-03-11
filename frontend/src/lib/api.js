@@ -182,6 +182,9 @@ export const adminApi = {
   // Settings
   updateModerationSettings: (data) => api.put('/admin/moderation/settings', data),
   updateAdsSettings: (data) => api.put('/admin/ads/settings', data),
+  // Auto Publisher
+  getAutoPublishStats: () => api.get('/admin/auto-publish/stats'),
+  triggerAutoPublish: (data) => api.post('/admin/auto-publish/trigger', data),
 };
 
 // Upload API
