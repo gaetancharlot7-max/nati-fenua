@@ -83,6 +83,15 @@ app = FastAPI(title="Hui Fenua API")
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
+# Add CORS Middleware - CRITICAL for production
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
+
 # Initialize services
 moderation_service = None
 gdpr_service = None
@@ -964,12 +973,36 @@ async def facebook_callback(request: Request, response: Response, code: str = No
 
 @api_router.get("/posts", response_model=List[dict])
 async def get_posts(limit: int = 20, skip: int = 0):
-    posts = await db.posts.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    # Optimized: Use aggregation with $lookup to avoid N+1 queries
+    pipeline = [
+        {"$sort": {"created_at": -1}},
+        {"$skip": skip},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "user_id",
+            "as": "user_data"
+        }},
+        {"$unwind": {"path": "$user_data", "preserveNullAndEmptyArrays": True}},
+        {"$project": {
+            "_id": 0,
+            "user_data._id": 0,
+            "user_data.password_hash": 0,
+            "user_data.email": 0
+        }},
+        {"$addFields": {
+            "user": {
+                "user_id": "$user_data.user_id",
+                "name": "$user_data.name",
+                "picture": "$user_data.picture",
+                "is_verified": "$user_data.is_verified"
+            }
+        }},
+        {"$project": {"user_data": 0}}
+    ]
     
-    for post in posts:
-        user = await db.users.find_one({"user_id": post["user_id"]}, {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "is_verified": 1})
-        post["user"] = user
-    
+    posts = await db.posts.aggregate(pipeline).to_list(limit)
     return posts
 
 @api_router.get("/posts/nearby")
@@ -981,17 +1014,37 @@ async def get_nearby_posts(lat: float, lng: float, radius_km: float = 50, limit:
     lat_range = radius_km / 111.0
     lng_range = radius_km / (111.0 * math.cos(math.radians(lat)))
     
-    posts = await db.posts.find({
-        "coordinates": {"$ne": None},
-        "coordinates.lat": {"$gte": lat - lat_range, "$lte": lat + lat_range},
-        "coordinates.lng": {"$gte": lng - lng_range, "$lte": lng + lng_range}
-    }, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    # Optimized: Use aggregation with $lookup to avoid N+1 queries
+    pipeline = [
+        {"$match": {
+            "coordinates": {"$ne": None},
+            "coordinates.lat": {"$gte": lat - lat_range, "$lte": lat + lat_range},
+            "coordinates.lng": {"$gte": lng - lng_range, "$lte": lng + lng_range}
+        }},
+        {"$sort": {"created_at": -1}},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "user_id",
+            "as": "user_data"
+        }},
+        {"$unwind": {"path": "$user_data", "preserveNullAndEmptyArrays": True}},
+        {"$addFields": {
+            "user": {
+                "user_id": "$user_data.user_id",
+                "name": "$user_data.name",
+                "picture": "$user_data.picture",
+                "is_verified": "$user_data.is_verified"
+            }
+        }},
+        {"$project": {"_id": 0, "user_data": 0}}
+    ]
     
+    posts = await db.posts.aggregate(pipeline).to_list(limit)
+    
+    # Calculate distances
     for post in posts:
-        user = await db.users.find_one({"user_id": post["user_id"]}, {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "is_verified": 1})
-        post["user"] = user
-        
-        # Calculate distance
         if post.get("coordinates"):
             dlat = math.radians(post["coordinates"]["lat"] - lat)
             dlng = math.radians(post["coordinates"]["lng"] - lng)
@@ -1003,17 +1056,30 @@ async def get_nearby_posts(lat: float, lng: float, radius_km: float = 50, limit:
 @api_router.get("/posts/paginated")
 async def get_paginated_posts(limit: int = 10, skip: int = 0):
     """Get paginated posts for infinite scroll (optimized for slow connections)"""
-    posts = await db.posts.find(
-        {}, 
-        {"_id": 0}
-    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    # Optimized: Use aggregation with $lookup to avoid N+1 queries
+    pipeline = [
+        {"$sort": {"created_at": -1}},
+        {"$skip": skip},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "user_id",
+            "as": "user_data"
+        }},
+        {"$unwind": {"path": "$user_data", "preserveNullAndEmptyArrays": True}},
+        {"$addFields": {
+            "user": {
+                "user_id": "$user_data.user_id",
+                "name": "$user_data.name",
+                "picture": "$user_data.picture",
+                "is_verified": "$user_data.is_verified"
+            }
+        }},
+        {"$project": {"_id": 0, "user_data": 0}}
+    ]
     
-    for post in posts:
-        user = await db.users.find_one(
-            {"user_id": post["user_id"]}, 
-            {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "is_verified": 1}
-        )
-        post["user"] = user
+    posts = await db.posts.aggregate(pipeline).to_list(limit)
     
     # Get total count for pagination info
     total = await db.posts.count_documents({})
@@ -1178,26 +1244,65 @@ async def get_saved_posts(request: Request, limit: int = 50):
     """Get all saved posts for current user"""
     user = await require_auth(request)
     
-    saved = await db.saved_posts.find({"user_id": user.user_id}, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    # Optimized: Use aggregation with $lookup to avoid N+1 queries
+    pipeline = [
+        {"$match": {"user_id": user.user_id}},
+        {"$sort": {"created_at": -1}},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "posts",
+            "localField": "post_id",
+            "foreignField": "post_id",
+            "as": "post_data"
+        }},
+        {"$unwind": {"path": "$post_data", "preserveNullAndEmptyArrays": False}},
+        {"$lookup": {
+            "from": "users",
+            "localField": "post_data.user_id",
+            "foreignField": "user_id",
+            "as": "user_data"
+        }},
+        {"$unwind": {"path": "$user_data", "preserveNullAndEmptyArrays": True}},
+        {"$addFields": {
+            "post_data.user": {
+                "user_id": "$user_data.user_id",
+                "name": "$user_data.name",
+                "picture": "$user_data.picture",
+                "is_verified": "$user_data.is_verified"
+            }
+        }},
+        {"$replaceRoot": {"newRoot": "$post_data"}},
+        {"$project": {"_id": 0}}
+    ]
     
-    posts = []
-    for s in saved:
-        post = await db.posts.find_one({"post_id": s["post_id"]}, {"_id": 0})
-        if post:
-            post_user = await db.users.find_one({"user_id": post["user_id"]}, {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "is_verified": 1})
-            post["user"] = post_user
-            posts.append(post)
-    
+    posts = await db.saved_posts.aggregate(pipeline).to_list(limit)
     return posts
 
 @api_router.get("/posts/{post_id}/comments")
 async def get_comments(post_id: str, limit: int = 50):
-    comments = await db.comments.find({"post_id": post_id}, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    # Optimized: Use aggregation with $lookup to avoid N+1 queries
+    pipeline = [
+        {"$match": {"post_id": post_id}},
+        {"$sort": {"created_at": -1}},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "user_id",
+            "as": "user_data"
+        }},
+        {"$unwind": {"path": "$user_data", "preserveNullAndEmptyArrays": True}},
+        {"$addFields": {
+            "user": {
+                "user_id": "$user_data.user_id",
+                "name": "$user_data.name",
+                "picture": "$user_data.picture"
+            }
+        }},
+        {"$project": {"_id": 0, "user_data": 0}}
+    ]
     
-    for comment in comments:
-        user = await db.users.find_one({"user_id": comment["user_id"]}, {"_id": 0, "user_id": 1, "name": 1, "picture": 1})
-        comment["user"] = user
-    
+    comments = await db.comments.aggregate(pipeline).to_list(limit)
     return comments
 
 @api_router.post("/posts/{post_id}/comments")
