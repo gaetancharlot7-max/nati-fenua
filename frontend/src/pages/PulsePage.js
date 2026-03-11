@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MapPin, Navigation, Filter, Plus, X, Truck, Flame, Waves, 
@@ -6,6 +6,9 @@ import {
   Star, Phone, Clock, Users, Trophy, Award, Zap, ChevronRight,
   Camera, Send, ThumbsUp, ThumbsDown, Loader2
 } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -13,6 +16,14 @@ import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import api from '../lib/api';
+
+// Fix Leaflet default marker icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 
 // Helper function to darken/lighten colors
 const adjustColor = (color, amount) => {
@@ -24,24 +35,109 @@ const adjustColor = (color, amount) => {
   return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
 };
 
-// Marker icons mapping
-const MARKER_ICONS = {
-  truck: Truck,
-  flame: Flame,
-  waves: Waves,
-  calendar: Calendar,
-  video: Video,
-  cloud: Cloud,
-  'shopping-bag': ShoppingBag,
-  'map-pin': MapPin
+// Marker emoji mapping
+const getMarkerEmoji = (type) => {
+  const emojis = {
+    roulotte: '🚚',
+    accident: '🔥',
+    surf: '🌊',
+    event: '📅',
+    live: '📹',
+    weather: '☁️',
+    market: '🛍️',
+    other: '📍'
+  };
+  return emojis[type] || '📍';
+};
+
+// Create custom marker icon
+const createCustomIcon = (marker, markerType) => {
+  const color = marker.color || markerType?.color || '#FF6B35';
+  const isVerified = marker.is_verified;
+  
+  const iconHtml = `
+    <div class="pulse-marker" style="position: relative; width: 44px; height: 44px;">
+      <div style="
+        position: absolute;
+        inset: 0;
+        background-color: ${color};
+        border-radius: 50%;
+        opacity: 0.3;
+        animation: pulse-ring 2s ease-out infinite;
+      "></div>
+      <div style="
+        position: relative;
+        background: linear-gradient(135deg, ${color}, ${adjustColor(color, -30)});
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid white;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        ${isVerified ? 'border-color: #22C55E; border-width: 4px;' : ''}
+        cursor: pointer;
+        transition: transform 0.2s;
+      ">
+        <span style="font-size: 20px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));">
+          ${getMarkerEmoji(marker.marker_type)}
+        </span>
+      </div>
+      ${isVerified ? '<div style="position: absolute; top: -4px; right: -4px; background: #22C55E; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white;"><span style="color: white; font-size: 10px;">✓</span></div>' : ''}
+    </div>
+  `;
+  
+  return L.divIcon({
+    html: iconHtml,
+    className: 'custom-marker',
+    iconSize: [44, 44],
+    iconAnchor: [22, 22]
+  });
+};
+
+// User location icon
+const createUserIcon = () => {
+  return L.divIcon({
+    html: `<div style="
+      width: 20px;
+      height: 20px;
+      background: #3B82F6;
+      border: 3px solid white;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    "></div>`,
+    className: 'user-location-marker',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
+  });
+};
+
+// Map Controller Component
+const MapController = ({ selectedIsland, islands, userLocation }) => {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (selectedIsland && islands.length > 0) {
+      const island = islands.find(i => i.id === selectedIsland);
+      if (island) {
+        map.setView([island.lat, island.lng], island.zoom);
+      }
+    }
+  }, [selectedIsland, islands, map]);
+
+  useEffect(() => {
+    if (userLocation) {
+      map.setView([userLocation.lat, userLocation.lng], 15);
+    }
+  }, [userLocation, map]);
+
+  return null;
 };
 
 // Pulse Page Component
 const PulsePage = () => {
   const { user } = useAuth();
-  const mapRef = useRef(null);
-  const mapInstanceRef = useRef(null);
-  const markersLayerRef = useRef(null);
   
   const [islands, setIslands] = useState([]);
   const [markerTypes, setMarkerTypes] = useState([]);
@@ -57,24 +153,20 @@ const PulsePage = () => {
   const [leaderboard, setLeaderboard] = useState([]);
   const [manaBalance, setManaBalance] = useState(0);
 
+  // Default center (Tahiti)
+  const defaultCenter = { lat: -17.6509, lng: -149.4260, zoom: 11 };
+
   // Load initial data
   useEffect(() => {
     loadInitialData();
   }, []);
 
-  // Initialize map
-  useEffect(() => {
-    if (islands.length > 0 && !mapInstanceRef.current) {
-      initMap();
-    }
-  }, [islands]);
-
   // Reload markers when filters change
   useEffect(() => {
-    if (mapInstanceRef.current) {
+    if (islands.length > 0) {
       loadMarkers();
     }
-  }, [activeFilters, selectedIsland]);
+  }, [activeFilters, selectedIsland, islands]);
 
   const loadInitialData = async () => {
     try {
@@ -97,66 +189,15 @@ const PulsePage = () => {
           console.error('Error loading mana:', e);
         }
       }
+      
+      // Load markers
+      loadMarkers();
     } catch (error) {
       console.error('Error loading pulse data:', error);
       toast.error('Erreur de chargement');
     } finally {
       setLoading(false);
     }
-  };
-
-  const initMap = () => {
-    // Load Leaflet CSS
-    if (!document.querySelector('link[href*="leaflet"]')) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
-    }
-
-    // Load Leaflet JS
-    if (!window.L) {
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.onload = () => createMap();
-      document.head.appendChild(script);
-    } else {
-      createMap();
-    }
-  };
-
-  const createMap = () => {
-    if (mapInstanceRef.current) return;
-
-    const tahiti = islands.find(i => i.id === 'tahiti') || { lat: -17.6509, lng: -149.4260, zoom: 11 };
-    
-    const map = window.L.map(mapRef.current, {
-      zoomControl: false,
-      attributionControl: false
-    }).setView([tahiti.lat, tahiti.lng], tahiti.zoom);
-
-    // Use CartoDB Voyager for a cleaner, more modern look
-    window.L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      subdomains: 'abcd'
-    }).addTo(map);
-
-    // Add custom attribution
-    window.L.control.attribution({
-      position: 'bottomleft',
-      prefix: '<span style="color:#FF6B35">🌺</span> Hui Fenua'
-    }).addTo(map);
-
-    // Add zoom control to top right with custom style
-    window.L.control.zoom({ position: 'topright' }).addTo(map);
-
-    // Create markers layer
-    markersLayerRef.current = window.L.layerGroup().addTo(map);
-
-    mapInstanceRef.current = map;
-    
-    // Load markers
-    loadMarkers();
   };
 
   const loadMarkers = async () => {
@@ -171,89 +212,13 @@ const PulsePage = () => {
       
       const response = await api.get(`/pulse/markers?${params.toString()}`);
       setMarkers(response.data);
-      
-      // Update map markers
-      if (markersLayerRef.current && window.L) {
-        markersLayerRef.current.clearLayers();
-        
-        response.data.forEach(marker => {
-          const markerType = markerTypes.find(t => t.type === marker.marker_type) || {};
-          
-          // Create beautiful custom icon with animation
-          const iconHtml = `
-            <div class="pulse-marker" style="
-              position: relative;
-              width: 44px;
-              height: 44px;
-            ">
-              <div style="
-                position: absolute;
-                inset: 0;
-                background-color: ${marker.color || markerType.color || '#FF6B35'};
-                border-radius: 50%;
-                opacity: 0.3;
-                animation: pulse-ring 2s ease-out infinite;
-              "></div>
-              <div style="
-                position: relative;
-                background: linear-gradient(135deg, ${marker.color || markerType.color || '#FF6B35'}, ${adjustColor(marker.color || markerType.color || '#FF6B35', -30)});
-                width: 44px;
-                height: 44px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border: 3px solid white;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-                ${marker.is_verified ? 'border-color: #22C55E; border-width: 4px;' : ''}
-                cursor: pointer;
-                transition: transform 0.2s;
-              ">
-                <span style="font-size: 20px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));">
-                  ${getMarkerEmoji(marker.marker_type)}
-                </span>
-              </div>
-              ${marker.is_verified ? '<div style="position: absolute; top: -4px; right: -4px; background: #22C55E; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white;"><span style="color: white; font-size: 10px;">✓</span></div>' : ''}
-            </div>
-          `;
-          
-          const icon = window.L.divIcon({
-            html: iconHtml,
-            className: 'custom-marker',
-            iconSize: [44, 44],
-            iconAnchor: [22, 22]
-          });
-          
-          const leafletMarker = window.L.marker([marker.lat, marker.lng], { icon })
-            .addTo(markersLayerRef.current)
-            .on('click', () => setShowMarkerDetail(marker));
-        });
-      }
     } catch (error) {
       console.error('Error loading markers:', error);
     }
   };
 
-  const getMarkerEmoji = (type) => {
-    const emojis = {
-      roulotte: '🚚',
-      accident: '🔥',
-      surf: '🌊',
-      event: '📅',
-      live: '📹',
-      weather: '☁️',
-      market: '🛍️',
-      other: '📍'
-    };
-    return emojis[type] || '📍';
-  };
-
   const navigateToIsland = (islandId) => {
-    const island = islands.find(i => i.id === islandId);
-    if (island && mapInstanceRef.current) {
-      mapInstanceRef.current.setView([island.lat, island.lng], island.zoom);
-      setSelectedIsland(islandId);
-    }
+    setSelectedIsland(islandId);
   };
 
   const toggleFilter = (type) => {
@@ -270,32 +235,6 @@ const PulsePage = () => {
         (position) => {
           const { latitude, longitude } = position.coords;
           setUserLocation({ lat: latitude, lng: longitude });
-          
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.setView([latitude, longitude], 15);
-            
-            // Add user location marker
-            if (window.L) {
-              const userIcon = window.L.divIcon({
-                html: `<div style="
-                  width: 20px;
-                  height: 20px;
-                  background: #3B82F6;
-                  border: 3px solid white;
-                  border-radius: 50%;
-                  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-                "></div>`,
-                className: 'user-location-marker',
-                iconSize: [20, 20],
-                iconAnchor: [10, 10]
-              });
-              
-              window.L.marker([latitude, longitude], { icon: userIcon })
-                .addTo(mapInstanceRef.current)
-                .bindPopup('Vous êtes ici');
-            }
-          }
-          
           toast.success('Position trouvée !');
         },
         (error) => {
@@ -336,6 +275,8 @@ const PulsePage = () => {
       </div>
     );
   }
+
+  const mapCenter = islands.find(i => i.id === selectedIsland) || defaultCenter;
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-b from-[#E6F7FF] to-white overflow-hidden">
@@ -438,7 +379,49 @@ const PulsePage = () => {
 
       {/* Map Container */}
       <div className="flex-1 relative">
-        <div ref={mapRef} className="w-full h-full" />
+        <MapContainer
+          center={[mapCenter.lat, mapCenter.lng]}
+          zoom={mapCenter.zoom || 11}
+          style={{ width: '100%', height: '100%' }}
+          zoomControl={false}
+          attributionControl={false}
+        >
+          <TileLayer
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            maxZoom={19}
+          />
+          
+          <MapController 
+            selectedIsland={selectedIsland} 
+            islands={islands} 
+            userLocation={userLocation}
+          />
+          
+          {/* Markers */}
+          {markers.map(marker => {
+            const markerType = markerTypes.find(t => t.type === marker.marker_type);
+            return (
+              <Marker
+                key={marker.marker_id}
+                position={[marker.lat, marker.lng]}
+                icon={createCustomIcon(marker, markerType)}
+                eventHandlers={{
+                  click: () => setShowMarkerDetail(marker)
+                }}
+              />
+            );
+          })}
+          
+          {/* User Location Marker */}
+          {userLocation && (
+            <Marker
+              position={[userLocation.lat, userLocation.lng]}
+              icon={createUserIcon()}
+            >
+              <Popup>Vous êtes ici</Popup>
+            </Marker>
+          )}
+        </MapContainer>
         
         {/* Decorative water gradient overlay */}
         <div className="absolute inset-0 pointer-events-none map-water-overlay" />
@@ -448,7 +431,7 @@ const PulsePage = () => {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={goToMyLocation}
-          className="absolute bottom-24 right-4 w-14 h-14 bg-white rounded-2xl shadow-xl flex items-center justify-center hover:bg-gray-50 z-10 border border-blue-100"
+          className="absolute bottom-24 right-4 w-14 h-14 bg-white rounded-2xl shadow-xl flex items-center justify-center hover:bg-gray-50 z-[1000] border border-blue-100"
           data-testid="my-location-btn"
         >
           <Navigation size={24} className="text-[#00CED1]" />
@@ -460,7 +443,7 @@ const PulsePage = () => {
             whileHover={{ scale: 1.1, rotate: 90 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => setShowCreateModal(true)}
-            className="absolute bottom-24 left-4 w-16 h-16 bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] rounded-2xl shadow-xl flex items-center justify-center z-10"
+            className="absolute bottom-24 left-4 w-16 h-16 bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] rounded-2xl shadow-xl flex items-center justify-center z-[1000]"
             data-testid="create-signal-btn"
           >
             <Plus size={32} className="text-white" strokeWidth={3} />
@@ -468,7 +451,7 @@ const PulsePage = () => {
         )}
 
         {/* Legend Card */}
-        <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-xl z-10 border border-gray-100">
+        <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-xl z-[1000] border border-gray-100">
           <div className="flex items-center gap-2 mb-2">
             <MapPin className="text-[#FF6B35]" size={18} />
             <span className="font-bold text-[#1A1A2E]">{markers.length}</span>
@@ -582,20 +565,6 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
     setDescription('');
   };
 
-  const getMarkerEmoji = (type) => {
-    const emojis = {
-      roulotte: '🚚',
-      accident: '🔥',
-      surf: '🌊',
-      event: '📅',
-      live: '📹',
-      weather: '☁️',
-      market: '🛍️',
-      other: '📍'
-    };
-    return emojis[type] || '📍';
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -604,7 +573,7 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center justify-center"
+        className="fixed inset-0 bg-black/50 z-[2000] flex items-end lg:items-center justify-center"
         onClick={onClose}
       >
         <motion.div
@@ -739,27 +708,13 @@ const MarkerDetailModal = ({ marker, onClose, onConfirm, currentUserId }) => {
     !marker.denied_by?.includes(currentUserId) &&
     marker.user_id !== currentUserId;
 
-  const getMarkerEmoji = (type) => {
-    const emojis = {
-      roulotte: '🚚',
-      accident: '🔥',
-      surf: '🌊',
-      event: '📅',
-      live: '📹',
-      weather: '☁️',
-      market: '🛍️',
-      other: '📍'
-    };
-    return emojis[type] || '📍';
-  };
-
   return (
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center justify-center"
+        className="fixed inset-0 bg-black/50 z-[2000] flex items-end lg:items-center justify-center"
         onClick={onClose}
       >
         <motion.div
@@ -880,7 +835,7 @@ const LeaderboardModal = ({ isOpen, onClose, leaderboard, selectedIsland, island
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black/50 z-[2000] flex items-center justify-center p-4"
         onClick={onClose}
       >
         <motion.div

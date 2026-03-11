@@ -223,8 +223,8 @@ class StoryBase(BaseModel):
     duration: int = 5
     views_count: int = 0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    # Stories visible in feed for 3 days
-    expires_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=3))
+    # Stories visible in feed for 7 days
+    expires_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=7))
     # Stories kept on profile for 30 days
     profile_expires_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=30))
 
@@ -3438,6 +3438,30 @@ async def remove_menu_item(item_id: str, request: Request):
     
     try:
         return await roulotte.remove_menu_item(user.user_id, item_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.put("/roulotte/menu/{item_id}")
+async def update_menu_item(item_id: str, request: Request):
+    """Update a menu item"""
+    user = await require_auth(request)
+    body = await request.json()
+    _, _, _, _, _, roulotte = get_app_services()
+    
+    try:
+        updates = {}
+        if "name" in body:
+            updates["name"] = body["name"]
+        if "price" in body:
+            updates["price"] = body["price"]
+        if "description" in body:
+            updates["description"] = body["description"]
+        if "photo_url" in body:
+            updates["photo_url"] = body["photo_url"]
+        if "is_available" in body:
+            updates["is_available"] = body["is_available"]
+            
+        return await roulotte.update_menu_item(user.user_id, item_id, updates)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

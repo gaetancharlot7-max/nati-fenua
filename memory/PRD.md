@@ -1,178 +1,96 @@
-# Hui Fenua - Product Requirements Document
+# Hui Fenua - PRD (Product Requirements Document)
 
-## Overview
-Application réseau social pour la communauté polynésienne de Polynésie française, inspirée d'Instagram et TikTok.
+## Résumé du Projet
+Hui Fenua est un réseau social pour la communauté tahitienne en Polynésie française, inspiré d'Instagram et TikTok.
 
-## Core Features
+## Fonctionnalités Implémentées
 
-### Authentication
-- ✅ Email/Password registration and login (bcrypt hashing)
-- ✅ Google Social Login 
-- ⚠️ Facebook Login (URL callback configuration needed)
-- ✅ Brute-force protection (5 attempts limit)
-- ✅ Rate limiting (100 requests/minute)
-- ✅ JWT session management
-- ✅ "Logout from all devices" feature
+### Phase 1 - MVP (Complète)
+- **Authentification sécurisée** : Email/Mot de passe avec bcrypt, protection anti-brute force, JWT
+- **Connexion Google** : OAuth 2.0 via Emergent
+- **Fil d'actualité** : Posts photo/vidéo avec lazy loading, skeleton loaders, pagination infinie
+- **Stories** : Durée de vie de 7 jours dans le fil, 30 jours sur profil
+- **Chat en temps réel** : Conversations et messages
+- **Marché** : Produits et services
 
-### Main Features
-- ✅ Social feed with posts (photos, videos, links)
-- ✅ Stories (24h expiration)
-- ✅ Real-time chat
-- ✅ Marketplace (Marché)
-- ✅ User profiles with privacy settings
-- ✅ Content sharing
-- 🔄 Live streaming (UI only, WebRTC pending)
+### Phase 2 - Fonctionnalités Avancées (Complète)
+- **Modération de contenu** : Système de signalement avec catégories, avertissements progressifs, tableau de bord admin
+- **Conformité RGPD** : Consentement cookies, export de données, suppression de compte, vérification d'âge
+- **Monitoring & Analytics** : Tableau de bord admin avec statistiques d'utilisation et monitoring technique
 
-### FENUA PULSE (NEW - March 2025)
-Interactive real-time map of French Polynesia showing what's happening now.
+### Phase 3 - Fenua Pulse (Complète)
+- **Carte interactive en temps réel** :
+  - Affichage de Tahiti, Moorea, Bora Bora et autres îles
+  - Filtres par type de signalement (roulottes, accidents, surf, événements, météo, etc.)
+  - Bouton de localisation GPS
+  - Création de signalements géolocalisés
+  
+- **Système Vendeurs/Roulottes** :
+  - Création de profil vendeur
+  - Bouton "Je suis ouvert" pour apparaître sur la carte
+  - Gestion du menu avec création, modification et suppression de plats
+  - Onglets Dashboard / Menu / Paramètres
+  - Système d'avis clients
+  - Abonnements aux vendeurs avec notifications
 
-#### Map Features
-- ✅ Interactive map centered on Tahiti (Leaflet.js + OpenStreetMap)
-- ✅ Quick navigation to islands (Tahiti, Moorea, Bora Bora, Huahine, Raiatea, Marquises, Tuamotu)
-- ✅ Color-coded markers by type:
-  - 🟠 Orange: Roulottes/vendors
-  - 🔴 Red: Accidents/road closures
-  - 🔵 Blue: Surf conditions
-  - 🟢 Green: Events
-  - 🟣 Purple: Live streams
-  - ⚪ Gray: Weather alerts
-- ✅ Filter buttons to show/hide marker types
-- ✅ "Near me" button with GPS location
-- ✅ Auto-expiration after 4 hours
+- **Gamification (Mana)** :
+  - Points Mana gagnés pour les contributions
+  - Classement par île
+  - Validation communautaire des signalements
 
-#### Roulotte/Vendor System
-- ✅ Special vendor profiles
-- ✅ "I'm open now" button with real-time map visibility
-- ✅ Menu management with prices (XPF)
-- ✅ Review system (1-5 stars)
-- ✅ "Coup de cœur du Fenua" badge for 4.5+ ratings
-- ✅ Subscriber notifications when vendor opens
-- ✅ Payment methods (Cash, Card, Bank Transfer, Fenua Tokens)
+### Live Streaming (Complète)
+- Liste des lives en cours
+- Page de visionnage avec chat en direct
+- Bouton de démarrage de live
+- Compteur de spectateurs et likes
 
-#### Community Reporting
-- ✅ Quick report creation (30 seconds max)
-- ✅ Community validation ("C'est vrai!" / "Faux")
-- ✅ Auto-hide after 3 denials
-- ✅ "Verified" badge after 5 confirmations
-- ✅ Pulse status indicator (calm/normal/busy/exceptional)
+## Architecture Technique
 
-#### Gamification (Mana Points)
-- ✅ Mana rewards for contributions
-- ✅ Badge system (Explorateur, Gardien, Gourmet, Surfeur, etc.)
-- ✅ Weekly leaderboard by island
-- ✅ Mana spending for boosts and rewards
+### Backend (FastAPI)
+- `/app/backend/server.py` - Routes principales
+- `/app/backend/auth_security.py` - Sécurité et authentification
+- `/app/backend/fenua_pulse.py` - Logique Fenua Pulse
+- `/app/backend/roulotte.py` - Système vendeurs
+- `/app/backend/moderation.py` - Modération
+- `/app/backend/gdpr.py` - Conformité RGPD
+- `/app/backend/analytics.py` - Analytics
 
-### Performance Optimizations
-- ✅ Lazy loading for images/videos
-- ✅ Skeleton loaders during loading
-- ✅ Infinite scroll pagination (10 posts at a time)
-- ✅ Adaptive video quality (360p/720p/1080p based on connection)
-- ✅ Offline mode banner
-- ✅ Local caching for profiles
+### Frontend (React)
+- `/app/frontend/src/pages/FeedPage.js` - Fil d'actualité
+- `/app/frontend/src/pages/PulsePage.js` - Carte Fenua Pulse
+- `/app/frontend/src/pages/LivePage.js` - Liste des lives
+- `/app/frontend/src/pages/LiveViewPage.js` - Visionnage d'un live
+- `/app/frontend/src/pages/VendorDashboardPage.js` - Dashboard vendeur
 
-### Content Moderation
-- ✅ Report button on all content
-- ✅ Report categories (Inappropriate, Harassment, Spam, Misinformation, Copyright)
-- ✅ Progressive warning system (warning → 7-day suspension → ban)
-- ✅ Admin moderation dashboard
+### Base de données
+- MongoDB avec collections : users, posts, stories, conversations, messages, vendors, pulse_markers, etc.
 
-### GDPR Compliance
-- ✅ Cookie consent banner
-- ✅ Age verification (13+ required, 16+ for no parental consent)
-- ✅ Consent management
-- ✅ Data export (ZIP download)
-- ✅ Account deletion (30-day grace period)
-- ✅ Privacy policy and Terms of Service pages
+## Statut actuel : Application Fonctionnelle
 
-### Admin Dashboard
-- ✅ User management
-- ✅ Content moderation
-- ✅ Analytics (users, content, geography by island)
-- ✅ System monitoring (DB status, API response time, storage)
-- ✅ Storage management
-- ✅ Advertising system (disabled/mocked)
+### Testé et validé
+- Carte Fenua Pulse
+- Page Live avec visionnage
+- Fil d'actualité avec stories
+- Dashboard vendeur avec onglets de modification
+- APIs backend (pulse, lives, posts, roulotte)
 
-## Tech Stack
-- **Backend**: FastAPI, Python, MongoDB
-- **Frontend**: React.js, TailwindCSS, Framer Motion
-- **Maps**: Leaflet.js with OpenStreetMap
-- **Auth**: bcrypt, JWT
-- **Mobile**: Expo (React Native) - pending verification
+### Issues connues (P2)
+- Connexion Facebook non fonctionnelle (redirection)
 
-## API Endpoints
+## Tâches Futures (Backlog)
 
-### Fenua Pulse
-- `GET /api/pulse/islands` - Get island list with coordinates
-- `GET /api/pulse/marker-types` - Get marker type definitions
-- `GET /api/pulse/status` - Get current pulse status
-- `GET /api/pulse/markers` - Get active markers (with filters)
-- `POST /api/pulse/markers` - Create new marker
-- `POST /api/pulse/markers/{id}/confirm` - Confirm/deny marker
-- `GET /api/pulse/leaderboard` - Get weekly leaderboard
-- `GET /api/pulse/mana` - Get user mana balance
-- `GET /api/pulse/badges/me` - Get user badges
+### P1 - Court terme
+- Finaliser le système de publicité
+- Améliorer le chat en temps réel
 
-### Roulotte/Vendor
-- `GET /api/roulotte/cuisine-types` - Get cuisine type list
-- `GET /api/roulotte/payment-methods` - Get payment methods
-- `POST /api/roulotte/profile` - Create/update vendor profile
-- `GET /api/roulotte/profile/me` - Get own vendor profile
-- `POST /api/roulotte/open` - Signal roulotte is open
-- `POST /api/roulotte/close` - Signal roulotte is closed
-- `POST /api/roulotte/menu` - Add menu item
-- `POST /api/roulotte/{id}/review` - Add review
-- `POST /api/roulotte/{id}/subscribe` - Subscribe to roulotte
+### P2 - Moyen terme
+- Fonctionnalités "Duets/Remix"
+- Collections de contenus
+- Système d'abonnement premium pour créateurs
 
-## Pending Tasks (P0-P3)
-
-### P1 - High Priority
-- Fix Facebook Login callback URL configuration
-- Implement Live Streaming with WebRTC
-
-### P2 - Medium Priority
-- Live content moderation system
-- Complete advertising system
-
-### P3 - Low Priority
-- Verify Expo mobile app functionality
-- Clarify story lifetime rules (24h vs 3d+30d)
-
-## Future/Backlog
-- Duets/Remix features
-- Collections
-- Premium subscriptions for creators
-- App Store / Play Store publishing
-- Enhanced real-time chat
-- Push notifications
-
-## File Structure
-```
-/app/
-├── backend/
-│   ├── server.py           # Main FastAPI app
-│   ├── auth_security.py    # Security utilities
-│   ├── media_processing.py # Media compression
-│   ├── moderation.py       # Content moderation
-│   ├── gdpr.py            # GDPR compliance
-│   ├── analytics.py       # Analytics & monitoring
-│   ├── fenua_pulse.py     # Fenua Pulse service
-│   └── roulotte.py        # Vendor/roulotte service
-├── frontend/src/
-│   ├── pages/
-│   │   ├── PulsePage.js       # Fenua Pulse map
-│   │   ├── VendorDashboardPage.js # Vendor dashboard
-│   │   ├── AdminAnalyticsPage.js
-│   │   ├── AdminMonitoringPage.js
-│   │   └── GDPRSettingsPage.js
-│   ├── components/
-│   │   ├── SkeletonLoader.js
-│   │   ├── LazyImage.js
-│   │   └── CookieBanner.js
-│   └── hooks/
-│       └── useInfiniteScroll.js
-└── mobile/
-    └── FenuaSocial/  # Expo project (needs renaming to HuiFenua)
-```
+### P3 - Long terme
+- Application mobile Expo
+- Publication App Store / Play Store
 
 ---
-Last updated: March 10, 2025
+*Dernière mise à jour : 11 Mars 2026*

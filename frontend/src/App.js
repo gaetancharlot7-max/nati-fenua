@@ -31,6 +31,7 @@ import AdminMonitoringPage from './pages/AdminMonitoringPage';
 import AdminModerationPage from './pages/AdminModerationPage';
 import PulsePage from './pages/PulsePage';
 import VendorDashboardPage from './pages/VendorDashboardPage';
+import LiveViewPage from './pages/LiveViewPage';
 
 // Components
 import CookieBanner from './components/CookieBanner';
@@ -102,6 +103,12 @@ function AppRouter() {
           <MainLayout>
             <LivePage />
           </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/live/:liveId" element={
+        <ProtectedRoute>
+          <LiveViewPage />
         </ProtectedRoute>
       } />
       

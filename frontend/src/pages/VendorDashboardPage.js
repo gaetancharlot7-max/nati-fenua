@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Truck, MapPin, Clock, Phone, CreditCard, Camera, Plus, X,
   Star, Users, Bell, Check, Edit2, Trash2, AlertCircle, 
-  DollarSign, Loader2, Power, PowerOff, Timer, ChevronRight
+  DollarSign, Loader2, Power, PowerOff, Timer, ChevronRight,
+  Settings, Menu as MenuIcon, Image
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -22,8 +23,10 @@ const VendorDashboardPage = () => {
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [showCreateProfile, setShowCreateProfile] = useState(false);
   const [showAddMenuItem, setShowAddMenuItem] = useState(false);
+  const [showEditMenuItem, setShowEditMenuItem] = useState(null);
   const [openingStatus, setOpeningStatus] = useState(null);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard'); // dashboard, menu, settings
 
   useEffect(() => {
     loadData();
@@ -193,90 +196,133 @@ const VendorDashboardPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-[#1A1A2E]">Ma Roulotte</h1>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setShowCreateProfile(true)}
-          className="rounded-xl"
-        >
-          <Edit2 size={20} />
-        </Button>
-      </div>
-
-      {/* Profile Card */}
-      <div className="bg-white rounded-3xl shadow-sm overflow-hidden mb-6">
-        {vendorProfile.photo_url ? (
-          <img 
-            src={vendorProfile.photo_url} 
-            alt={vendorProfile.name}
-            className="w-full h-40 object-cover"
-          />
-        ) : (
-          <div className="w-full h-40 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] flex items-center justify-center">
-            <Truck size={60} className="text-white" />
-          </div>
-        )}
-        
-        <div className="p-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-[#1A1A2E]">{vendorProfile.name}</h2>
-              <p className="text-gray-500 text-sm">{vendorProfile.description}</p>
-            </div>
-            
-            {vendorProfile.is_coup_coeur && (
-              <div className="px-3 py-1 bg-pink-100 rounded-full flex items-center gap-1">
-                <span>💖</span>
-                <span className="text-xs font-bold text-pink-600">Coup de cœur</span>
-              </div>
-            )}
-          </div>
-
-          {/* Stats */}
-          <div className="flex items-center gap-4 mt-4">
-            <div className="flex items-center gap-1">
-              <Star className="text-yellow-400" fill="#FACC15" size={18} />
-              <span className="font-bold">{vendorProfile.rating_avg?.toFixed(1) || '0.0'}</span>
-              <span className="text-gray-400 text-sm">({vendorProfile.rating_count || 0})</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Users size={18} className="text-gray-400" />
-              <span className="text-gray-600">{vendorProfile.subscriber_count || 0} abonnés</span>
-            </div>
-          </div>
-
-          {/* Info */}
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            {vendorProfile.phone && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Phone size={16} />
-                {vendorProfile.phone}
-              </div>
-            )}
-            {vendorProfile.usual_hours && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Clock size={16} />
-                {vendorProfile.usual_hours}
-              </div>
-            )}
-          </div>
-
-          {/* Payment Methods */}
-          <div className="flex flex-wrap gap-2 mt-4">
-            {(vendorProfile.payment_methods || []).map(method => {
-              const pm = paymentMethods.find(p => p.id === method);
-              return (
-                <span key={method} className="px-2 py-1 bg-gray-100 rounded-lg text-sm">
-                  {pm?.icon} {pm?.label}
-                </span>
-              );
-            })}
-          </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowCreateProfile(true)}
+            className="rounded-xl"
+            data-testid="edit-profile-btn"
+          >
+            <Edit2 size={20} />
+          </Button>
         </div>
       </div>
 
-      {/* Open/Close Button */}
-      <div className="bg-white rounded-3xl shadow-sm p-6 mb-6">
+      {/* Tabs Navigation */}
+      <div className="flex gap-2 mb-6 overflow-x-auto hide-scrollbar">
+        <button
+          onClick={() => setActiveTab('dashboard')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+            activeTab === 'dashboard'
+              ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          <Truck size={16} className="inline mr-2" />
+          Tableau de bord
+        </button>
+        <button
+          onClick={() => setActiveTab('menu')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+            activeTab === 'menu'
+              ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          <MenuIcon size={16} className="inline mr-2" />
+          Menu
+        </button>
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+            activeTab === 'settings'
+              ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          <Settings size={16} className="inline mr-2" />
+          Paramètres
+        </button>
+      </div>
+
+      {/* Dashboard Tab */}
+      {activeTab === 'dashboard' && (
+        <>
+          {/* Profile Card */}
+          <div className="bg-white rounded-3xl shadow-sm overflow-hidden mb-6">
+            {vendorProfile.photo_url ? (
+              <img 
+                src={vendorProfile.photo_url} 
+                alt={vendorProfile.name}
+                className="w-full h-40 object-cover"
+              />
+            ) : (
+              <div className="w-full h-40 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] flex items-center justify-center">
+                <Truck size={60} className="text-white" />
+              </div>
+            )}
+            
+            <div className="p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-[#1A1A2E]">{vendorProfile.name}</h2>
+                  <p className="text-gray-500 text-sm">{vendorProfile.description}</p>
+                </div>
+                
+                {vendorProfile.is_coup_coeur && (
+                  <div className="px-3 py-1 bg-pink-100 rounded-full flex items-center gap-1">
+                    <span>💖</span>
+                    <span className="text-xs font-bold text-pink-600">Coup de cœur</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Stats */}
+              <div className="flex items-center gap-4 mt-4">
+                <div className="flex items-center gap-1">
+                  <Star className="text-yellow-400" fill="#FACC15" size={18} />
+                  <span className="font-bold">{vendorProfile.rating_avg?.toFixed(1) || '0.0'}</span>
+                  <span className="text-gray-400 text-sm">({vendorProfile.rating_count || 0})</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Users size={18} className="text-gray-400" />
+                  <span className="text-gray-600">{vendorProfile.subscriber_count || 0} abonnés</span>
+                </div>
+              </div>
+
+              {/* Info */}
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                {vendorProfile.phone && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Phone size={16} />
+                    {vendorProfile.phone}
+                  </div>
+                )}
+                {vendorProfile.usual_hours && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Clock size={16} />
+                    {vendorProfile.usual_hours}
+                  </div>
+                )}
+              </div>
+
+              {/* Payment Methods */}
+              <div className="flex flex-wrap gap-2 mt-4">
+                {(vendorProfile.payment_methods || []).map(method => {
+                  const pm = paymentMethods.find(p => p.id === method);
+                  return (
+                    <span key={method} className="px-2 py-1 bg-gray-100 rounded-lg text-sm">
+                      {pm?.icon} {pm?.label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Open/Close Button */}
+          <div className="bg-white rounded-3xl shadow-sm p-6 mb-6">
         {vendorProfile.is_open ? (
           <div className="space-y-4">
             <div className="flex items-center gap-3 p-4 bg-green-50 rounded-2xl">
@@ -324,84 +370,160 @@ const VendorDashboardPage = () => {
           </Button>
         )}
       </div>
+        </>
+      )}
 
-      {/* Menu Section */}
-      <div className="bg-white rounded-3xl shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-[#1A1A2E]">Mon Menu</h3>
-          <Button
-            onClick={() => setShowAddMenuItem(true)}
-            size="icon"
-            className="rounded-xl bg-[#FF6B35]"
-          >
-            <Plus size={20} />
-          </Button>
+      {/* Menu Tab */}
+      {activeTab === 'menu' && (
+        <div className="bg-white rounded-3xl shadow-sm p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-bold text-[#1A1A2E]">Gérer le Menu</h3>
+              <p className="text-sm text-gray-500">Ajoutez, modifiez ou supprimez vos plats</p>
+            </div>
+            <Button
+              onClick={() => setShowAddMenuItem(true)}
+              className="rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493]"
+            >
+              <Plus size={20} className="mr-2" />
+              Ajouter
+            </Button>
+          </div>
+
+          {(vendorProfile.menu_items || []).length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <DollarSign size={48} className="mx-auto mb-3 text-gray-300" />
+              <p className="font-medium">Aucun plat dans le menu</p>
+              <p className="text-sm">Ajoutez vos plats pour les afficher aux clients</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {vendorProfile.menu_items.map(item => (
+                <MenuItemEditable
+                  key={item.item_id}
+                  item={item}
+                  onEdit={() => setShowEditMenuItem(item)}
+                  onDelete={async () => {
+                    if (window.confirm('Supprimer ce plat ?')) {
+                      try {
+                        await api.delete(`/roulotte/menu/${item.item_id}`);
+                        loadData();
+                        toast.success('Plat supprimé');
+                      } catch (e) {
+                        toast.error('Erreur');
+                      }
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
+      )}
 
-        {(vendorProfile.menu_items || []).length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <DollarSign size={40} className="mx-auto mb-2 text-gray-300" />
-            <p>Aucun plat dans le menu</p>
-            <p className="text-sm">Ajoutez vos plats pour les afficher aux clients</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {vendorProfile.menu_items.map(item => (
-              <MenuItem 
-                key={item.item_id} 
-                item={item} 
-                onDelete={async () => {
-                  try {
-                    await api.delete(`/roulotte/menu/${item.item_id}`);
-                    loadData();
-                    toast.success('Plat supprimé');
-                  } catch (e) {
-                    toast.error('Erreur');
-                  }
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Recent Reviews */}
-      {vendorProfile.recent_reviews?.length > 0 && (
-        <div className="bg-white rounded-3xl shadow-sm p-6 mt-6">
-          <h3 className="text-lg font-bold text-[#1A1A2E] mb-4">Derniers avis</h3>
-          <div className="space-y-4">
-            {vendorProfile.recent_reviews.map(review => (
-              <div key={review.review_id} className="flex gap-3">
-                <Avatar className="w-10 h-10 rounded-xl">
-                  <AvatarImage src={review.user?.picture} className="rounded-xl" />
-                  <AvatarFallback className="bg-[#FF6B35] text-white rounded-xl">
-                    {review.user?.name?.[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{review.user?.name}</span>
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          size={14} 
-                          className={i < review.rating ? 'text-yellow-400' : 'text-gray-200'}
-                          fill={i < review.rating ? '#FACC15' : 'none'}
-                        />
-                      ))}
-                    </div>
+      {/* Settings Tab */}
+      {activeTab === 'settings' && (
+        <div className="space-y-6">
+          {/* Profile Settings */}
+          <div className="bg-white rounded-3xl shadow-sm p-6">
+            <h3 className="text-lg font-bold text-[#1A1A2E] mb-4">Informations de la roulotte</h3>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                    <Truck className="text-orange-500" size={20} />
                   </div>
-                  {review.comment && (
-                    <p className="text-sm text-gray-600 mt-1">{review.comment}</p>
-                  )}
-                  <p className="text-xs text-gray-400 mt-1">
-                    {new Date(review.created_at).toLocaleDateString('fr-FR')}
-                  </p>
+                  <div>
+                    <p className="font-medium text-[#1A1A2E]">Nom</p>
+                    <p className="text-sm text-gray-500">{vendorProfile.name}</p>
+                  </div>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCreateProfile(true)}
+                  className="rounded-xl"
+                >
+                  <Edit2 size={16} />
+                </Button>
               </div>
-            ))}
+
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <Phone className="text-blue-500" size={20} />
+                  </div>
+                  <div>
+                    <p className="font-medium text-[#1A1A2E]">Téléphone</p>
+                    <p className="text-sm text-gray-500">{vendorProfile.phone || 'Non renseigné'}</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCreateProfile(true)}
+                  className="rounded-xl"
+                >
+                  <Edit2 size={16} />
+                </Button>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+                    <Clock className="text-green-500" size={20} />
+                  </div>
+                  <div>
+                    <p className="font-medium text-[#1A1A2E]">Horaires</p>
+                    <p className="text-sm text-gray-500">{vendorProfile.usual_hours || 'Non renseigné'}</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCreateProfile(true)}
+                  className="rounded-xl"
+                >
+                  <Edit2 size={16} />
+                </Button>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                    <CreditCard className="text-purple-500" size={20} />
+                  </div>
+                  <div>
+                    <p className="font-medium text-[#1A1A2E]">Paiements acceptés</p>
+                    <p className="text-sm text-gray-500">
+                      {(vendorProfile.payment_methods || []).map(m => {
+                        const pm = paymentMethods.find(p => p.id === m);
+                        return pm?.label;
+                      }).filter(Boolean).join(', ') || 'Non renseigné'}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCreateProfile(true)}
+                  className="rounded-xl"
+                >
+                  <Edit2 size={16} />
+                </Button>
+              </div>
+            </div>
           </div>
+
+          {/* Full Edit Button */}
+          <Button
+            onClick={() => setShowCreateProfile(true)}
+            className="w-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493] rounded-xl h-12"
+          >
+            <Edit2 size={18} className="mr-2" />
+            Modifier toutes les informations
+          </Button>
         </div>
       )}
 
@@ -426,11 +548,21 @@ const VendorDashboardPage = () => {
           setShowAddMenuItem(false);
         }}
       />
+
+      <EditMenuItemModal
+        isOpen={!!showEditMenuItem}
+        item={showEditMenuItem}
+        onClose={() => setShowEditMenuItem(null)}
+        onSuccess={() => {
+          loadData();
+          setShowEditMenuItem(null);
+        }}
+      />
     </div>
   );
 };
 
-// Menu Item Component
+// Menu Item Component (Simple)
 const MenuItem = ({ item, onDelete }) => (
   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
     {item.photo_url ? (
@@ -451,6 +583,46 @@ const MenuItem = ({ item, onDelete }) => (
       <button onClick={onDelete} className="text-red-500 text-sm mt-1">
         Supprimer
       </button>
+    </div>
+  </div>
+);
+
+// Menu Item Editable Component
+const MenuItemEditable = ({ item, onEdit, onDelete }) => (
+  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+    {item.photo_url ? (
+      <img src={item.photo_url} alt={item.name} className="w-20 h-20 rounded-xl object-cover" />
+    ) : (
+      <div className="w-20 h-20 rounded-xl bg-gray-200 flex items-center justify-center">
+        <Image className="text-gray-400" size={24} />
+      </div>
+    )}
+    <div className="flex-1">
+      <p className="font-semibold text-[#1A1A2E]">{item.name}</p>
+      {item.description && (
+        <p className="text-sm text-gray-500 line-clamp-2 mt-1">{item.description}</p>
+      )}
+      <p className="font-bold text-[#FF6B35] mt-2">{item.price?.toLocaleString()} XPF</p>
+    </div>
+    <div className="flex flex-col gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onEdit}
+        className="rounded-xl"
+      >
+        <Edit2 size={14} className="mr-1" />
+        Modifier
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onDelete}
+        className="rounded-xl text-red-500 hover:bg-red-50"
+      >
+        <Trash2 size={14} className="mr-1" />
+        Supprimer
+      </Button>
     </div>
   </div>
 );
@@ -716,6 +888,117 @@ const AddMenuItemModal = ({ isOpen, onClose, onSuccess }) => {
             className="w-full rounded-xl bg-[#FF6B35]"
           >
             {loading ? <Loader2 size={18} className="animate-spin" /> : 'Ajouter au menu'}
+          </Button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// Edit Menu Item Modal
+const EditMenuItemModal = ({ isOpen, item, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    price: '',
+    description: ''
+  });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (item) {
+      setFormData({
+        name: item.name || '',
+        price: item.price?.toString() || '',
+        description: item.description || ''
+      });
+    }
+  }, [item]);
+
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.price) {
+      toast.error('Nom et prix requis');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.put(`/roulotte/menu/${item.item_id}`, {
+        name: formData.name,
+        price: parseInt(formData.price),
+        description: formData.description
+      });
+      toast.success('Plat modifié !');
+      onSuccess();
+    } catch (error) {
+      toast.error('Erreur');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen || !item) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center justify-center"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white w-full lg:w-[400px] lg:rounded-3xl rounded-t-3xl"
+      >
+        <div className="p-4 border-b flex items-center justify-between">
+          <h2 className="text-lg font-bold">Modifier le plat</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Nom du plat *</label>
+            <Input
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Ex: Poisson cru au lait de coco"
+              className="rounded-xl"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Prix (XPF) *</label>
+            <Input
+              type="number"
+              value={formData.price}
+              onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+              placeholder="1500"
+              className="rounded-xl"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
+            <Textarea
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Description du plat..."
+              className="rounded-xl resize-none"
+              rows={2}
+            />
+          </div>
+        </div>
+
+        <div className="p-4 border-t">
+          <Button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="w-full rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493]"
+          >
+            {loading ? <Loader2 size={18} className="animate-spin" /> : 'Enregistrer les modifications'}
           </Button>
         </div>
       </motion.div>

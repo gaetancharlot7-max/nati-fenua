@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Radio, Play, Heart, MessageCircle, Share2, Users, Eye, Plus, X, Video, Camera, SwitchCamera, Mic, MicOff, VideoOff } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -242,6 +242,7 @@ const LiveCamera = ({ onClose, title }) => {
 
 const LivePage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [lives, setLives] = useState(demoLives);
   const [selectedLive, setSelectedLive] = useState(null);
   const [showStartLive, setShowStartLive] = useState(false);
@@ -332,7 +333,8 @@ const LivePage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
             data-testid={`live-${live.live_id}`}
-            className="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300"
+            onClick={() => navigate(`/live/${live.live_id}`)}
+            className="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
           >
             {/* Thumbnail */}
             <div className="relative aspect-video">

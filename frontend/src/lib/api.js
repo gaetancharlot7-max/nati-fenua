@@ -54,6 +54,7 @@ export const reelsApi = {
 // Live API
 export const liveApi = {
   getAll: () => api.get('/lives'),
+  get: (liveId) => api.get(`/lives/${liveId}`),
   getOne: (liveId) => api.get(`/lives/${liveId}`),
   start: (data) => api.post('/lives', data),
   end: (liveId) => api.post(`/lives/${liveId}/end`),
