@@ -14,6 +14,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import api from '../lib/api';
 
+// Helper function to darken/lighten colors
+const adjustColor = (color, amount) => {
+  const hex = color.replace('#', '');
+  const num = parseInt(hex, 16);
+  const r = Math.min(255, Math.max(0, (num >> 16) + amount));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
+  const b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount));
+  return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
+};
+
 // Marker icons mapping
 const MARKER_ICONS = {
   truck: Truck,
@@ -121,15 +131,23 @@ const PulsePage = () => {
     const tahiti = islands.find(i => i.id === 'tahiti') || { lat: -17.6509, lng: -149.4260, zoom: 11 };
     
     const map = window.L.map(mapRef.current, {
-      zoomControl: false
+      zoomControl: false,
+      attributionControl: false
     }).setView([tahiti.lat, tahiti.lng], tahiti.zoom);
 
-    // Add tile layer (OpenStreetMap)
-    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
+    // Use CartoDB Voyager for a cleaner, more modern look
+    window.L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      subdomains: 'abcd'
     }).addTo(map);
 
-    // Add zoom control to top right
+    // Add custom attribution
+    window.L.control.attribution({
+      position: 'bottomleft',
+      prefix: '<span style="color:#FF6B35">🌺</span> Hui Fenua'
+    }).addTo(map);
+
+    // Add zoom control to top right with custom style
     window.L.control.zoom({ position: 'topright' }).addTo(map);
 
     // Create markers layer
@@ -161,31 +179,49 @@ const PulsePage = () => {
         response.data.forEach(marker => {
           const markerType = markerTypes.find(t => t.type === marker.marker_type) || {};
           
-          // Create custom icon
+          // Create beautiful custom icon with animation
           const iconHtml = `
-            <div style="
-              background-color: ${marker.color || markerType.color || '#FF6B35'};
-              width: 36px;
-              height: 36px;
-              border-radius: 50%;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              border: 3px solid white;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-              ${marker.is_verified ? 'border-color: #22C55E;' : ''}
+            <div class="pulse-marker" style="
+              position: relative;
+              width: 44px;
+              height: 44px;
             ">
-              <span style="color: white; font-size: 16px;">
-                ${getMarkerEmoji(marker.marker_type)}
-              </span>
+              <div style="
+                position: absolute;
+                inset: 0;
+                background-color: ${marker.color || markerType.color || '#FF6B35'};
+                border-radius: 50%;
+                opacity: 0.3;
+                animation: pulse-ring 2s ease-out infinite;
+              "></div>
+              <div style="
+                position: relative;
+                background: linear-gradient(135deg, ${marker.color || markerType.color || '#FF6B35'}, ${adjustColor(marker.color || markerType.color || '#FF6B35', -30)});
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 3px solid white;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                ${marker.is_verified ? 'border-color: #22C55E; border-width: 4px;' : ''}
+                cursor: pointer;
+                transition: transform 0.2s;
+              ">
+                <span style="font-size: 20px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));">
+                  ${getMarkerEmoji(marker.marker_type)}
+                </span>
+              </div>
+              ${marker.is_verified ? '<div style="position: absolute; top: -4px; right: -4px; background: #22C55E; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white;"><span style="color: white; font-size: 10px;">✓</span></div>' : ''}
             </div>
           `;
           
           const icon = window.L.divIcon({
             html: iconHtml,
             className: 'custom-marker',
-            iconSize: [36, 36],
-            iconAnchor: [18, 18]
+            iconSize: [44, 44],
+            iconAnchor: [22, 22]
           });
           
           const leafletMarker = window.L.marker([marker.lat, marker.lng], { icon })
@@ -302,31 +338,43 @@ const PulsePage = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100 overflow-hidden">
+    <div className="h-screen flex flex-col bg-gradient-to-b from-[#E6F7FF] to-white overflow-hidden">
       {/* Header with Pulse Status */}
-      <div className="bg-white shadow-sm z-20 px-4 py-3">
+      <div className="bg-white/90 backdrop-blur-xl shadow-sm z-20 px-4 py-3 border-b border-[#00CED1]/20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div 
-              className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
-              style={{ backgroundColor: pulseStatus?.color + '20' }}
+            <motion.div 
+              initial={{ scale: 0.8 }}
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-lg"
+              style={{ 
+                background: `linear-gradient(135deg, ${pulseStatus?.color}20, ${pulseStatus?.color}40)`,
+                border: `2px solid ${pulseStatus?.color}50`
+              }}
             >
               {pulseStatus?.emoji}
-            </div>
+            </motion.div>
             <div>
-              <h1 className="font-bold text-[#1A1A2E]">Fenua Pulse</h1>
-              <p className="text-sm text-gray-500">{pulseStatus?.text}</p>
+              <h1 className="font-bold text-[#1A1A2E] text-lg flex items-center gap-2">
+                Fenua Pulse
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+              </h1>
+              <p className="text-sm text-gray-500">{pulseStatus?.text} · {markers.length} actifs</p>
             </div>
           </div>
           
           <div className="flex items-center gap-2">
             {/* Mana Balance */}
             {user && (
-              <div className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-purple-100 to-pink-100 rounded-full">
-                <Zap size={16} className="text-purple-500" />
-                <span className="font-bold text-purple-700">{manaBalance}</span>
-                <span className="text-xs text-purple-500">Mana</span>
-              </div>
+              <motion.div 
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full shadow-lg"
+              >
+                <Zap size={16} className="text-white" />
+                <span className="font-bold text-white">{manaBalance}</span>
+                <span className="text-xs text-white/80">Mana</span>
+              </motion.div>
             )}
             
             {/* Leaderboard Button */}
@@ -334,9 +382,9 @@ const PulsePage = () => {
               variant="ghost"
               size="icon"
               onClick={loadLeaderboard}
-              className="rounded-xl"
+              className="rounded-xl bg-yellow-100 hover:bg-yellow-200"
             >
-              <Trophy size={20} className="text-[#FF6B35]" />
+              <Trophy size={20} className="text-yellow-600" />
             </Button>
           </div>
         </div>
@@ -344,39 +392,46 @@ const PulsePage = () => {
         {/* Island Navigation */}
         <div className="flex gap-2 mt-3 overflow-x-auto hide-scrollbar pb-1">
           {islands.map(island => (
-            <button
+            <motion.button
               key={island.id}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => navigateToIsland(island.id)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all shadow-sm ${
                 selectedIsland === island.id
-                  ? 'bg-[#FF6B35] text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white shadow-lg'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
               }`}
             >
+              {island.id === 'tahiti' ? '🏝️ ' : island.id === 'moorea' ? '⛰️ ' : island.id === 'bora-bora' ? '💎 ' : '🌴 '}
               {island.name}
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white/80 backdrop-blur-sm px-4 py-2 flex gap-2 overflow-x-auto hide-scrollbar z-10 border-b">
+      <div className="bg-white/90 backdrop-blur-xl px-4 py-2.5 flex gap-2 overflow-x-auto hide-scrollbar z-10 border-b border-gray-100">
         {markerTypes.map(type => {
-          const isActive = activeFilters.includes(type.type);
+          const isActive = activeFilters.length === 0 || activeFilters.includes(type.type);
           return (
-            <button
+            <motion.button
               key={type.type}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => toggleFilter(type.type)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-                isActive
-                  ? 'text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all shadow-sm ${
+                activeFilters.includes(type.type)
+                  ? 'text-white shadow-md'
+                  : isActive 
+                    ? 'bg-white text-gray-700 border border-gray-200'
+                    : 'bg-gray-100 text-gray-400 border border-gray-200'
               }`}
-              style={isActive ? { backgroundColor: type.color } : {}}
+              style={activeFilters.includes(type.type) ? { backgroundColor: type.color } : {}}
             >
-              <span>{getMarkerEmoji(type.type)}</span>
+              <span className="text-base">{getMarkerEmoji(type.type)}</span>
               {type.label}
-            </button>
+            </motion.button>
           );
         })}
       </div>
@@ -385,31 +440,44 @@ const PulsePage = () => {
       <div className="flex-1 relative">
         <div ref={mapRef} className="w-full h-full" />
         
+        {/* Decorative water gradient overlay */}
+        <div className="absolute inset-0 pointer-events-none map-water-overlay" />
+        
         {/* My Location Button */}
-        <button
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
           onClick={goToMyLocation}
-          className="absolute bottom-24 right-4 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 z-10"
+          className="absolute bottom-24 right-4 w-14 h-14 bg-white rounded-2xl shadow-xl flex items-center justify-center hover:bg-gray-50 z-10 border border-blue-100"
           data-testid="my-location-btn"
         >
-          <Navigation size={22} className="text-[#3B82F6]" />
-        </button>
+          <Navigation size={24} className="text-[#00CED1]" />
+        </motion.button>
 
         {/* Create Signal Button */}
         {user && (
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1, rotate: 90 }}
+            whileTap={{ scale: 0.9 }}
             onClick={() => setShowCreateModal(true)}
-            className="absolute bottom-24 left-4 w-14 h-14 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] rounded-full shadow-lg flex items-center justify-center hover:opacity-90 z-10"
+            className="absolute bottom-24 left-4 w-16 h-16 bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] rounded-2xl shadow-xl flex items-center justify-center z-10"
             data-testid="create-signal-btn"
           >
-            <Plus size={28} className="text-white" />
-          </button>
+            <Plus size={32} className="text-white" strokeWidth={3} />
+          </motion.button>
         )}
 
-        {/* Active Markers Count */}
-        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg z-10">
-          <p className="text-sm font-medium text-[#1A1A2E]">
-            {markers.length} signalement{markers.length > 1 ? 's' : ''} actif{markers.length > 1 ? 's' : ''}
-          </p>
+        {/* Legend Card */}
+        <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-xl z-10 border border-gray-100">
+          <div className="flex items-center gap-2 mb-2">
+            <MapPin className="text-[#FF6B35]" size={18} />
+            <span className="font-bold text-[#1A1A2E]">{markers.length}</span>
+            <span className="text-gray-500 text-sm">signalement{markers.length > 1 ? 's' : ''}</span>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-gray-400">
+            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+            En temps réel
+          </div>
         </div>
       </div>
 
