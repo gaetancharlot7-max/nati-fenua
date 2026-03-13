@@ -15,6 +15,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 
 // Fix Leaflet default marker icon issue
@@ -138,6 +139,7 @@ const MapController = ({ selectedIsland, islands, userLocation }) => {
 // Pulse Page Component
 const PulsePage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   const [islands, setIslands] = useState([]);
   const [markerTypes, setMarkerTypes] = useState([]);
@@ -152,6 +154,7 @@ const PulsePage = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [manaBalance, setManaBalance] = useState(0);
+  const [contactingVendor, setContactingVendor] = useState(false);
 
   // Default center (Tahiti)
   const defaultCenter = { lat: -17.6509, lng: -149.4260, zoom: 11 };
@@ -268,6 +271,46 @@ const PulsePage = () => {
       setShowMarkerDetail(null);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Erreur');
+    }
+  };
+
+  const handleContactVendor = async (marker) => {
+    if (!user) {
+      toast.error('Connectez-vous pour contacter le vendeur');
+      navigate('/auth');
+      return;
+    }
+
+    // Get vendor user ID from extra_data or directly from marker
+    const vendorUserId = marker.extra_data?.vendor_user_id || marker.user_id;
+    if (!vendorUserId) {
+      toast.error('Vendeur non disponible');
+      return;
+    }
+
+    // Don't allow contacting yourself
+    if (vendorUserId === user.user_id) {
+      toast.error('Vous ne pouvez pas vous contacter vous-même');
+      return;
+    }
+
+    setContactingVendor(true);
+    try {
+      // Create or get existing conversation with the vendor
+      const response = await api.post('/conversations', { user_id: vendorUserId });
+      const conversationId = response.data.conversation_id;
+      
+      // Close the marker detail modal
+      setShowMarkerDetail(null);
+      
+      // Navigate to the chat page with the conversation
+      toast.success('Redirection vers la messagerie...');
+      navigate(`/chat?conversation=${conversationId}`);
+    } catch (error) {
+      console.error('Contact vendor error:', error);
+      toast.error(error.response?.data?.detail || 'Erreur lors du contact');
+    } finally {
+      setContactingVendor(false);
     }
   };
 
@@ -510,6 +553,8 @@ const PulsePage = () => {
         marker={showMarkerDetail}
         onClose={() => setShowMarkerDetail(null)}
         onConfirm={confirmMarker}
+        onContactVendor={handleContactVendor}
+        contactingVendor={contactingVendor}
         currentUserId={user?.user_id}
       />
 
@@ -729,7 +774,7 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
 };
 
 // Marker Detail Modal
-const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, currentUserId }) => {
+const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, contactingVendor, currentUserId }) => {
   if (!marker) return null;
 
   const canVote = currentUserId && 
@@ -855,36 +900,41 @@ const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, curren
             </div>
 
             {/* Contact Button - For roulottes, market, and vendors */}
-            {(marker.marker_type === 'roulotte' || marker.marker_type === 'market') && (marker.phone || marker.vendor_id || marker.user_id) && (
+            {(marker.marker_type === 'roulotte' || marker.marker_type === 'market') && (marker.extra_data?.phone || marker.phone || marker.extra_data?.vendor_id || marker.vendor_id || marker.user_id) && (
               <div className="space-y-2">
                 {/* Message Button - Opens conversation */}
-                {(marker.vendor_id || marker.user_id) && !marker.is_webcam && (
+                {(marker.extra_data?.vendor_id || marker.vendor_id || marker.user_id) && !marker.is_webcam && (
                   <button 
                     onClick={() => onContactVendor && onContactVendor(marker)}
-                    className="flex items-center justify-center gap-2 w-full p-3 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
+                    disabled={contactingVendor}
+                    className="flex items-center justify-center gap-2 w-full p-3 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-60"
                     data-testid="contact-vendor-btn"
                   >
-                    <MessageCircle size={20} />
-                    Contacter par message
+                    {contactingVendor ? (
+                      <Loader2 size={20} className="animate-spin" />
+                    ) : (
+                      <MessageCircle size={20} />
+                    )}
+                    {contactingVendor ? 'Connexion...' : 'Contacter par message'}
                   </button>
                 )}
                 
                 {/* Phone Button */}
-                {marker.phone && (
+                {(marker.extra_data?.phone || marker.phone) && (
                   <a 
-                    href={`tel:${marker.phone}`}
+                    href={`tel:${marker.extra_data?.phone || marker.phone}`}
                     className="flex items-center justify-center gap-2 w-full p-3 bg-gradient-to-r from-[#00CED1] to-[#006994] text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
                     data-testid="call-vendor-btn"
                   >
                     <Phone size={20} />
-                    Appeler : {marker.phone}
+                    Appeler : {marker.extra_data?.phone || marker.phone}
                   </a>
                 )}
                 
                 {/* View Profile Button */}
-                {marker.vendor_id && (
+                {(marker.extra_data?.vendor_id || marker.vendor_id) && (
                   <a 
-                    href={`/vendor/${marker.vendor_id}`}
+                    href={`/vendor/${marker.extra_data?.vendor_id || marker.vendor_id}`}
                     className="flex items-center justify-center gap-2 w-full p-3 bg-white border-2 border-[#FF6B35] text-[#FF6B35] rounded-xl font-medium hover:bg-[#FF6B35]/10 transition-colors"
                   >
                     <Truck size={20} />

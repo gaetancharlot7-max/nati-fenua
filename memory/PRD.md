@@ -23,7 +23,7 @@ Hui Fenua est un réseau social pour la communauté tahitienne en Polynésie fra
 #### Carte Interactive - 9 Îles
 - Tahiti, Moorea, Bora Bora, Raiatea, **Taha'a**, Huahine, **Maupiti**, Tuamotu, Marquises
 
-#### 10 Webcams Live (NOUVEAU)
+#### 10 Webcams Live
 | Webcam | Île | Localisation |
 |--------|-----|--------------|
 | Port de Papeete | Tahiti | Centre-ville |
@@ -42,14 +42,16 @@ Hui Fenua est un réseau social pour la communauté tahitienne en Polynésie fra
 - 🔥 Accident / Route bloquée
 - 🌊 Conditions surf
 - 📅 Événement
-- 📹 **Webcam Live** (NOUVEAU - remplace "Live en cours")
+- 📹 **Webcam Live** (remplace "Live en cours")
 - ☁️ Alerte météo
 - 🛍️ Bonne affaire / Marché
 - 📍 Autre signalement
 
-#### Fonctionnalités
+#### Fonctionnalités Fenua Pulse
 - **Clic sur catégorie** = voir tous les emplacements de ce type
-- **Bouton "Contacter"** pour roulottes/marché (téléphone + page vendeur)
+- **Bouton "Contacter par message"** pour roulottes/marché → ouvre conversation directe dans la messagerie interne ✅ (13/03/2026)
+- **Bouton "Appeler"** avec lien tel: pour appeler directement le vendeur ✅ (13/03/2026)
+- **Bouton "Voir profil vendeur"** pour accéder à la page complète du vendeur
 - **Vidéos 5 secondes en boucle** sur chaque point webcam
 - Gamification avec points Mana
 
@@ -75,6 +77,22 @@ Hui Fenua est un réseau social pour la communauté tahitienne en Polynésie fra
 - Suppression des liens YouTube non fonctionnels
 - API `/api/admin/cleanup/youtube`
 
+### Phase 5 - Tableau de Bord Vendeur "Ma Roulotte" (Complète) ✅ 13/03/2026
+
+#### Fonctionnalités "Ma Roulotte"
+- **Profil de roulotte** : Nom, description, type de cuisine, méthodes de paiement
+- **Gestion d'ouverture** : Boutons "Ouvrir", "+2 heures", "Je ferme"
+- **Carte de position en direct** : Affiche la localisation GPS quand la roulotte est ouverte ✅
+- **Bouton "Appeler"** : Lien `tel:` pour appeler directement le numéro du vendeur ✅
+- **Onglets** : Tableau de bord, Menu, Paramètres
+- **Gestion du menu** : Ajout/modification/suppression de plats
+
+### Protection Anti-Faux Comptes (En cours - Mode Simulation)
+- Module `account_protection.py` créé
+- Score de confiance basé sur IP, User-Agent, email
+- Vérification par téléphone (placeholders pour SMS, Twilio non intégré)
+- Limites d'inscription par IP
+
 ### Fonction Live (Temporairement Désactivée)
 - Retiré de la navigation principale
 - Retiré du sidebar droit
@@ -86,9 +104,12 @@ Hui Fenua est un réseau social pour la communauté tahitienne en Polynésie fra
 - `/app/backend/fenua_pulse.py` - Carte + 10 webcams
 - `/app/backend/rss_feeds.py` - 8 sources RSS + détection améliorée
 - `/app/backend/auto_publisher.py` - Publication automatique
+- `/app/backend/roulotte.py` - Gestion des roulottes et vendeurs
+- `/app/backend/account_protection.py` - Protection anti-faux comptes (simulation)
 
 ### Frontend
-- `/app/frontend/src/pages/PulsePage.js` - Carte avec webcams vidéo
+- `/app/frontend/src/pages/PulsePage.js` - Carte avec webcams + boutons contact ✅
+- `/app/frontend/src/pages/VendorDashboardPage.js` - Tableau de bord vendeur avec carte + bouton appeler ✅
 - `/app/frontend/src/components/layout/MainLayout.js` - Navigation sans Live
 
 ## Statut : Application Fonctionnelle ✅
@@ -100,6 +121,24 @@ Hui Fenua est un réseau social pour la communauté tahitienne en Polynésie fra
 - 20+ articles de presse réels publiés
 - Détection d'île améliorée (Tuamotu détecté)
 - Live retiré de la navigation
+- **Bouton "Contacter par message" sur Fenua Pulse** ✅
+- **Bouton "Appeler" sur Fenua Pulse** ✅
+- **Carte de position dans "Ma Roulotte"** ✅
+- **Bouton "Appeler" dans "Ma Roulotte"** ✅
+
+## Prochaines Étapes (Backlog)
+
+### P2 - Protection Anti-Faux Comptes
+- Intégration d'un service SMS (Twilio ou similaire) pour vérification réelle
+- UI frontend pour la vérification du numéro de téléphone
+- Application des restrictions basées sur le score de confiance
+
+### P3 - Améliorations Futures
+- Application mobile Expo
+- Système de publicité
+- Live Streaming (si demandé)
+- Système d'abonnement premium
+- Fonctionnalités "Duets/Remix" et "Collections"
 
 ---
 *Dernière mise à jour : 13 Mars 2026*

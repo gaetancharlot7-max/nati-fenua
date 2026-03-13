@@ -4,8 +4,11 @@ import {
   Truck, MapPin, Clock, Phone, CreditCard, Camera, Plus, X,
   Star, Users, Bell, Check, Edit2, Trash2, AlertCircle, 
   DollarSign, Loader2, Power, PowerOff, Timer, ChevronRight,
-  Settings, Menu as MenuIcon, Image
+  Settings, Menu as MenuIcon, Image, PhoneCall
 } from 'lucide-react';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -14,6 +17,36 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { Link } from 'react-router-dom';
+
+// Fix Leaflet default marker icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
+
+// Create roulotte marker icon
+const createRouletteIcon = () => {
+  return L.divIcon({
+    html: `<div style="
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #FF6B35, #FF1493);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid white;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    ">
+      <span style="font-size: 20px;">🚚</span>
+    </div>`,
+    className: 'roulotte-marker',
+    iconSize: [44, 44],
+    iconAnchor: [22, 22]
+  });
+};
 
 const VendorDashboardPage = () => {
   const { user } = useAuth();
@@ -370,6 +403,76 @@ const VendorDashboardPage = () => {
           </Button>
         )}
       </div>
+
+          {/* Call Button - Quick access to phone */}
+          {vendorProfile.phone && (
+            <a
+              href={`tel:${vendorProfile.phone}`}
+              className="flex items-center justify-center gap-3 w-full p-4 mb-6 bg-gradient-to-r from-[#00CED1] to-[#006994] text-white rounded-2xl font-medium hover:opacity-90 transition-opacity shadow-sm"
+              data-testid="call-roulotte-btn"
+            >
+              <PhoneCall size={24} />
+              <span className="text-lg">Appeler : {vendorProfile.phone}</span>
+            </a>
+          )}
+
+          {/* Location Map - Show when roulotte is open and has coordinates */}
+          {vendorProfile.is_open && vendorProfile.current_lat && vendorProfile.current_lng && (
+            <div className="bg-white rounded-3xl shadow-sm overflow-hidden mb-6">
+              <div className="p-4 border-b">
+                <div className="flex items-center gap-2">
+                  <MapPin className="text-[#FF6B35]" size={20} />
+                  <h3 className="font-bold text-[#1A1A2E]">Position actuelle</h3>
+                  <span className="ml-auto px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                    En direct
+                  </span>
+                </div>
+              </div>
+              <div className="h-48">
+                <MapContainer
+                  center={[vendorProfile.current_lat, vendorProfile.current_lng]}
+                  zoom={15}
+                  style={{ width: '100%', height: '100%' }}
+                  zoomControl={false}
+                  attributionControl={false}
+                  scrollWheelZoom={false}
+                  dragging={false}
+                >
+                  <TileLayer
+                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    maxZoom={19}
+                  />
+                  <Marker 
+                    position={[vendorProfile.current_lat, vendorProfile.current_lng]}
+                    icon={createRouletteIcon()}
+                  />
+                </MapContainer>
+              </div>
+              <div className="p-3 bg-gray-50 text-center">
+                <p className="text-sm text-gray-600">
+                  📍 Lat: {vendorProfile.current_lat.toFixed(4)}, Lng: {vendorProfile.current_lng.toFixed(4)}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Map placeholder when closed */}
+          {!vendorProfile.is_open && (
+            <div className="bg-white rounded-3xl shadow-sm overflow-hidden mb-6">
+              <div className="p-4 border-b">
+                <div className="flex items-center gap-2">
+                  <MapPin className="text-gray-400" size={20} />
+                  <h3 className="font-bold text-gray-500">Position de la roulotte</h3>
+                </div>
+              </div>
+              <div className="h-32 bg-gray-100 flex items-center justify-center">
+                <div className="text-center text-gray-400">
+                  <MapPin size={32} className="mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Ouvrez votre roulotte pour afficher votre position</p>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
 
