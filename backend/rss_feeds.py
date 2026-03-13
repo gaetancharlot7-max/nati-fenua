@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
-# Real Polynesian RSS feeds
+# Real Polynesian RSS feeds - Extended list
 RSS_FEEDS = [
     {
         "name": "Tahiti Infos",
@@ -24,14 +24,6 @@ RSS_FEEDS = [
         "categories": ["actualité", "politique", "société", "économie"]
     },
     {
-        "name": "La Dépêche de Tahiti",
-        "url": "https://www.ladepeche.pf/feed/",
-        "island": "tahiti",
-        "account_id": "ladepeche_tahiti",
-        "logo": "https://www.ladepeche.pf/wp-content/uploads/2020/01/logo-depeche.png",
-        "categories": ["actualité", "sport", "culture"]
-    },
-    {
         "name": "Polynésie 1ère",
         "url": "https://la1ere.francetvinfo.fr/polynesie/rss",
         "island": "tahiti",
@@ -40,47 +32,138 @@ RSS_FEEDS = [
         "categories": ["actualité", "télévision", "info"]
     },
     {
-        "name": "Radio 1 Tahiti",
-        "url": "https://www.radio1.pf/feed/",
-        "island": "tahiti",
-        "account_id": "radio1_tahiti",
-        "logo": "https://www.radio1.pf/wp-content/uploads/2018/10/logo-radio1.png",
-        "categories": ["actualité", "musique", "événements"]
-    },
-    {
         "name": "TNTV",
         "url": "https://www.tntv.pf/feed/",
         "island": "tahiti",
         "account_id": "tntv_polynesie",
         "logo": "https://www.tntv.pf/wp-content/uploads/2019/07/tntv-logo.png",
         "categories": ["actualité", "télévision", "sport"]
+    },
+    {
+        "name": "Outremers 360",
+        "url": "https://outremers360.com/feed/",
+        "island": "tahiti",
+        "account_id": "outremers360",
+        "logo": "https://outremers360.com/wp-content/uploads/2020/01/logo-outremers360.png",
+        "categories": ["actualité", "outre-mer", "économie"]
+    },
+    {
+        "name": "Tahiti News",
+        "url": "https://tahitinews.co/feed/",
+        "island": "tahiti",
+        "account_id": "tahiti_news",
+        "logo": "https://tahitinews.co/wp-content/uploads/2021/01/logo-tahiti-news.png",
+        "categories": ["actualité", "tourisme", "culture"]
+    },
+    {
+        "name": "Actu.fr Polynésie",
+        "url": "https://actu.fr/polynesie-francaise/rss.xml",
+        "island": "tahiti",
+        "account_id": "actu_polynesie",
+        "logo": "https://actu.fr/build/images/logo-actu.svg",
+        "categories": ["actualité", "local", "société"]
+    },
+    {
+        "name": "Air Tahiti Magazine",
+        "url": "https://www.airtahitimagazine.com/feed/",
+        "island": "tahiti",
+        "account_id": "airtahiti_mag",
+        "logo": "https://www.airtahitimagazine.com/wp-content/uploads/logo-atm.png",
+        "categories": ["tourisme", "voyage", "culture"]
+    },
+    {
+        "name": "Surf Report Tahiti",
+        "url": "https://www.surf-report.com/rss/spots/polynesie-francaise.xml",
+        "island": "tahiti",
+        "account_id": "surf_report_tahiti",
+        "logo": "https://www.surf-report.com/images/logo-surf-report.png",
+        "categories": ["surf", "sport", "météo"]
     }
 ]
 
-# Island keywords for auto-tagging
+# Enhanced island keywords for better detection
 ISLAND_KEYWORDS = {
-    "tahiti": ["tahiti", "papeete", "faa'a", "punaauia", "pirae", "mahina", "taravao", "teahupo'o", "mataiea"],
-    "moorea": ["moorea", "temae", "haapiti", "afareaitu", "opunohu", "cook"],
-    "bora-bora": ["bora bora", "bora-bora", "vaitape", "matira", "otemanu"],
-    "raiatea": ["raiatea", "uturoa", "taputapuatea", "faaroa"],
-    "tahaa": ["tahaa", "taha'a", "patio", "haamene"],
-    "huahine": ["huahine", "fare", "maeva", "fauna nui"],
-    "maupiti": ["maupiti", "vaiea", "farauru"],
-    "tuamotu": ["tuamotu", "rangiroa", "fakarava", "tikehau", "manihi", "makemo", "hao", "ahe"],
-    "marquises": ["marquises", "nuku hiva", "hiva oa", "ua pou", "fatu hiva", "taiohae", "atuona"]
+    "tahiti": [
+        "tahiti", "papeete", "faa'a", "faaa", "punaauia", "pirae", "mahina", 
+        "taravao", "teahupo'o", "teahupoo", "mataiea", "papara", "paea", 
+        "arue", "hitia'a", "tautira", "tahiti nui", "tahiti iti", "presqu'île",
+        "assemblée", "haut-commissariat", "gouvernement polynésie"
+    ],
+    "moorea": [
+        "moorea", "temae", "haapiti", "afareaitu", "opunohu", "cook", 
+        "paopao", "maharepa", "teavaro", "île soeur", "belvedere moorea"
+    ],
+    "bora-bora": [
+        "bora bora", "bora-bora", "vaitape", "matira", "otemanu", 
+        "faanui", "anau", "povai", "nunue", "perle du pacifique"
+    ],
+    "raiatea": [
+        "raiatea", "uturoa", "taputapuatea", "faaroa", "tevaitoa", 
+        "opoa", "avera", "île sacrée", "unesco raiatea"
+    ],
+    "tahaa": [
+        "tahaa", "taha'a", "patio", "haamene", "tapuamu", "hipu", 
+        "faaaha", "île vanille", "vanille tahaa"
+    ],
+    "huahine": [
+        "huahine", "fare", "maeva", "fauna nui", "fitii", "haapu",
+        "parea", "tefarerii", "île authentique", "anguilles sacrées"
+    ],
+    "maupiti": [
+        "maupiti", "vaiea", "farauru", "teurafaatiu", "tereia",
+        "motu auira", "petite soeur", "raies manta maupiti"
+    ],
+    "tuamotu": [
+        "tuamotu", "rangiroa", "fakarava", "tikehau", "manihi", "makemo",
+        "hao", "ahe", "takaroa", "takapoto", "niau", "kaukura", "aratika",
+        "kauehi", "raroia", "atoll", "passe tiputa", "passe avatoru",
+        "lagon bleu", "récif", "coprah", "perles noires"
+    ],
+    "marquises": [
+        "marquises", "nuku hiva", "nukuhiva", "hiva oa", "hivaoa", 
+        "ua pou", "uapou", "fatu hiva", "fatuhiva", "taiohae", "atuona",
+        "hakahau", "hakaui", "taipivai", "hatiheu", "gauguin", "brel",
+        "te henua enana", "tiki", "tatouage marquisien"
+    ],
+    "gambier": [
+        "gambier", "mangareva", "rikitea", "taravai", "akamaru",
+        "perles gambier"
+    ],
+    "australes": [
+        "australes", "tubuai", "rurutu", "raivavae", "rimatara", "rapa",
+        "moerai", "mataura", "avera rurutu"
+    ]
 }
 
 
 def detect_island_from_text(text: str) -> str:
-    """Detect which island an article is about based on keywords"""
+    """Detect which island an article is about based on keywords with scoring"""
     text_lower = text.lower()
     
-    for island, keywords in ISLAND_KEYWORDS.items():
-        for keyword in keywords:
-            if keyword in text_lower:
-                return island
+    # Score each island based on keyword matches
+    scores = {}
     
-    return "tahiti"  # Default to Tahiti
+    for island, keywords in ISLAND_KEYWORDS.items():
+        score = 0
+        for keyword in keywords:
+            # Count occurrences of each keyword
+            count = text_lower.count(keyword.lower())
+            if count > 0:
+                # Weight by keyword specificity (longer keywords = more specific)
+                weight = len(keyword.split()) + (len(keyword) / 10)
+                score += count * weight
+        
+        if score > 0:
+            scores[island] = score
+    
+    # Return island with highest score, or tahiti as default
+    if scores:
+        best_island = max(scores, key=scores.get)
+        # Only return non-tahiti if the score is significantly higher
+        if best_island != "tahiti" or scores.get("tahiti", 0) > 0:
+            return best_island
+    
+    return "tahiti"  # Default to Tahiti for general Polynesian news
 
 
 def clean_html(html_content: str) -> str:

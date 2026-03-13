@@ -42,7 +42,7 @@ const getMarkerEmoji = (type) => {
     accident: '🔥',
     surf: '🌊',
     event: '📅',
-    live: '📹',
+    webcam: '📹',
     weather: '☁️',
     market: '🛍️',
     other: '📍'
@@ -775,21 +775,50 @@ const MarkerDetailModal = ({ marker, onClose, onConfirm, currentUserId }) => {
           </div>
 
           <div className="p-4 space-y-4">
+            {/* Webcam Video - Full width video player for webcams */}
+            {marker.is_webcam && marker.video_url && (
+              <div className="relative rounded-xl overflow-hidden bg-black">
+                <video 
+                  src={marker.video_url}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-48 object-cover"
+                />
+                <div className="absolute top-2 left-2 px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-lg flex items-center gap-1">
+                  <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                  LIVE
+                </div>
+                <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/50 text-white text-xs rounded">
+                  {marker.title}
+                </div>
+              </div>
+            )}
+
             {/* Verified Badge */}
-            {marker.is_verified && (
+            {marker.is_verified && !marker.is_webcam && (
               <div className="flex items-center gap-2 p-3 bg-green-50 rounded-xl text-green-700">
                 <Check size={20} />
                 <span className="font-medium">Signalement vérifié par la communauté</span>
               </div>
             )}
 
+            {/* Webcam info badge */}
+            {marker.is_webcam && (
+              <div className="flex items-center gap-2 p-3 bg-purple-50 rounded-xl text-purple-700">
+                <Camera size={20} />
+                <span className="font-medium">Webcam officielle en temps réel</span>
+              </div>
+            )}
+
             {/* Description */}
-            {marker.description && (
+            {marker.description && !marker.is_webcam && (
               <p className="text-gray-700">{marker.description}</p>
             )}
 
-            {/* Photo */}
-            {marker.photo_url && (
+            {/* Photo (for non-webcam markers) */}
+            {marker.photo_url && !marker.is_webcam && (
               <img 
                 src={marker.photo_url} 
                 alt={marker.title}
@@ -860,8 +889,8 @@ const MarkerDetailModal = ({ marker, onClose, onConfirm, currentUserId }) => {
               </div>
             )}
 
-            {/* Vote Buttons */}
-            {canVote && (
+            {/* Vote Buttons - Hide for webcams */}
+            {canVote && !marker.is_webcam && (
               <div className="flex gap-3">
                 <Button
                   onClick={() => onConfirm(marker.marker_id, true)}

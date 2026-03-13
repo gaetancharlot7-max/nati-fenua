@@ -48,7 +48,7 @@ const MainLayout = ({ children, hideNav = false }) => {
   const navItems = [
     { icon: Home, label: 'Accueil', path: '/feed' },
     { icon: MapPin, label: 'Pulse', path: '/pulse', highlight: true },
-    { icon: Radio, label: 'Live', path: '/live' },
+    // { icon: Radio, label: 'Live', path: '/live' }, // Temporairement désactivé
     { icon: Plus, label: 'Créer', path: '/create', isCreate: true },
     { icon: ShoppingBag, label: 'Marché', path: '/marketplace' },
     { icon: User, label: 'Profil', path: '/profile' }
@@ -287,23 +287,6 @@ const MainLayout = ({ children, hideNav = false }) => {
           >
             <User size={24} strokeWidth={1.5} />
             <span>Mon Profil</span>
-          </Link>
-
-          {/* Live Link - Below Profile */}
-          <Link
-            to="/live"
-            data-testid="right-nav-live"
-            className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
-              location.pathname === '/live' 
-                ? 'bg-gradient-to-r from-[#FF6B35]/10 to-[#00CED1]/10 text-[#FF6B35] font-semibold' 
-                : 'text-[#1A1A2E] hover:bg-gray-100'
-            }`}
-          >
-            <Radio size={24} strokeWidth={1.5} />
-            <span>Live</span>
-            <span className="ml-auto px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-bold animate-pulse">
-              LIVE
-            </span>
           </Link>
 
           {/* Vendor Dashboard Link */}

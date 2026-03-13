@@ -16,110 +16,90 @@ Hui Fenua est un réseau social pour la communauté tahitienne en Polynésie fra
 ### Phase 2 - Fonctionnalités Avancées (Complète)
 - **Modération de contenu** : Système de signalement avec catégories, avertissements progressifs, tableau de bord admin
 - **Conformité RGPD** : Consentement cookies, export de données, suppression de compte, vérification d'âge
-- **Monitoring & Analytics** : Tableau de bord admin avec statistiques d'utilisation et monitoring technique
+- **Monitoring & Analytics** : Tableau de bord admin avec statistiques
 
-### Phase 3 - Fenua Pulse (Complète)
-- **Carte interactive en temps réel** avec 9 îles :
-  - Tahiti, Moorea, Bora Bora, Raiatea, **Taha'a**, Huahine, **Maupiti**, Tuamotu, Marquises
-  - Filtres par type de signalement (roulottes, accidents, surf, événements, météo, marché, etc.)
-  - **Clic sur catégorie = voir tous les emplacements de cette catégorie**
-  - Bouton de localisation GPS
-  - Création de signalements géolocalisés
-  
-- **Système Vendeurs/Roulottes** :
-  - Création de profil vendeur
-  - Bouton "Je suis ouvert" pour apparaître sur la carte
-  - Gestion du menu avec création, modification et suppression de plats
-  - **Bouton "Contacter" avec lien téléphone et page vendeur**
-  - Système d'avis clients
-  - Notifications push pour abonnés
+### Phase 3 - Fenua Pulse avec Webcams Live (Complète)
 
-- **Gamification (Mana)** :
-  - Points Mana gagnés pour les contributions
-  - Classement par île
-  - Validation communautaire des signalements
+#### Carte Interactive - 9 Îles
+- Tahiti, Moorea, Bora Bora, Raiatea, **Taha'a**, Huahine, **Maupiti**, Tuamotu, Marquises
 
-### Live Streaming (Complète)
-- Liste des lives en cours
-- Page de visionnage avec chat en direct
-- Bouton de démarrage de live
-- Compteur de spectateurs et likes
+#### 10 Webcams Live (NOUVEAU)
+| Webcam | Île | Localisation |
+|--------|-----|--------------|
+| Port de Papeete | Tahiti | Centre-ville |
+| Teahupo'o | Tahiti | Spot de surf |
+| Baie d'Opunohu | Moorea | Nature |
+| Plage de Matira | Bora Bora | Plage |
+| Port d'Uturoa | Raiatea | Port |
+| Baie de Haamene | Taha'a | Vanille |
+| Village de Fare | Huahine | Village |
+| Village de Vaiea | Maupiti | Village |
+| Passe de Tiputa | Tuamotu | Plongée |
+| Baie de Taiohae | Marquises | Nature |
 
-### Phase 4 - Publication Automatique & Presse (NOUVELLE - Complète)
+#### Catégories de Signalement
+- 🚚 Roulotte / Vendeur
+- 🔥 Accident / Route bloquée
+- 🌊 Conditions surf
+- 📅 Événement
+- 📹 **Webcam Live** (NOUVEAU - remplace "Live en cours")
+- ☁️ Alerte météo
+- 🛍️ Bonne affaire / Marché
+- 📍 Autre signalement
 
-#### Flux RSS - Vrais Articles de Presse
-- **Sources intégrées** :
-  - Tahiti Infos ✅
-  - Polynésie 1ère ✅
-  - TNTV ✅
-  - Radio 1 Tahiti (partiellement)
-  - La Dépêche de Tahiti (partiellement)
-- **Fonctionnalités** :
-  - Récupération automatique des articles
-  - Détection automatique de l'île concernée
-  - Publication comme posts avec lien vers l'article original
-  - Comptes médias vérifiés créés automatiquement
-  - Nettoyage des liens YouTube non fonctionnels
+#### Fonctionnalités
+- **Clic sur catégorie** = voir tous les emplacements de ce type
+- **Bouton "Contacter"** pour roulottes/marché (téléphone + page vendeur)
+- **Vidéos 5 secondes en boucle** sur chaque point webcam
+- Gamification avec points Mana
 
-#### Publication Automatique Locale
-- 20-30 posts générés quotidiennement
-- Couverture des 9 îles polynésiennes
-- Mix de contenus : photos, articles locaux
-- Comptes bot vérifiés pour chaque île
+### Phase 4 - Flux RSS & Presse (Complète)
 
-### APIs de Contenu
-- `GET /api/news/latest` - Derniers articles de presse
-- `GET /api/content/island/{island_id}` - Contenu par île
-- `POST /api/admin/rss/fetch` - Récupérer les flux RSS
-- `POST /api/admin/cleanup/youtube` - Nettoyer liens YouTube
+#### 8 Sources RSS Polynésiennes
+- Tahiti Infos ✅
+- Polynésie 1ère ✅
+- TNTV ✅
+- Outremers 360 ✅
+- Tahiti News
+- Actu.fr Polynésie
+- Air Tahiti Magazine
+- Surf Report Tahiti
+
+#### Détection Améliorée des Îles
+- Système de scoring avec mots-clés étendus
+- 11 archipels/îles détectables :
+  - Tahiti, Moorea, Bora Bora, Raiatea, Taha'a, Huahine, Maupiti
+  - Tuamotu, Marquises, Gambier, Australes
+
+#### Nettoyage Automatique
+- Suppression des liens YouTube non fonctionnels
+- API `/api/admin/cleanup/youtube`
+
+### Fonction Live (Temporairement Désactivée)
+- Retiré de la navigation principale
+- Retiré du sidebar droit
+- Les webcams sur Fenua Pulse remplacent cette fonction
 
 ## Architecture Technique
 
-### Backend (FastAPI)
-- `/app/backend/server.py` - Routes principales
-- `/app/backend/rss_feeds.py` - **NOUVEAU** : Intégration flux RSS
+### Backend
+- `/app/backend/fenua_pulse.py` - Carte + 10 webcams
+- `/app/backend/rss_feeds.py` - 8 sources RSS + détection améliorée
 - `/app/backend/auto_publisher.py` - Publication automatique
-- `/app/backend/fenua_pulse.py` - Logique Fenua Pulse (9 îles)
-- `/app/backend/roulotte.py` - Système vendeurs
 
-### Frontend (React)
-- `/app/frontend/src/pages/PulsePage.js` - Carte avec filtres cliquables et bouton contacter
-- `/app/frontend/src/pages/FeedPage.js` - Fil d'actualité avec articles de presse
-- `/app/frontend/src/pages/AdminAutoPublishPage.js` - Gestion publication auto
+### Frontend
+- `/app/frontend/src/pages/PulsePage.js` - Carte avec webcams vidéo
+- `/app/frontend/src/components/layout/MainLayout.js` - Navigation sans Live
 
-### Base de données
-- MongoDB avec collections : users, posts, stories, vendors, pulse_markers, etc.
+## Statut : Application Fonctionnelle ✅
 
-## Statut actuel : Application Fonctionnelle
-
-### Testé et validé ✅
-- Carte Fenua Pulse avec 9 îles (Tahiti, Moorea, Bora Bora, Raiatea, Taha'a, Huahine, Maupiti, Tuamotu, Marquises)
-- Filtres par catégorie au clic
-- Flux RSS avec vrais articles de presse polynésiens
-- Publication automatique quotidienne
-- Live streaming fonctionnel
-- CORS configuré pour production
-- Requêtes DB optimisées (N+1 corrigé)
-
-### Prêt pour déploiement ✅
-- Health check passé
-- Variables d'environnement configurées
-- Pas de valeurs hardcodées
-
-## Tâches Futures (Backlog)
-
-### P1 - Court terme
-- Ajouter plus de sources RSS locales
-- Améliorer la détection d'île dans les articles
-
-### P2 - Moyen terme
-- Système de publicité complet
-- Fonctionnalités "Duets/Remix"
-- Collections de contenus
-
-### P3 - Long terme
-- Application mobile Expo
-- Publication App Store / Play Store
+### Testé et validé
+- 9 îles sur Fenua Pulse
+- 10 webcams avec vidéos live
+- Filtrage par catégorie au clic
+- 20+ articles de presse réels publiés
+- Détection d'île améliorée (Tuamotu détecté)
+- Live retiré de la navigation
 
 ---
 *Dernière mise à jour : 13 Mars 2026*

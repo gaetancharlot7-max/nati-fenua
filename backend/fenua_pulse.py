@@ -93,11 +93,11 @@ MARKER_TYPES = {
         "label": "Événement",
         "duration_hours": 24  # Events last longer
     },
-    "live": {
+    "webcam": {
         "color": "#8B5CF6",  # Purple
         "icon": "video",
-        "label": "Live en cours",
-        "duration_hours": 2
+        "label": "Webcam Live",
+        "duration_hours": 999999  # Permanent
     },
     "weather": {
         "color": "#6B7280",  # Gray
@@ -118,6 +118,100 @@ MARKER_TYPES = {
         "duration_hours": 4
     }
 }
+
+# Live webcams locations in French Polynesia
+WEBCAMS = [
+    {
+        "id": "webcam_papeete_port",
+        "name": "Port de Papeete",
+        "island": "tahiti",
+        "lat": -17.5350,
+        "lng": -149.5696,
+        "video_url": "https://videos.pexels.com/video-files/1409899/1409899-uhd_2560_1440_25fps.mp4",
+        "thumbnail": "https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=400"
+    },
+    {
+        "id": "webcam_teahupoo",
+        "name": "Teahupo'o - Spot de Surf",
+        "island": "tahiti",
+        "lat": -17.8686,
+        "lng": -149.2561,
+        "video_url": "https://videos.pexels.com/video-files/1918465/1918465-uhd_2560_1440_24fps.mp4",
+        "thumbnail": "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=400"
+    },
+    {
+        "id": "webcam_moorea_opunohu",
+        "name": "Baie d'Opunohu",
+        "island": "moorea",
+        "lat": -17.5048,
+        "lng": -149.8517,
+        "video_url": "https://videos.pexels.com/video-files/2330798/2330798-uhd_2560_1440_24fps.mp4",
+        "thumbnail": "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400"
+    },
+    {
+        "id": "webcam_borabora_matira",
+        "name": "Plage de Matira",
+        "island": "bora-bora",
+        "lat": -16.5282,
+        "lng": -151.7486,
+        "video_url": "https://videos.pexels.com/video-files/854669/854669-hd_1920_1080_30fps.mp4",
+        "thumbnail": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400"
+    },
+    {
+        "id": "webcam_raiatea_uturoa",
+        "name": "Port d'Uturoa",
+        "island": "raiatea",
+        "lat": -16.7333,
+        "lng": -151.4417,
+        "video_url": "https://videos.pexels.com/video-files/3571264/3571264-uhd_2560_1440_30fps.mp4",
+        "thumbnail": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400"
+    },
+    {
+        "id": "webcam_tahaa_vanille",
+        "name": "Baie de Haamene",
+        "island": "tahaa",
+        "lat": -16.6167,
+        "lng": -151.5000,
+        "video_url": "https://videos.pexels.com/video-files/1739010/1739010-uhd_2560_1440_24fps.mp4",
+        "thumbnail": "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=400"
+    },
+    {
+        "id": "webcam_huahine_fare",
+        "name": "Village de Fare",
+        "island": "huahine",
+        "lat": -16.7083,
+        "lng": -151.0333,
+        "video_url": "https://videos.pexels.com/video-files/856079/856079-hd_1920_1080_30fps.mp4",
+        "thumbnail": "https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=400"
+    },
+    {
+        "id": "webcam_maupiti_vaiea",
+        "name": "Village de Vaiea",
+        "island": "maupiti",
+        "lat": -16.4500,
+        "lng": -152.2583,
+        "video_url": "https://videos.pexels.com/video-files/3571264/3571264-uhd_2560_1440_30fps.mp4",
+        "thumbnail": "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=400"
+    },
+    {
+        "id": "webcam_rangiroa_tiputa",
+        "name": "Passe de Tiputa",
+        "island": "tuamotu",
+        "lat": -14.9667,
+        "lng": -147.6333,
+        "video_url": "https://videos.pexels.com/video-files/1918465/1918465-uhd_2560_1440_24fps.mp4",
+        "thumbnail": "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?w=400"
+    },
+    {
+        "id": "webcam_nukuhiva_taiohae",
+        "name": "Baie de Taiohae",
+        "island": "marquises",
+        "lat": -8.9167,
+        "lng": -140.1000,
+        "video_url": "https://videos.pexels.com/video-files/2330798/2330798-uhd_2560_1440_24fps.mp4",
+        "thumbnail": "https://images.unsplash.com/photo-1540202404-a2f29016b523?w=400"
+    }
+]
 
 # Mana rewards
 MANA_REWARDS = {
@@ -259,7 +353,8 @@ class FenuaPulseService:
         island: Optional[str] = None,
         lat: Optional[float] = None,
         lng: Optional[float] = None,
-        radius_km: Optional[float] = None
+        radius_km: Optional[float] = None,
+        include_webcams: bool = True
     ) -> List[dict]:
         """Get active markers with optional filters"""
         
@@ -300,7 +395,47 @@ class FenuaPulseService:
             )
             marker["user"] = user
         
+        # Add webcams if requested and type filter allows
+        if include_webcams and (not marker_types or "webcam" in marker_types):
+            webcam_markers = self._get_webcam_markers(island)
+            markers.extend(webcam_markers)
+        
         return markers
+    
+    def _get_webcam_markers(self, island: Optional[str] = None) -> List[dict]:
+        """Get webcam markers for the specified island or all islands"""
+        webcam_markers = []
+        
+        for webcam in WEBCAMS:
+            if island and webcam["island"] != island:
+                continue
+            
+            marker = {
+                "marker_id": webcam["id"],
+                "user_id": "system_webcam",
+                "marker_type": "webcam",
+                "lat": webcam["lat"],
+                "lng": webcam["lng"],
+                "title": webcam["name"],
+                "description": f"Webcam en direct - {webcam['name']}",
+                "photo_url": webcam["thumbnail"],
+                "video_url": webcam["video_url"],
+                "island": webcam["island"],
+                "color": MARKER_TYPES["webcam"]["color"],
+                "icon": "video",
+                "is_webcam": True,
+                "is_verified": True,
+                "is_active": True,
+                "confirmations": 999,
+                "user": {
+                    "user_id": "system_webcam",
+                    "name": "Webcam Officielle",
+                    "picture": None
+                }
+            }
+            webcam_markers.append(marker)
+        
+        return webcam_markers
 
     def _calculate_distance(self, lat1: float, lng1: float, lat2: float, lng2: float) -> float:
         """Calculate distance between two points in km (Haversine formula)"""
