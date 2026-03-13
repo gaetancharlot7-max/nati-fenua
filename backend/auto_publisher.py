@@ -40,12 +40,26 @@ ISLAND_CONTENT = {
         "hashtags": ["#Raiatea", "#IleSacrée", "#Taputapuatea", "#UNESCO"],
         "accounts": ["raiatea_sacree", "raiatea_culture", "raiatea_heritage"]
     },
+    "tahaa": {
+        "name": "Taha'a",
+        "themes": ["vanille", "perles", "lagon", "nature", "artisanat", "authenticité"],
+        "locations": ["Patio", "Haamene", "Tapuamu", "Hipu", "Faaaha"],
+        "hashtags": ["#Tahaa", "#IleVanille", "#VanilleTahaa", "#PerlesTahaa"],
+        "accounts": ["tahaa_vanille", "tahaa_nature", "tahaa_perles"]
+    },
     "huahine": {
         "name": "Huahine",
         "themes": ["authenticité", "archéologie", "anguilles sacrées", "artisanat", "agriculture"],
         "locations": ["Fare", "Maeva", "Lac Fauna Nui", "Maroe Bay"],
         "hashtags": ["#Huahine", "#IleAuthentique", "#HuahineNui", "#AnguilleSacrée"],
         "accounts": ["huahine_authentic", "huahine_nature", "huahine_culture"]
+    },
+    "maupiti": {
+        "name": "Maupiti",
+        "themes": ["authenticité", "randonnée", "raies manta", "tranquillité", "nature préservée"],
+        "locations": ["Vaiea", "Mont Teurafaatiu", "Tereia Beach", "Motu Auira"],
+        "hashtags": ["#Maupiti", "#PetiteSoeurBoraBora", "#RaiesManta", "#MaupitiIsland"],
+        "accounts": ["maupiti_nature", "maupiti_authentic", "maupiti_manta"]
     },
     "tuamotu": {
         "name": "Tuamotu",

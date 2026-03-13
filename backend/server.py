@@ -68,6 +68,9 @@ from roulotte import (
 # Import Auto Publisher module
 from auto_publisher import AutoPublisherService, run_daily_publisher, ISLAND_CONTENT
 
+# Import RSS Feed module
+from rss_feeds import RSSFeedService, cleanup_youtube_links
+
 ROOT_DIR = Path(__file__).parent
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -3715,8 +3718,8 @@ async def get_auto_publish_stats(request: Request):
 async def get_island_content(island_id: str, limit: int = 20):
     """Get content for a specific island"""
     
-    # Validate island
-    valid_islands = ["tahiti", "moorea", "bora-bora", "raiatea", "huahine", "tuamotu", "marquises"]
+    # Validate island - include new islands
+    valid_islands = ["tahiti", "moorea", "bora-bora", "raiatea", "tahaa", "huahine", "maupiti", "tuamotu", "marquises"]
     if island_id not in valid_islands:
         raise HTTPException(status_code=400, detail="Invalid island ID")
     
@@ -3762,6 +3765,80 @@ async def get_all_islands_content():
             for r in results
         ]
     }
+
+
+# ==================== RSS FEEDS ROUTES ====================
+
+@api_router.post("/admin/rss/fetch")
+async def fetch_rss_feeds(request: Request):
+    """Fetch and publish RSS feeds (admin only)"""
+    user = await require_auth(request)
+    
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    max_posts = body.get("max_posts", 20)
+    
+    rss_service = RSSFeedService(db)
+    result = await rss_service.publish_articles_as_posts(max_posts=max_posts)
+    await rss_service.close()
+    
+    return result
+
+@api_router.get("/admin/rss/stats")
+async def get_rss_stats():
+    """Get RSS feed statistics"""
+    rss_service = RSSFeedService(db)
+    stats = await rss_service.get_rss_stats()
+    await rss_service.close()
+    return stats
+
+@api_router.post("/admin/cleanup/youtube")
+async def cleanup_youtube(request: Request):
+    """Remove broken YouTube links (admin only)"""
+    user = await require_auth(request)
+    
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    result = await cleanup_youtube_links(db)
+    return result
+
+@api_router.get("/news/latest")
+async def get_latest_news(limit: int = 20, island: Optional[str] = None):
+    """Get latest news from RSS feeds"""
+    
+    query = {"is_rss_article": True, "moderation_status": "approved"}
+    if island:
+        query["island"] = island
+    
+    # Optimized with aggregation
+    pipeline = [
+        {"$match": query},
+        {"$sort": {"created_at": -1}},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "user_id",
+            "as": "user_data"
+        }},
+        {"$unwind": {"path": "$user_data", "preserveNullAndEmptyArrays": True}},
+        {"$addFields": {
+            "user": {
+                "user_id": "$user_data.user_id",
+                "name": "$user_data.name",
+                "picture": "$user_data.picture",
+                "is_verified": "$user_data.is_verified",
+                "is_media": "$user_data.is_media"
+            }
+        }},
+        {"$project": {"_id": 0, "user_data": 0}}
+    ]
+    
+    news = await db.posts.aggregate(pipeline).to_list(limit)
+    return news
 
 
 # ==================== ROULOTTE PUSH NOTIFICATIONS ====================

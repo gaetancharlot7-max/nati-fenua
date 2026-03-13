@@ -222,11 +222,17 @@ const PulsePage = () => {
   };
 
   const toggleFilter = (type) => {
-    setActiveFilters(prev => 
-      prev.includes(type) 
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
-    );
+    // Single click: filter to show only this type
+    // If already filtering only this type, clear filters
+    if (activeFilters.length === 1 && activeFilters[0] === type) {
+      setActiveFilters([]);
+    } else {
+      setActiveFilters([type]);
+    }
+  };
+
+  const clearFilters = () => {
+    setActiveFilters([]);
   };
 
   const goToMyLocation = () => {
@@ -353,8 +359,25 @@ const PulsePage = () => {
 
       {/* Filters */}
       <div className="bg-white/90 backdrop-blur-xl px-4 py-2.5 flex gap-2 overflow-x-auto hide-scrollbar z-10 border-b border-gray-100">
+        {/* Clear filter button */}
+        {activeFilters.length > 0 && (
+          <motion.button
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={clearFilters}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium whitespace-nowrap bg-gray-800 text-white shadow-md"
+          >
+            <X size={14} />
+            Voir tout
+          </motion.button>
+        )}
+        
         {markerTypes.map(type => {
-          const isActive = activeFilters.length === 0 || activeFilters.includes(type.type);
+          const isSelected = activeFilters.includes(type.type);
+          const count = markers.filter(m => m.marker_type === type.type).length;
+          
           return (
             <motion.button
               key={type.type}
@@ -362,16 +385,22 @@ const PulsePage = () => {
               whileTap={{ scale: 0.95 }}
               onClick={() => toggleFilter(type.type)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all shadow-sm ${
-                activeFilters.includes(type.type)
-                  ? 'text-white shadow-md'
-                  : isActive 
-                    ? 'bg-white text-gray-700 border border-gray-200'
+                isSelected
+                  ? 'text-white shadow-lg ring-2 ring-offset-2'
+                  : activeFilters.length === 0
+                    ? 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300'
                     : 'bg-gray-100 text-gray-400 border border-gray-200'
               }`}
-              style={activeFilters.includes(type.type) ? { backgroundColor: type.color } : {}}
+              style={isSelected ? { backgroundColor: type.color, ringColor: type.color } : {}}
+              data-testid={`filter-${type.type}`}
             >
               <span className="text-base">{getMarkerEmoji(type.type)}</span>
               {type.label}
+              {isSelected && count > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 bg-white/30 rounded-full text-[10px]">
+                  {count}
+                </span>
+              )}
             </motion.button>
           );
         })}
@@ -795,6 +824,41 @@ const MarkerDetailModal = ({ marker, onClose, onConfirm, currentUserId }) => {
                 <span className="text-sm">{marker.denied_by?.length || 0} contestation{marker.denied_by?.length > 1 ? 's' : ''}</span>
               </div>
             </div>
+
+            {/* Contact Button - For roulottes, market, and vendors */}
+            {(marker.marker_type === 'roulotte' || marker.marker_type === 'market') && (marker.phone || marker.vendor_id) && (
+              <div className="space-y-2">
+                {marker.phone && (
+                  <a 
+                    href={`tel:${marker.phone}`}
+                    className="flex items-center justify-center gap-2 w-full p-3 bg-gradient-to-r from-[#00CED1] to-[#006994] text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
+                  >
+                    <Phone size={20} />
+                    Appeler : {marker.phone}
+                  </a>
+                )}
+                {marker.external_link && (
+                  <a 
+                    href={marker.external_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full p-3 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
+                  >
+                    <ShoppingBag size={20} />
+                    Voir la page
+                  </a>
+                )}
+                {marker.vendor_id && !marker.external_link && (
+                  <a 
+                    href={`/vendor/${marker.vendor_id}`}
+                    className="flex items-center justify-center gap-2 w-full p-3 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
+                  >
+                    <Truck size={20} />
+                    Voir le profil vendeur
+                  </a>
+                )}
+              </div>
+            )}
 
             {/* Vote Buttons */}
             {canVote && (

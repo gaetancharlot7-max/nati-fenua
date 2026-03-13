@@ -19,9 +19,10 @@ Hui Fenua est un réseau social pour la communauté tahitienne en Polynésie fra
 - **Monitoring & Analytics** : Tableau de bord admin avec statistiques d'utilisation et monitoring technique
 
 ### Phase 3 - Fenua Pulse (Complète)
-- **Carte interactive en temps réel** :
-  - Affichage de Tahiti, Moorea, Bora Bora et autres îles
-  - Filtres par type de signalement (roulottes, accidents, surf, événements, météo, etc.)
+- **Carte interactive en temps réel** avec 9 îles :
+  - Tahiti, Moorea, Bora Bora, Raiatea, **Taha'a**, Huahine, **Maupiti**, Tuamotu, Marquises
+  - Filtres par type de signalement (roulottes, accidents, surf, événements, météo, marché, etc.)
+  - **Clic sur catégorie = voir tous les emplacements de cette catégorie**
   - Bouton de localisation GPS
   - Création de signalements géolocalisés
   
@@ -29,9 +30,9 @@ Hui Fenua est un réseau social pour la communauté tahitienne en Polynésie fra
   - Création de profil vendeur
   - Bouton "Je suis ouvert" pour apparaître sur la carte
   - Gestion du menu avec création, modification et suppression de plats
-  - Onglets Dashboard / Menu / Paramètres
+  - **Bouton "Contacter" avec lien téléphone et page vendeur**
   - Système d'avis clients
-  - Abonnements aux vendeurs avec notifications PUSH
+  - Notifications push pour abonnés
 
 - **Gamification (Mana)** :
   - Points Mana gagnés pour les contributions
@@ -44,84 +45,81 @@ Hui Fenua est un réseau social pour la communauté tahitienne en Polynésie fra
 - Bouton de démarrage de live
 - Compteur de spectateurs et likes
 
-### Phase 4 - Publication Automatique (NOUVELLE - Complète)
-- **Système de publication automatique quotidien** :
-  - 20-30 posts générés automatiquement chaque jour
-  - Couverture garantie de toutes les 7 îles :
-    - Tahiti (Papeete, Teahupo'o, Punaauia...)
-    - Moorea (Temae, Opunohu, Cook's Bay...)
-    - Bora Bora (Matira Beach, Vaitape, Mont Otemanu...)
-    - Raiatea (Uturoa, Marae Taputapuatea...)
-    - Huahine (Fare, Maeva, Lac Fauna Nui...)
-    - Tuamotu (Rangiroa, Fakarava, Tikehau...)
-    - Marquises (Nuku Hiva, Hiva Oa, Ua Pou...)
-  - Mix de contenus : photos, vidéos, articles
-  - Thèmes variés : tourisme, culture, cuisine, surf, nature, événements
-  - Comptes bot vérifiés pour chaque île
-  - Hashtags locaux automatiques
-  
-- **Page Admin Auto-Publish** :
-  - Statistiques en temps réel (posts/jour, îles couvertes)
-  - Bouton de publication manuelle
-  - Choix du nombre de posts (15-30)
-  - Visualisation de la couverture par île
+### Phase 4 - Publication Automatique & Presse (NOUVELLE - Complète)
 
-- **Notifications Push Roulottes** :
-  - Abonnement aux notifications pour les roulottes favorites
-  - Notification quand une roulotte ouvre
-  - Configuration du rayon de notification
+#### Flux RSS - Vrais Articles de Presse
+- **Sources intégrées** :
+  - Tahiti Infos ✅
+  - Polynésie 1ère ✅
+  - TNTV ✅
+  - Radio 1 Tahiti (partiellement)
+  - La Dépêche de Tahiti (partiellement)
+- **Fonctionnalités** :
+  - Récupération automatique des articles
+  - Détection automatique de l'île concernée
+  - Publication comme posts avec lien vers l'article original
+  - Comptes médias vérifiés créés automatiquement
+  - Nettoyage des liens YouTube non fonctionnels
+
+#### Publication Automatique Locale
+- 20-30 posts générés quotidiennement
+- Couverture des 9 îles polynésiennes
+- Mix de contenus : photos, articles locaux
+- Comptes bot vérifiés pour chaque île
+
+### APIs de Contenu
+- `GET /api/news/latest` - Derniers articles de presse
+- `GET /api/content/island/{island_id}` - Contenu par île
+- `POST /api/admin/rss/fetch` - Récupérer les flux RSS
+- `POST /api/admin/cleanup/youtube` - Nettoyer liens YouTube
 
 ## Architecture Technique
 
 ### Backend (FastAPI)
 - `/app/backend/server.py` - Routes principales
-- `/app/backend/auto_publisher.py` - **NOUVEAU** : Système de publication automatique
-- `/app/backend/auth_security.py` - Sécurité et authentification
-- `/app/backend/fenua_pulse.py` - Logique Fenua Pulse
+- `/app/backend/rss_feeds.py` - **NOUVEAU** : Intégration flux RSS
+- `/app/backend/auto_publisher.py` - Publication automatique
+- `/app/backend/fenua_pulse.py` - Logique Fenua Pulse (9 îles)
 - `/app/backend/roulotte.py` - Système vendeurs
-- `/app/backend/moderation.py` - Modération
-- `/app/backend/gdpr.py` - Conformité RGPD
-- `/app/backend/analytics.py` - Analytics
 
 ### Frontend (React)
-- `/app/frontend/src/pages/FeedPage.js` - Fil d'actualité
-- `/app/frontend/src/pages/PulsePage.js` - Carte Fenua Pulse
-- `/app/frontend/src/pages/LivePage.js` - Liste des lives
-- `/app/frontend/src/pages/LiveViewPage.js` - Visionnage d'un live
-- `/app/frontend/src/pages/VendorDashboardPage.js` - Dashboard vendeur avec onglets
-- `/app/frontend/src/pages/AdminAutoPublishPage.js` - **NOUVEAU** : Page admin publication auto
+- `/app/frontend/src/pages/PulsePage.js` - Carte avec filtres cliquables et bouton contacter
+- `/app/frontend/src/pages/FeedPage.js` - Fil d'actualité avec articles de presse
+- `/app/frontend/src/pages/AdminAutoPublishPage.js` - Gestion publication auto
 
 ### Base de données
-- MongoDB avec collections : users, posts, stories, conversations, messages, vendors, pulse_markers, roulotte_subscriptions, push_subscriptions, publication_logs
+- MongoDB avec collections : users, posts, stories, vendors, pulse_markers, etc.
 
 ## Statut actuel : Application Fonctionnelle
 
-### Testé et validé
-- ✅ Carte Fenua Pulse avec react-leaflet
-- ✅ Page Live avec visionnage
-- ✅ Fil d'actualité avec stories
-- ✅ Dashboard vendeur avec onglets de modification
-- ✅ Publication automatique quotidienne (30 posts, 7 îles)
-- ✅ Page admin Auto-Publish
-- ✅ APIs backend (pulse, lives, posts, roulotte, auto-publish)
+### Testé et validé ✅
+- Carte Fenua Pulse avec 9 îles (Tahiti, Moorea, Bora Bora, Raiatea, Taha'a, Huahine, Maupiti, Tuamotu, Marquises)
+- Filtres par catégorie au clic
+- Flux RSS avec vrais articles de presse polynésiens
+- Publication automatique quotidienne
+- Live streaming fonctionnel
+- CORS configuré pour production
+- Requêtes DB optimisées (N+1 corrigé)
 
-### Issues connues (P2)
-- Connexion Facebook non fonctionnelle (redirection)
+### Prêt pour déploiement ✅
+- Health check passé
+- Variables d'environnement configurées
+- Pas de valeurs hardcodées
 
 ## Tâches Futures (Backlog)
 
 ### P1 - Court terme
-- Finaliser le système de publicité
-- Améliorer le chat en temps réel
+- Ajouter plus de sources RSS locales
+- Améliorer la détection d'île dans les articles
 
 ### P2 - Moyen terme
+- Système de publicité complet
 - Fonctionnalités "Duets/Remix"
 - Collections de contenus
-- Système d'abonnement premium pour créateurs
 
 ### P3 - Long terme
 - Application mobile Expo
 - Publication App Store / Play Store
 
 ---
-*Dernière mise à jour : 11 Mars 2026*
+*Dernière mise à jour : 13 Mars 2026*

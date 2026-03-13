@@ -41,6 +41,18 @@ ISLANDS = {
         "lng": -151.4333,
         "zoom": 12
     },
+    "tahaa": {
+        "name": "Taha'a",
+        "lat": -16.6167,
+        "lng": -151.4833,
+        "zoom": 12
+    },
+    "maupiti": {
+        "name": "Maupiti",
+        "lat": -16.4500,
+        "lng": -152.2500,
+        "zoom": 14
+    },
     "marquises": {
         "name": "Marquises",
         "lat": -9.4333,
