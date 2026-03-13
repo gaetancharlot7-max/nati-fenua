@@ -4,7 +4,7 @@ import {
   MapPin, Navigation, Filter, Plus, X, Truck, Flame, Waves, 
   Calendar, Video, Cloud, ShoppingBag, Check, AlertTriangle,
   Star, Phone, Clock, Users, Trophy, Award, Zap, ChevronRight,
-  Camera, Send, ThumbsUp, ThumbsDown, Loader2
+  Camera, Send, ThumbsUp, ThumbsDown, Loader2, MessageCircle
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -729,7 +729,7 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
 };
 
 // Marker Detail Modal
-const MarkerDetailModal = ({ marker, onClose, onConfirm, currentUserId }) => {
+const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, currentUserId }) => {
   if (!marker) return null;
 
   const canVote = currentUserId && 
@@ -855,32 +855,37 @@ const MarkerDetailModal = ({ marker, onClose, onConfirm, currentUserId }) => {
             </div>
 
             {/* Contact Button - For roulottes, market, and vendors */}
-            {(marker.marker_type === 'roulotte' || marker.marker_type === 'market') && (marker.phone || marker.vendor_id) && (
+            {(marker.marker_type === 'roulotte' || marker.marker_type === 'market') && (marker.phone || marker.vendor_id || marker.user_id) && (
               <div className="space-y-2">
+                {/* Message Button - Opens conversation */}
+                {(marker.vendor_id || marker.user_id) && !marker.is_webcam && (
+                  <button 
+                    onClick={() => onContactVendor && onContactVendor(marker)}
+                    className="flex items-center justify-center gap-2 w-full p-3 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
+                    data-testid="contact-vendor-btn"
+                  >
+                    <MessageCircle size={20} />
+                    Contacter par message
+                  </button>
+                )}
+                
+                {/* Phone Button */}
                 {marker.phone && (
                   <a 
                     href={`tel:${marker.phone}`}
                     className="flex items-center justify-center gap-2 w-full p-3 bg-gradient-to-r from-[#00CED1] to-[#006994] text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
+                    data-testid="call-vendor-btn"
                   >
                     <Phone size={20} />
                     Appeler : {marker.phone}
                   </a>
                 )}
-                {marker.external_link && (
-                  <a 
-                    href={marker.external_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full p-3 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
-                  >
-                    <ShoppingBag size={20} />
-                    Voir la page
-                  </a>
-                )}
-                {marker.vendor_id && !marker.external_link && (
+                
+                {/* View Profile Button */}
+                {marker.vendor_id && (
                   <a 
                     href={`/vendor/${marker.vendor_id}`}
-                    className="flex items-center justify-center gap-2 w-full p-3 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
+                    className="flex items-center justify-center gap-2 w-full p-3 bg-white border-2 border-[#FF6B35] text-[#FF6B35] rounded-xl font-medium hover:bg-[#FF6B35]/10 transition-colors"
                   >
                     <Truck size={20} />
                     Voir le profil vendeur

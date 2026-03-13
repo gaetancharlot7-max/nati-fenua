@@ -71,6 +71,9 @@ from auto_publisher import AutoPublisherService, run_daily_publisher, ISLAND_CON
 # Import RSS Feed module
 from rss_feeds import RSSFeedService, cleanup_youtube_links
 
+# Import Account Protection module
+from account_protection import AccountProtectionService
+
 ROOT_DIR = Path(__file__).parent
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -464,6 +467,27 @@ async def require_auth(request: Request) -> UserBase:
 async def register(user_data: UserCreate, request: Request, response: Response):
     email = user_data.email.lower().strip()
     
+    # Get client info for protection check
+    client_ip = request.headers.get("x-forwarded-for", request.client.host).split(",")[0].strip()
+    user_agent = request.headers.get("user-agent", "unknown")
+    
+    # Check if registration is allowed (anti-fake account)
+    protection = AccountProtectionService(db)
+    check_result = await protection.check_registration_allowed(
+        email=email,
+        ip_address=client_ip,
+        user_agent=user_agent,
+        phone=getattr(user_data, 'phone', None)
+    )
+    
+    if not check_result["allowed"]:
+        # Log the blocked attempt
+        await protection.log_registration_attempt(email, client_ip, user_agent, success=False)
+        raise HTTPException(
+            status_code=429, 
+            detail=check_result["message"] + ". " + ", ".join(check_result["issues"])
+        )
+    
     # Validate email format
     if not validate_email(email):
         raise HTTPException(status_code=400, detail="Format d'email invalide")
@@ -496,12 +520,19 @@ async def register(user_data: UserCreate, request: Request, response: Response):
         "is_business": False,
         "is_verified": False,
         "is_banned": False,
+        "phone": None,
+        "phone_verified": None,
+        "trust_score": 10,  # Initial trust score
+        "requires_phone_verification": check_result.get("requires_phone_verification", False),
         "followers_count": 0,
         "following_count": 0,
         "posts_count": 0,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user)
+    
+    # Log successful registration
+    await protection.log_registration_attempt(email, client_ip, user_agent, success=True, user_id=user_id)
     
     # Create session with 7 day expiry
     session_token, expiry = create_session_token()
@@ -3937,6 +3968,143 @@ async def notify_roulotte_subscribers(vendor_id: str, vendor_name: str, location
     
     logger.info(f"Sent {notifications_sent} notifications for roulotte {vendor_id}")
     return notifications_sent
+
+
+# ==================== ACCOUNT PROTECTION ROUTES ====================
+
+@api_router.post("/auth/phone/send-code")
+async def send_phone_verification_code(request: Request):
+    """Send a verification code to user's phone"""
+    user = await require_auth(request)
+    body = await request.json()
+    phone = body.get("phone")
+    
+    if not phone:
+        raise HTTPException(status_code=400, detail="Numéro de téléphone requis")
+    
+    protection = AccountProtectionService(db)
+    result = await protection.send_phone_verification(user.user_id, phone)
+    
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["message"])
+    
+    return result
+
+@api_router.post("/auth/phone/verify")
+async def verify_phone_code(request: Request):
+    """Verify phone number with code"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    phone = body.get("phone")
+    code = body.get("code")
+    
+    if not phone or not code:
+        raise HTTPException(status_code=400, detail="Téléphone et code requis")
+    
+    protection = AccountProtectionService(db)
+    result = await protection.verify_phone(user.user_id, phone, code)
+    
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["message"])
+    
+    return result
+
+@api_router.get("/users/me/trust-score")
+async def get_my_trust_score(request: Request):
+    """Get the current user's trust score"""
+    user = await require_auth(request)
+    
+    protection = AccountProtectionService(db)
+    return await protection.get_user_trust_score(user.user_id)
+
+@api_router.get("/users/{user_id}/trust-score")
+async def get_user_trust_score(user_id: str, request: Request):
+    """Get a user's trust score (public info only)"""
+    
+    protection = AccountProtectionService(db)
+    result = await protection.get_user_trust_score(user_id)
+    
+    # Only return level, not detailed factors
+    return {
+        "trust_score": result["trust_score"],
+        "level": result["level"]
+    }
+
+
+# ==================== MESSAGING FOR PULSE CONTACTS ====================
+
+@api_router.post("/messages/contact-vendor")
+async def contact_vendor_from_pulse(request: Request):
+    """Start a conversation with a vendor from Pulse map"""
+    user = await require_auth(request)
+    body = await request.json()
+    
+    vendor_id = body.get("vendor_id")
+    marker_id = body.get("marker_id")
+    message_text = body.get("message", "Bonjour, je vous contacte depuis Fenua Pulse !")
+    
+    if not vendor_id:
+        raise HTTPException(status_code=400, detail="vendor_id requis")
+    
+    # Get vendor info
+    vendor = await db.vendors.find_one({"vendor_id": vendor_id})
+    if not vendor:
+        raise HTTPException(status_code=404, detail="Vendeur non trouvé")
+    
+    vendor_user_id = vendor["user_id"]
+    
+    # Check if conversation already exists
+    existing_conv = await db.conversations.find_one({
+        "participants": {"$all": [user.user_id, vendor_user_id]},
+        "type": "direct"
+    })
+    
+    if existing_conv:
+        conversation_id = existing_conv["conversation_id"]
+    else:
+        # Create new conversation
+        conversation_id = f"conv_{uuid.uuid4().hex[:12]}"
+        conversation = {
+            "conversation_id": conversation_id,
+            "participants": [user.user_id, vendor_user_id],
+            "type": "direct",
+            "is_vendor_contact": True,
+            "vendor_id": vendor_id,
+            "marker_id": marker_id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.conversations.insert_one(conversation)
+    
+    # Send initial message
+    message_id = f"msg_{uuid.uuid4().hex[:12]}"
+    message = {
+        "message_id": message_id,
+        "conversation_id": conversation_id,
+        "sender_id": user.user_id,
+        "content": message_text,
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.messages.insert_one(message)
+    
+    # Update conversation
+    await db.conversations.update_one(
+        {"conversation_id": conversation_id},
+        {"$set": {
+            "last_message": message_text,
+            "last_message_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        "success": True,
+        "conversation_id": conversation_id,
+        "message_id": message_id,
+        "vendor_name": vendor.get("name")
+    }
 
 
 # ==================== STARTUP TASKS ====================
