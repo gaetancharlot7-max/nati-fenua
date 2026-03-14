@@ -237,6 +237,18 @@ const AuthPage = () => {
                 </div>
               </div>
 
+              {isLogin && (
+                <div className="text-right">
+                  <a 
+                    href="/forgot-password" 
+                    className="text-sm text-[#FF6B35] hover:underline"
+                    data-testid="forgot-password-link"
+                  >
+                    Mot de passe oublié ?
+                  </a>
+                </div>
+              )}
+
               <Button
                 type="submit"
                 data-testid="submit-auth-btn"

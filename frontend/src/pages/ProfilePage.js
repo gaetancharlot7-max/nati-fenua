@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Settings, Grid3X3, Bookmark, ShoppingBag, MapPin } from 'lucide-react';
+import { Settings, Grid3X3, Bookmark, ShoppingBag, MapPin, LogOut } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
@@ -115,6 +115,19 @@ const ProfilePage = () => {
                   >
                     <Settings size={18} className="mr-2" />
                     Modifier
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    data-testid="logout-btn"
+                    onClick={() => {
+                      logout();
+                      navigate('/');
+                      toast.success('Déconnexion réussie');
+                    }}
+                    className="rounded-full text-red-500 border-red-200 hover:bg-red-50 hover:border-red-300"
+                  >
+                    <LogOut size={18} className="mr-2" />
+                    Déconnexion
                   </Button>
                 </div>
               ) : (

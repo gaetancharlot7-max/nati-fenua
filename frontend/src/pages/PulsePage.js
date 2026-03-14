@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MapPin, Navigation, Filter, Plus, X, Truck, Flame, Waves, 
   Calendar, Video, Cloud, ShoppingBag, Check, AlertTriangle,
   Star, Phone, Clock, Users, Trophy, Award, Zap, ChevronRight,
-  Camera, Send, ThumbsUp, ThumbsDown, Loader2, MessageCircle
+  Camera, Send, ThumbsUp, ThumbsDown, Loader2, MessageCircle,
+  ZoomIn, ZoomOut, Locate
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -134,6 +135,56 @@ const MapController = ({ selectedIsland, islands, userLocation }) => {
   }, [userLocation, map]);
 
   return null;
+};
+
+// Zoom Controls Component
+const ZoomControls = ({ onLocateUser }) => {
+  const map = useMap();
+  
+  const handleZoomIn = () => {
+    map.zoomIn();
+  };
+  
+  const handleZoomOut = () => {
+    map.zoomOut();
+  };
+  
+  const handleLocate = () => {
+    if (onLocateUser) {
+      onLocateUser();
+    } else {
+      map.locate({ setView: true, maxZoom: 16 });
+    }
+  };
+
+  return (
+    <div className="absolute bottom-24 right-4 z-[1000] flex flex-col gap-2">
+      <button
+        onClick={handleZoomIn}
+        className="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200"
+        data-testid="zoom-in-btn"
+        title="Zoomer"
+      >
+        <ZoomIn size={20} className="text-[#1A1A2E]" />
+      </button>
+      <button
+        onClick={handleZoomOut}
+        className="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200"
+        data-testid="zoom-out-btn"
+        title="Dézoomer"
+      >
+        <ZoomOut size={20} className="text-[#1A1A2E]" />
+      </button>
+      <button
+        onClick={handleLocate}
+        className="w-10 h-10 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] rounded-xl shadow-lg flex items-center justify-center hover:opacity-90 transition-opacity"
+        data-testid="locate-me-btn"
+        title="Ma position"
+      >
+        <Locate size={20} className="text-white" />
+      </button>
+    </div>
+  );
 };
 
 // Pulse Page Component
@@ -493,21 +544,13 @@ const PulsePage = () => {
               <Popup>Vous êtes ici</Popup>
             </Marker>
           )}
+          
+          {/* Zoom Controls */}
+          <ZoomControls onLocateUser={goToMyLocation} />
         </MapContainer>
         
         {/* Decorative water gradient overlay */}
         <div className="absolute inset-0 pointer-events-none map-water-overlay" />
-        
-        {/* My Location Button */}
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={goToMyLocation}
-          className="absolute bottom-24 right-4 w-14 h-14 bg-white rounded-2xl shadow-xl flex items-center justify-center hover:bg-gray-50 z-[1000] border border-blue-100"
-          data-testid="my-location-btn"
-        >
-          <Navigation size={24} className="text-[#00CED1]" />
-        </motion.button>
 
         {/* Create Signal Button */}
         {user && (

@@ -7,6 +7,8 @@ import './App.css';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import AuthCallback from './pages/AuthCallback';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import FeedPage from './pages/FeedPage';
 import ReelsPage from './pages/ReelsPage';
 import LivePage from './pages/LivePage';
@@ -81,6 +83,8 @@ function AppRouter() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<AuthPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       
       {/* Protected Routes */}
       <Route path="/feed" element={

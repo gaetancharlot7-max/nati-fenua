@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X, ChevronLeft, ChevronRight, Flag, Youtube, Link2, ExternalLink, WifiOff } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X, ChevronLeft, ChevronRight, Flag, Youtube, Link2, ExternalLink, WifiOff, Languages, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { Input } from '../components/ui/input';
 import { postsApi, storiesApi } from '../lib/api';
+import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { ShareModal } from '../components/ShareModal';
@@ -658,10 +659,79 @@ const FeedPage = () => {
               </div>
 
               {/* Caption */}
-              <p className="text-[#1A1A2E] text-sm">
-                <span className="font-bold">{post.user?.name}</span>{' '}
-                {post.caption}
-              </p>
+              <div className="space-y-2">
+                <p className="text-[#1A1A2E] text-sm">
+                  <span className="font-bold">{post.user?.name}</span>{' '}
+                  {post.translatedCaption || post.caption}
+                </p>
+                
+                {/* Translation Button */}
+                {post.caption && (
+                  <button
+                    onClick={async () => {
+                      if (post.isTranslating) return;
+                      
+                      // Toggle translation
+                      if (post.translatedCaption) {
+                        // Revert to original
+                        setPosts(prev => prev.map(p => 
+                          p.post_id === post.post_id 
+                            ? { ...p, translatedCaption: null, translationDirection: null }
+                            : p
+                        ));
+                      } else {
+                        // Translate
+                        setPosts(prev => prev.map(p => 
+                          p.post_id === post.post_id 
+                            ? { ...p, isTranslating: true }
+                            : p
+                        ));
+                        
+                        try {
+                          // Detect language and translate
+                          const direction = /[àâäéèêëîïôùûüç]/i.test(post.caption) ? 'fr_to_tah' : 'tah_to_fr';
+                          const response = await api.post(`/posts/${post.post_id}/translate`, { direction });
+                          
+                          setPosts(prev => prev.map(p => 
+                            p.post_id === post.post_id 
+                              ? { 
+                                  ...p, 
+                                  translatedCaption: response.data.translated,
+                                  translationDirection: direction,
+                                  isTranslating: false 
+                                }
+                              : p
+                          ));
+                          
+                          toast.success(
+                            direction === 'fr_to_tah' 
+                              ? 'Traduit en Tahitien' 
+                              : 'Traduit en Français'
+                          );
+                        } catch (error) {
+                          setPosts(prev => prev.map(p => 
+                            p.post_id === post.post_id 
+                              ? { ...p, isTranslating: false }
+                              : p
+                          ));
+                          toast.error('Erreur de traduction');
+                        }
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 text-xs text-[#FF6B35] hover:text-[#FF1493] transition-colors"
+                    data-testid="translate-post-btn"
+                  >
+                    {post.isTranslating ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Languages size={12} />
+                    )}
+                    {post.translatedCaption 
+                      ? 'Voir l\'original' 
+                      : 'Traduire'}
+                  </button>
+                )}
+              </div>
 
               {/* Comments Section */}
               <CommentsSection post={post} />

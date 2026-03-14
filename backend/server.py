@@ -91,6 +91,12 @@ from rss_feeds import RSSFeedService, cleanup_youtube_links
 # Import Account Protection module
 from account_protection import AccountProtectionService
 
+# Import Tahitian Dictionary for translation
+from tahitian_dictionary import translate_text, get_dictionary_stats, get_common_phrases
+
+# Import Resend for emails
+import resend
+
 ROOT_DIR = Path(__file__).parent
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -789,8 +795,9 @@ async def logout_all_devices(request: Request, response: Response):
     }
 
 @api_router.post("/auth/request-password-reset")
+@limiter.limit("3/minute")  # Limite stricte pour éviter les abus
 async def request_password_reset(request: Request):
-    """Request a password reset link"""
+    """Request a password reset link - sends email via Resend"""
     body = await request.json()
     email = body.get("email", "").lower().strip()
     
@@ -817,9 +824,78 @@ async def request_password_reset(request: Request):
         "created_at": datetime.now(timezone.utc).isoformat()
     })
     
-    # In production, send email with reset link
-    # For now, just log it
-    logger.info(f"Password reset requested for {email}, token: {token}")
+    # Get frontend URL for reset link
+    frontend_url = os.environ.get("REACT_APP_BACKEND_URL", "https://fenua-connect.preview.emergentagent.com")
+    reset_link = f"{frontend_url}/reset-password?token={token}"
+    
+    # Send email via Resend
+    resend_api_key = os.environ.get("RESEND_API_KEY")
+    if resend_api_key:
+        try:
+            resend.api_key = resend_api_key
+            sender_email = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+            
+            html_content = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="color: #FF6B35;">🌺 Hui Fenua</h1>
+                </div>
+                
+                <h2 style="color: #1A1A2E;">Réinitialisation de votre mot de passe</h2>
+                
+                <p>Ia ora na {user.get('name', 'cher utilisateur')} !</p>
+                
+                <p>Vous avez demandé à réinitialiser votre mot de passe sur Hui Fenua.</p>
+                
+                <p>Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{reset_link}" 
+                       style="background: linear-gradient(135deg, #FF6B35, #FF1493);
+                              color: white;
+                              padding: 15px 30px;
+                              text-decoration: none;
+                              border-radius: 25px;
+                              font-weight: bold;
+                              display: inline-block;">
+                        Réinitialiser mon mot de passe
+                    </a>
+                </div>
+                
+                <p style="color: #666; font-size: 14px;">
+                    Ce lien expire dans 1 heure. Si vous n'avez pas demandé cette réinitialisation, 
+                    ignorez simplement cet email.
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                
+                <p style="color: #999; font-size: 12px; text-align: center;">
+                    Mauruuru roa ! 🌴<br>
+                    L'équipe Hui Fenua
+                </p>
+            </div>
+            """
+            
+            # Send email asynchronously
+            import asyncio
+            await asyncio.to_thread(
+                resend.Emails.send,
+                {
+                    "from": sender_email,
+                    "to": [email],
+                    "subject": "🔑 Réinitialisation de votre mot de passe - Hui Fenua",
+                    "html": html_content
+                }
+            )
+            logger.info(f"Password reset email sent to {email}")
+            
+        except Exception as e:
+            logger.error(f"Failed to send reset email: {e}")
+            # Continue anyway - don't expose email sending failures
+    else:
+        # Log for development
+        logger.info(f"Password reset requested for {email}, token: {token}")
+        logger.info(f"Reset link: {reset_link}")
     
     return {"success": True, "message": "Si cet email existe, un lien de réinitialisation a été envoyé"}
 
@@ -1387,6 +1463,65 @@ async def create_comment(post_id: str, comment_data: CommentCreate, request: Req
     
     comment_dict.pop("_id", None)
     return comment_dict
+
+# ==================== TRANSLATION ROUTES ====================
+
+@api_router.post("/translate")
+async def translate_content(request: Request):
+    """
+    Traduit du texte entre français et tahitien.
+    Utilise un dictionnaire intégré de mots et expressions courants.
+    """
+    body = await request.json()
+    text = body.get("text", "")
+    direction = body.get("direction", "fr_to_tah")  # "fr_to_tah" ou "tah_to_fr"
+    
+    if not text:
+        raise HTTPException(status_code=400, detail="Texte requis")
+    
+    if direction not in ["fr_to_tah", "tah_to_fr"]:
+        raise HTTPException(status_code=400, detail="Direction invalide. Utilisez 'fr_to_tah' ou 'tah_to_fr'")
+    
+    result = translate_text(text, direction)
+    return result
+
+@api_router.get("/translate/dictionary")
+async def get_translation_dictionary():
+    """Retourne les statistiques du dictionnaire de traduction"""
+    return get_dictionary_stats()
+
+@api_router.get("/translate/phrases")
+async def get_translation_phrases():
+    """Retourne les phrases courantes pour l'apprentissage"""
+    return get_common_phrases()
+
+@api_router.post("/posts/{post_id}/translate")
+async def translate_post(post_id: str, request: Request):
+    """
+    Traduit le contenu d'un post.
+    """
+    body = await request.json()
+    direction = body.get("direction", "fr_to_tah")
+    
+    # Récupérer le post
+    post = await db.posts.find_one({"post_id": post_id}, {"_id": 0})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post non trouvé")
+    
+    caption = post.get("caption", "")
+    if not caption:
+        return {
+            "post_id": post_id,
+            "original": "",
+            "translated": "",
+            "direction": direction,
+            "words_translated": 0
+        }
+    
+    result = translate_text(caption, direction)
+    result["post_id"] = post_id
+    
+    return result
 
 # ==================== STORIES ROUTES ====================
 
