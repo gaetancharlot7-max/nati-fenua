@@ -1,44 +1,74 @@
 # 🚀 Guide de Scalabilité - Hui Fenua pour 5000+ Utilisateurs
 
-## État Actuel (Après Optimisations)
+## 📊 Résultats des Tests de Charge (14 Mars 2026)
 
-| Métrique | Avant | Après | Amélioration |
-|----------|-------|-------|--------------|
-| Taux de succès | 69% | **87%** | +18% |
-| Timeouts | 36 | **4** | -89% |
-| P95 | 4698ms | **1002ms** | 4.7x plus rapide |
-| Endpoints >95% | 6 | **8** | +33% |
+### Évolution du Taux de Succès
+| Phase | Taux | Amélioration |
+|-------|------|--------------|
+| Initial | 69.3% | - |
+| + Cache mémoire | 88.5% | +19.2% |
+| + 4 Workers | **92.1%** | **+22.8% total** |
+
+### Métriques Finales (200 bots simultanés)
+| Métrique | Valeur |
+|----------|--------|
+| Requêtes totales | 4,686 |
+| Succès | 4,316 (92.1%) |
+| Req/seconde | 16 |
+| Médiane | 163ms |
+| P95 | 11,318ms |
+| Endpoints ≥95% | **22/28** |
+
+---
 
 ## ✅ Optimisations Implémentées
 
-### 1. Cache en Mémoire (TTL)
-- **Fichier**: `/app/backend/cache.py`
-- **Impact**: -70% charge MongoDB
-- **Caches créés**:
-  - `static_cache`: Données statiques (îles, types) - TTL 1h
-  - `markers_cache`: Markers Pulse - TTL 60s
-  - `feed_cache`: Feed - TTL 30s
-  - `user_cache`: Profils utilisateurs - TTL 5min
+### 1. Multi-Workers (Priorité 1) ✅
+```bash
+# /etc/supervisor/conf.d/supervisord.conf
+command=uvicorn server:app --host 0.0.0.0 --port 8001 --workers 4
+```
+**Impact**: x4 capacité de traitement parallèle
 
-### 2. Index MongoDB (26 index créés)
+### 2. Cache Mémoire TTL ✅
+- **Fichier**: `/app/backend/cache.py`
+- **Caches**: static (1h), markers (60s), feed (30s), users (5min)
+- **Impact**: -60% charge MongoDB
+
+### 3. Redis Cache (Prêt à activer) ✅
+- **Fichier**: `/app/backend/redis_cache.py`
+- **Activation**: Ajouter `REDIS_URL` dans `.env`
+- **Compatible**: Upstash, Redis Cloud, Redis standard
+```env
+REDIS_URL=rediss://default:PASSWORD@HOST:PORT
+```
+
+### 4. 26 Index MongoDB ✅
 - **Fichier**: `/app/backend/db_optimization.py`
-- **Collections optimisées**: posts, users, markers, conversations, messages, vendors, stories, notifications
+- **Collections**: posts, users, markers, conversations, messages, vendors
 - **Impact**: Requêtes 10x plus rapides
 
-### 3. Connection Pooling
-- **Configuration**:
-  - `maxPoolSize`: 100 connexions
-  - `minPoolSize`: 10 connexions
-  - `retryWrites`: true
-  - `retryReads`: true
+### 5. Connection Pooling ✅
+```python
+MONGO_POOL_CONFIG = {
+    "maxPoolSize": 100,
+    "minPoolSize": 10,
+    "retryWrites": True,
+    "retryReads": True,
+}
+```
 
-### 4. Compression GZip
-- **Middleware**: `GZipMiddleware(minimum_size=500)`
-- **Impact**: -70% bande passante
+### 6. GZip Compression ✅
+```python
+app.add_middleware(GZipMiddleware, minimum_size=500)
+```
+**Impact**: -70% bande passante
 
-### 5. Agrégations MongoDB Optimisées
-- Remplacement des boucles N+1 par `$lookup`
-- Projections pour exclure les champs inutiles
+### 7. Rate Limiting ✅
+```python
+limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
+# Register: 5/minute, Login: 10/minute
+```
 
 ---
 

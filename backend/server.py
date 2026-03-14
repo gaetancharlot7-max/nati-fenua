@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import os
 import logging
 from pathlib import Path
@@ -72,12 +75,15 @@ from auto_publisher import AutoPublisherService, run_daily_publisher, ISLAND_CON
 # Import Cache and DB optimization modules
 from cache import (
     cache, static_cache, markers_cache, feed_cache, user_cache,
-    cached, cache_key, warm_up_cache, get_cache_stats
+    cached, warm_up_cache, get_cache_stats
 )
 from db_optimization import (
     create_optimized_client, create_indexes, get_db_stats,
     get_collection_stats, MONGO_POOL_CONFIG
 )
+
+# Import Redis Cache (production-ready)
+from redis_cache import redis_cache, cached_query, CacheKeys
 
 # Import RSS Feed module
 from rss_feeds import RSSFeedService, cleanup_youtube_links
@@ -99,6 +105,11 @@ db = client[os.environ['DB_NAME']]
 app = FastAPI(title="Hui Fenua API", docs_url="/api/docs", redoc_url="/api/redoc")
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
+
+# Initialize Rate Limiter
+limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add GZip Middleware for compression (reduces bandwidth by ~70%)
 app.add_middleware(GZipMiddleware, minimum_size=500)
@@ -478,7 +489,10 @@ async def require_auth(request: Request) -> UserBase:
 # ==================== AUTH ROUTES ====================
 
 @api_router.post("/auth/register")
-async def register(user_data: UserCreate, request: Request, response: Response):
+@limiter.limit("5/minute")  # Rate limit: 5 registrations per minute per IP
+async def register(request: Request, response: Response):
+    user_data_raw = await request.json()
+    user_data = UserCreate(**user_data_raw)
     email = user_data.email.lower().strip()
     
     # Get client info for protection check
@@ -578,7 +592,10 @@ async def register(user_data: UserCreate, request: Request, response: Response):
     return {"user": user, "session_token": session_token}
 
 @api_router.post("/auth/login")
-async def login(user_data: UserLogin, request: Request, response: Response):
+@limiter.limit("10/minute")  # Rate limit: 10 login attempts per minute per IP
+async def login(request: Request, response: Response):
+    user_data_raw = await request.json()
+    user_data = UserLogin(**user_data_raw)
     email = user_data.email.lower().strip()
     
     # Get client IP for rate limiting
@@ -2882,6 +2899,17 @@ async def optimize_database():
         index_result = await create_indexes(db)
         logger.info(f"✅ Created {index_result['total']} MongoDB indexes")
         
+        # Connect to Redis if available
+        redis_url = os.environ.get("REDIS_URL")
+        if redis_url:
+            redis_connected = await redis_cache.connect(redis_url)
+            if redis_connected:
+                logger.info("✅ Redis cache connected")
+            else:
+                logger.info("⚠️ Redis not available, using memory cache")
+        else:
+            logger.info("ℹ️ REDIS_URL not set, using memory cache")
+        
         # Warm up cache with static data
         cache_result = await warm_up_cache(db)
         logger.info(f"✅ Cache warmed up: {cache_result['warmed_keys']}")
@@ -3121,6 +3149,18 @@ async def optimize_admin_db(request: Request):
         "success": True,
         "indexes_created": index_result["total"],
         "cache_warmed": cache_result["warmed_keys"]
+    }
+
+@api_router.get("/admin/performance")
+async def get_performance_stats(request: Request):
+    """Get comprehensive performance statistics (admin only)"""
+    await verify_admin_token(request)
+    
+    return {
+        "memory_cache": get_cache_stats(),
+        "redis_cache": redis_cache.get_stats(),
+        "mongo_pool": MONGO_POOL_CONFIG,
+        "workers": 4  # Current worker count
     }
 
 @api_router.post("/admin/users/{user_id}/ban")
@@ -3522,44 +3562,66 @@ async def get_geo_analytics(request: Request):
 
 @api_router.get("/pulse/islands")
 async def get_pulse_islands():
-    """Get list of islands with coordinates (cached)"""
-    # Try cache first
+    """Get list of islands with coordinates (cached in Redis)"""
+    # Try Redis first
+    redis_cached = await redis_cache.get(CacheKeys.ISLANDS)
+    if redis_cached:
+        return redis_cached
+    
+    # Fallback to memory cache
     cached_islands = await static_cache.get("islands")
     if cached_islands:
         return cached_islands
     
-    # Fallback to function
+    # Get from function and cache
     islands = get_islands()
+    await redis_cache.set(CacheKeys.ISLANDS, islands, ttl=3600)
     await static_cache.set("islands", islands, ttl=3600)
     return islands
 
 @api_router.get("/pulse/marker-types")
 async def get_pulse_marker_types():
-    """Get list of marker types (cached)"""
-    # Try cache first
+    """Get list of marker types (cached in Redis)"""
+    # Try Redis first
+    redis_cached = await redis_cache.get(CacheKeys.MARKER_TYPES)
+    if redis_cached:
+        return redis_cached
+    
+    # Fallback to memory cache
     cached_types = await static_cache.get("marker_types")
     if cached_types:
         return cached_types
     
-    # Fallback to function
+    # Get from function and cache
     types = get_marker_types()
+    await redis_cache.set(CacheKeys.MARKER_TYPES, types, ttl=3600)
     await static_cache.set("marker_types", types, ttl=3600)
     return types
 
 @api_router.get("/pulse/badges")
 async def get_all_badges():
-    """Get list of all available badges (cached)"""
+    """Get list of all available badges (cached in Redis)"""
+    redis_cached = await redis_cache.get(CacheKeys.BADGES)
+    if redis_cached:
+        return redis_cached
+    
     cached_badges = await static_cache.get("badges")
     if cached_badges:
         return cached_badges
     
     badges = get_badges_list()
+    await redis_cache.set(CacheKeys.BADGES, badges, ttl=3600)
     await static_cache.set("badges", badges, ttl=3600)
     return badges
 
 @api_router.get("/pulse/status")
 async def get_pulse_status():
     """Get current pulse status of the fenua (cached 30s)"""
+    # Try Redis first
+    redis_cached = await redis_cache.get(CacheKeys.PULSE_STATUS)
+    if redis_cached:
+        return redis_cached
+    
     status_cache_key = "pulse_status"
     cached_status = await markers_cache.get(status_cache_key)
     if cached_status:
@@ -3567,6 +3629,7 @@ async def get_pulse_status():
     
     _, _, _, _, pulse, _ = get_app_services()
     status = await pulse.get_pulse_status()
+    await redis_cache.set(CacheKeys.PULSE_STATUS, status, ttl=30)
     await markers_cache.set(status_cache_key, status, ttl=30)
     return status
 
@@ -3580,7 +3643,13 @@ async def get_pulse_markers(
 ):
     """Get active pulse markers (cached 60s)"""
     # Generate cache key from parameters
-    cache_key_str = f"markers:{types}:{island}:{lat}:{lng}:{radius_km}"
+    cache_key_str = f"{CacheKeys.MARKERS}{types}:{island}:{lat}:{lng}:{radius_km}"
+    
+    # Try Redis first
+    redis_cached = await redis_cache.get(cache_key_str)
+    if redis_cached:
+        return redis_cached
+    
     cached_markers = await markers_cache.get(cache_key_str)
     if cached_markers:
         return cached_markers
@@ -3597,6 +3666,8 @@ async def get_pulse_markers(
         radius_km=radius_km
     )
     
+    # Cache in both Redis and memory
+    await redis_cache.set(cache_key_str, markers, ttl=60)
     await markers_cache.set(cache_key_str, markers, ttl=60)
     return markers
 
@@ -3607,6 +3678,10 @@ async def create_pulse_marker(request: Request):
     body = await request.json()
     
     _, _, _, _, pulse, _ = get_app_services()
+    
+    # Invalidate markers cache when new marker is created
+    await redis_cache.delete_pattern(f"{CacheKeys.MARKERS}*")
+    await markers_cache.clear()
     
     try:
         marker = await pulse.create_marker(

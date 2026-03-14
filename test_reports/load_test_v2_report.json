@@ -1,146 +1,145 @@
 {
   "test_info": {
-    "date": "2026-03-14T00:57:51.488422",
-    "duration_seconds": 184.12,
+    "date": "2026-03-14T03:24:30.064650",
+    "duration_seconds": 293.56,
     "num_bots": 200,
     "api_url": "https://fenua-connect.preview.emergentagent.com/api",
     "batch_size": 25,
     "max_concurrent": 50
   },
   "summary": {
-    "total_requests": 4654,
-    "successful_requests": 4053,
-    "failed_requests": 601,
-    "success_rate_percent": 87.09,
-    "requests_per_second": 25.28,
+    "total_requests": 4691,
+    "successful_requests": 4322,
+    "failed_requests": 369,
+    "success_rate_percent": 92.13,
+    "requests_per_second": 15.98,
     "authenticated_sessions": 2
   },
   "response_times": {
-    "min_ms": 17.12,
-    "max_ms": 30937.41,
-    "avg_ms": 525.23,
-    "median_ms": 130.26,
-    "p95_ms": 1002.43,
-    "p99_ms": 10678.84,
-    "total_samples": 4654
+    "min_ms": 18.43,
+    "max_ms": 24292.12,
+    "avg_ms": 1215.03,
+    "median_ms": 163.35,
+    "p95_ms": 11318.08,
+    "p99_ms": 17290.59,
+    "total_samples": 4691
   },
   "endpoints": {
     "/auth/me": {
       "total_requests": 200,
-      "success": 182,
-      "failed": 18,
-      "success_rate_percent": 91.0,
-      "avg_response_ms": 117.76,
-      "median_response_ms": 111.7,
-      "p95_response_ms": 180.39,
-      "min_response_ms": 33.47,
-      "max_response_ms": 313.88,
-      "validation_passed": 182,
+      "success": 198,
+      "failed": 2,
+      "success_rate_percent": 99.0,
+      "avg_response_ms": 226.18,
+      "median_response_ms": 170.45,
+      "p95_response_ms": 613.49,
+      "min_response_ms": 29.64,
+      "max_response_ms": 3086.58,
+      "validation_passed": 198,
       "validation_failed": 0,
       "status_codes": {
-        "200": 182,
-        "429": 18
+        "200": 198,
+        "429": 2
       }
     },
     "/conversations": {
-      "total_requests": 218,
-      "success": 218,
+      "total_requests": 216,
+      "success": 216,
       "failed": 0,
       "success_rate_percent": 100.0,
-      "avg_response_ms": 309.27,
-      "median_response_ms": 158.74,
-      "p95_response_ms": 1842.08,
-      "min_response_ms": 65.57,
-      "max_response_ms": 2056.22,
+      "avg_response_ms": 437.22,
+      "median_response_ms": 289.27,
+      "p95_response_ms": 1563.76,
+      "min_response_ms": 71.61,
+      "max_response_ms": 3364.41,
       "validation_passed": 200,
-      "validation_failed": 18,
+      "validation_failed": 16,
       "status_codes": {
-        "200": 218
+        "200": 216
       }
     },
     "/feed?page=1&per_page=10": {
-      "total_requests": 217,
-      "success": 202,
-      "failed": 15,
-      "success_rate_percent": 93.09,
-      "avg_response_ms": 172.18,
-      "median_response_ms": 71.83,
-      "p95_response_ms": 1081.08,
-      "min_response_ms": 36.55,
-      "max_response_ms": 1884.58,
-      "validation_passed": 185,
-      "validation_failed": 17,
+      "total_requests": 212,
+      "success": 211,
+      "failed": 1,
+      "success_rate_percent": 99.53,
+      "avg_response_ms": 220.68,
+      "median_response_ms": 138.12,
+      "p95_response_ms": 669.91,
+      "min_response_ms": 53.18,
+      "max_response_ms": 1961.63,
+      "validation_passed": 199,
+      "validation_failed": 12,
       "status_codes": {
-        "200": 202,
-        "429": 15
+        "200": 211,
+        "429": 1
       }
     },
     "/market/products": {
       "total_requests": 200,
-      "success": 191,
-      "failed": 9,
-      "success_rate_percent": 95.5,
-      "avg_response_ms": 236.31,
-      "median_response_ms": 185.19,
-      "p95_response_ms": 592.41,
-      "min_response_ms": 28.8,
-      "max_response_ms": 844.1,
-      "validation_passed": 191,
+      "success": 192,
+      "failed": 8,
+      "success_rate_percent": 96.0,
+      "avg_response_ms": 183.51,
+      "median_response_ms": 129.48,
+      "p95_response_ms": 526.85,
+      "min_response_ms": 20.37,
+      "max_response_ms": 1017.54,
+      "validation_passed": 192,
       "validation_failed": 0,
       "status_codes": {
-        "200": 191,
-        "429": 9
+        "200": 192,
+        "429": 8
       }
     },
     "/market/services": {
       "total_requests": 200,
-      "success": 186,
-      "failed": 14,
-      "success_rate_percent": 93.0,
-      "avg_response_ms": 159.75,
-      "median_response_ms": 114.79,
-      "p95_response_ms": 411.68,
-      "min_response_ms": 19.52,
-      "max_response_ms": 602.96,
+      "success": 192,
+      "failed": 8,
+      "success_rate_percent": 96.0,
+      "avg_response_ms": 152.59,
+      "median_response_ms": 116.98,
+      "p95_response_ms": 356.67,
+      "min_response_ms": 21.05,
+      "max_response_ms": 1037.85,
       "validation_passed": 0,
-      "validation_failed": 186,
+      "validation_failed": 192,
       "status_codes": {
-        "200": 186,
-        "429": 14
+        "200": 192,
+        "429": 8
       }
     },
     "/marketplace/categories": {
       "total_requests": 200,
-      "success": 176,
-      "failed": 24,
-      "success_rate_percent": 88.0,
-      "avg_response_ms": 113.5,
-      "median_response_ms": 105.24,
-      "p95_response_ms": 239.41,
-      "min_response_ms": 18.67,
-      "max_response_ms": 423.86,
-      "validation_passed": 176,
+      "success": 190,
+      "failed": 10,
+      "success_rate_percent": 95.0,
+      "avg_response_ms": 137.51,
+      "median_response_ms": 109.18,
+      "p95_response_ms": 339.72,
+      "min_response_ms": 18.73,
+      "max_response_ms": 826.88,
+      "validation_passed": 190,
       "validation_failed": 0,
       "status_codes": {
-        "200": 176,
-        "429": 24
+        "200": 190,
+        "429": 10
       }
     },
     "/notifications": {
       "total_requests": 200,
-      "success": 197,
-      "failed": 3,
-      "success_rate_percent": 98.5,
-      "avg_response_ms": 131.95,
-      "median_response_ms": 122.46,
-      "p95_response_ms": 214.59,
-      "min_response_ms": 21.26,
-      "max_response_ms": 976.61,
+      "success": 200,
+      "failed": 0,
+      "success_rate_percent": 100.0,
+      "avg_response_ms": 260.04,
+      "median_response_ms": 191.6,
+      "p95_response_ms": 874.91,
+      "min_response_ms": 61.69,
+      "max_response_ms": 3517.06,
       "validation_passed": 100,
-      "validation_failed": 97,
+      "validation_failed": 100,
       "status_codes": {
-        "200": 197,
-        "429": 3
+        "200": 200
       }
     },
     "/posts": {
@@ -148,218 +147,162 @@
       "success": 0,
       "failed": 200,
       "success_rate_percent": 0.0,
-      "avg_response_ms": 132.18,
-      "median_response_ms": 123.51,
-      "p95_response_ms": 230.57,
-      "min_response_ms": 19.7,
-      "max_response_ms": 337.14,
+      "avg_response_ms": 142.33,
+      "median_response_ms": 103.6,
+      "p95_response_ms": 400.67,
+      "min_response_ms": 19.33,
+      "max_response_ms": 693.23,
       "validation_passed": 0,
       "validation_failed": 0,
       "status_codes": {
-        "422": 142,
-        "429": 57,
-        "403": 1
+        "422": 188,
+        "429": 12
       }
     },
     "/posts/auto_0d2e8463bb9b/like": {
-      "total_requests": 28,
-      "success": 27,
-      "failed": 1,
-      "success_rate_percent": 96.43,
-      "avg_response_ms": 131.2,
-      "median_response_ms": 121.09,
-      "p95_response_ms": 275.44,
-      "min_response_ms": 35.97,
-      "max_response_ms": 339.68,
-      "validation_passed": 0,
-      "validation_failed": 27,
-      "status_codes": {
-        "200": 27,
-        "429": 1
-      }
-    },
-    "/posts/auto_20ecb177c259/like": {
-      "total_requests": 35,
-      "success": 34,
-      "failed": 1,
-      "success_rate_percent": 97.14,
-      "avg_response_ms": 145.47,
-      "median_response_ms": 132.89,
-      "p95_response_ms": 271.78,
-      "min_response_ms": 36.48,
-      "max_response_ms": 309.94,
-      "validation_passed": 0,
-      "validation_failed": 34,
-      "status_codes": {
-        "200": 34,
-        "429": 1
-      }
-    },
-    "/posts/auto_89886b9383bd/like": {
-      "total_requests": 23,
-      "success": 23,
-      "failed": 0,
-      "success_rate_percent": 100.0,
-      "avg_response_ms": 158.54,
-      "median_response_ms": 166.1,
-      "p95_response_ms": 306.5,
-      "min_response_ms": 58.9,
-      "max_response_ms": 332.41,
-      "validation_passed": 0,
-      "validation_failed": 23,
-      "status_codes": {
-        "200": 23
-      }
-    },
-    "/posts/auto_bd1eef4dd942/like": {
-      "total_requests": 38,
+      "total_requests": 36,
       "success": 35,
-      "failed": 3,
-      "success_rate_percent": 92.11,
-      "avg_response_ms": 138.26,
-      "median_response_ms": 136.87,
-      "p95_response_ms": 237.12,
-      "min_response_ms": 34.92,
-      "max_response_ms": 311.05,
+      "failed": 1,
+      "success_rate_percent": 97.22,
+      "avg_response_ms": 158.73,
+      "median_response_ms": 121.49,
+      "p95_response_ms": 401.36,
+      "min_response_ms": 21.67,
+      "max_response_ms": 818.58,
       "validation_passed": 0,
       "validation_failed": 35,
       "status_codes": {
         "200": 35,
-        "429": 3
-      }
-    },
-    "/posts/auto_eba1368b7abd/like": {
-      "total_requests": 30,
-      "success": 29,
-      "failed": 1,
-      "success_rate_percent": 96.67,
-      "avg_response_ms": 129.5,
-      "median_response_ms": 119.74,
-      "p95_response_ms": 246.53,
-      "min_response_ms": 25.98,
-      "max_response_ms": 309.17,
-      "validation_passed": 0,
-      "validation_failed": 29,
-      "status_codes": {
-        "200": 29,
         "429": 1
       }
     },
-    "/pulse/islands": {
-      "total_requests": 216,
-      "success": 203,
-      "failed": 13,
-      "success_rate_percent": 93.98,
-      "avg_response_ms": 453.33,
-      "median_response_ms": 183.05,
-      "p95_response_ms": 1227.79,
-      "min_response_ms": 51.85,
-      "max_response_ms": 19564.93,
-      "validation_passed": 187,
-      "validation_failed": 16,
+    "/posts/auto_20ecb177c259/like": {
+      "total_requests": 39,
+      "success": 39,
+      "failed": 0,
+      "success_rate_percent": 100.0,
+      "avg_response_ms": 183.19,
+      "median_response_ms": 169.09,
+      "p95_response_ms": 302.55,
+      "min_response_ms": 57.13,
+      "max_response_ms": 864.7,
+      "validation_passed": 0,
+      "validation_failed": 39,
       "status_codes": {
-        "200": 203,
-        "429": 13
+        "200": 39
+      }
+    },
+    "/posts/auto_89886b9383bd/like": {
+      "total_requests": 30,
+      "success": 28,
+      "failed": 2,
+      "success_rate_percent": 93.33,
+      "avg_response_ms": 151.25,
+      "median_response_ms": 134.45,
+      "p95_response_ms": 492.49,
+      "min_response_ms": 22.9,
+      "max_response_ms": 547.88,
+      "validation_passed": 0,
+      "validation_failed": 28,
+      "status_codes": {
+        "200": 28,
+        "429": 2
+      }
+    },
+    "/posts/auto_bd1eef4dd942/like": {
+      "total_requests": 51,
+      "success": 50,
+      "failed": 1,
+      "success_rate_percent": 98.04,
+      "avg_response_ms": 162.82,
+      "median_response_ms": 141.25,
+      "p95_response_ms": 303.61,
+      "min_response_ms": 24.55,
+      "max_response_ms": 567.34,
+      "validation_passed": 0,
+      "validation_failed": 50,
+      "status_codes": {
+        "200": 50,
+        "429": 1
+      }
+    },
+    "/posts/auto_eba1368b7abd/like": {
+      "total_requests": 35,
+      "success": 35,
+      "failed": 0,
+      "success_rate_percent": 100.0,
+      "avg_response_ms": 186.2,
+      "median_response_ms": 154.2,
+      "p95_response_ms": 497.58,
+      "min_response_ms": 55.11,
+      "max_response_ms": 689.38,
+      "validation_passed": 0,
+      "validation_failed": 35,
+      "status_codes": {
+        "200": 35
+      }
+    },
+    "/pulse/islands": {
+      "total_requests": 217,
+      "success": 192,
+      "failed": 25,
+      "success_rate_percent": 88.48,
+      "avg_response_ms": 271.97,
+      "median_response_ms": 126.68,
+      "p95_response_ms": 1600.23,
+      "min_response_ms": 46.55,
+      "max_response_ms": 2758.01,
+      "validation_passed": 175,
+      "validation_failed": 17,
+      "status_codes": {
+        "200": 192,
+        "429": 25
       }
     },
     "/pulse/leaderboard": {
-      "total_requests": 216,
-      "success": 195,
-      "failed": 21,
-      "success_rate_percent": 90.28,
-      "avg_response_ms": 428.92,
-      "median_response_ms": 294.98,
-      "p95_response_ms": 1951.62,
-      "min_response_ms": 25.99,
-      "max_response_ms": 2046.75,
-      "validation_passed": 179,
-      "validation_failed": 16,
+      "total_requests": 217,
+      "success": 215,
+      "failed": 2,
+      "success_rate_percent": 99.08,
+      "avg_response_ms": 646.74,
+      "median_response_ms": 403.78,
+      "p95_response_ms": 2258.38,
+      "min_response_ms": 100.73,
+      "max_response_ms": 4268.02,
+      "validation_passed": 198,
+      "validation_failed": 17,
       "status_codes": {
-        "200": 195,
-        "429": 21
+        "200": 215,
+        "429": 2
       }
     },
     "/pulse/marker-types": {
       "total_requests": 200,
-      "success": 172,
-      "failed": 28,
-      "success_rate_percent": 86.0,
-      "avg_response_ms": 113.12,
-      "median_response_ms": 93.23,
-      "p95_response_ms": 315.47,
-      "min_response_ms": 18.72,
-      "max_response_ms": 999.63,
-      "validation_passed": 172,
+      "success": 161,
+      "failed": 39,
+      "success_rate_percent": 80.5,
+      "avg_response_ms": 84.36,
+      "median_response_ms": 92.15,
+      "p95_response_ms": 140.17,
+      "min_response_ms": 18.43,
+      "max_response_ms": 162.54,
+      "validation_passed": 161,
       "validation_failed": 0,
       "status_codes": {
-        "200": 172,
-        "429": 28
+        "200": 161,
+        "429": 39
       }
     },
     "/pulse/markers": {
       "total_requests": 200,
-      "success": 144,
-      "failed": 56,
-      "success_rate_percent": 72.0,
-      "avg_response_ms": 1050.3,
-      "median_response_ms": 226.49,
-      "p95_response_ms": 580.8,
-      "min_response_ms": 25.39,
-      "max_response_ms": 30937.41,
-      "validation_passed": 144,
-      "validation_failed": 0,
-      "status_codes": {
-        "200": 144,
-        "429": 50,
-        "403": 2,
-        "0": 4
-      }
-    },
-    "/pulse/markers?island=tahiti": {
-      "total_requests": 220,
-      "success": 200,
-      "failed": 20,
-      "success_rate_percent": 90.91,
-      "avg_response_ms": 2595.44,
-      "median_response_ms": 949.67,
-      "p95_response_ms": 10755.55,
-      "min_response_ms": 20.7,
-      "max_response_ms": 11372.68,
-      "validation_passed": 180,
-      "validation_failed": 20,
-      "status_codes": {
-        "200": 200,
-        "429": 20
-      }
-    },
-    "/pulse/markers?types=event": {
-      "total_requests": 200,
       "success": 189,
       "failed": 11,
       "success_rate_percent": 94.5,
-      "avg_response_ms": 4273.53,
-      "median_response_ms": 505.05,
-      "p95_response_ms": 13783.13,
-      "min_response_ms": 29.02,
-      "max_response_ms": 14259.84,
-      "validation_passed": 189,
-      "validation_failed": 0,
-      "status_codes": {
-        "200": 189,
-        "429": 10,
-        "403": 1
-      }
-    },
-    "/pulse/markers?types=roulotte": {
-      "total_requests": 200,
-      "success": 189,
-      "failed": 11,
-      "success_rate_percent": 94.5,
-      "avg_response_ms": 106.34,
-      "median_response_ms": 99.46,
-      "p95_response_ms": 238.33,
-      "min_response_ms": 17.12,
-      "max_response_ms": 434.98,
+      "avg_response_ms": 286.14,
+      "median_response_ms": 265.75,
+      "p95_response_ms": 637.56,
+      "min_response_ms": 20.99,
+      "max_response_ms": 1461.1,
       "validation_passed": 189,
       "validation_failed": 0,
       "status_codes": {
@@ -367,149 +310,192 @@
         "429": 11
       }
     },
+    "/pulse/markers?island=tahiti": {
+      "total_requests": 216,
+      "success": 197,
+      "failed": 19,
+      "success_rate_percent": 91.2,
+      "avg_response_ms": 13090.76,
+      "median_response_ms": 13305.6,
+      "p95_response_ms": 22431.14,
+      "min_response_ms": 21.48,
+      "max_response_ms": 24292.12,
+      "validation_passed": 181,
+      "validation_failed": 16,
+      "status_codes": {
+        "200": 197,
+        "429": 19
+      }
+    },
+    "/pulse/markers?types=event": {
+      "total_requests": 200,
+      "success": 200,
+      "failed": 0,
+      "success_rate_percent": 100.0,
+      "avg_response_ms": 9224.97,
+      "median_response_ms": 9872.17,
+      "p95_response_ms": 16341.12,
+      "min_response_ms": 405.26,
+      "max_response_ms": 18694.75,
+      "validation_passed": 200,
+      "validation_failed": 0,
+      "status_codes": {
+        "200": 200
+      }
+    },
+    "/pulse/markers?types=roulotte": {
+      "total_requests": 200,
+      "success": 198,
+      "failed": 2,
+      "success_rate_percent": 99.0,
+      "avg_response_ms": 172.21,
+      "median_response_ms": 151.27,
+      "p95_response_ms": 271.41,
+      "min_response_ms": 27.33,
+      "max_response_ms": 1392.58,
+      "validation_passed": 0,
+      "validation_failed": 198,
+      "status_codes": {
+        "200": 198,
+        "429": 2
+      }
+    },
     "/pulse/markers?types=surf": {
       "total_requests": 200,
-      "success": 187,
-      "failed": 13,
-      "success_rate_percent": 93.5,
-      "avg_response_ms": 238.95,
-      "median_response_ms": 145.59,
-      "p95_response_ms": 684.84,
-      "min_response_ms": 19.14,
-      "max_response_ms": 899.64,
+      "success": 198,
+      "failed": 2,
+      "success_rate_percent": 99.0,
+      "avg_response_ms": 203.58,
+      "median_response_ms": 155.52,
+      "p95_response_ms": 497.68,
+      "min_response_ms": 35.38,
+      "max_response_ms": 3420.2,
       "validation_passed": 0,
-      "validation_failed": 187,
+      "validation_failed": 198,
       "status_codes": {
-        "200": 187,
-        "429": 12,
-        "403": 1
+        "200": 198,
+        "429": 2
       }
     },
     "/pulse/markers?types=webcam": {
       "total_requests": 200,
-      "success": 185,
-      "failed": 15,
-      "success_rate_percent": 92.5,
-      "avg_response_ms": 135.61,
-      "median_response_ms": 107.07,
-      "p95_response_ms": 359.03,
-      "min_response_ms": 18.63,
-      "max_response_ms": 627.29,
-      "validation_passed": 185,
+      "success": 198,
+      "failed": 2,
+      "success_rate_percent": 99.0,
+      "avg_response_ms": 181.69,
+      "median_response_ms": 136.08,
+      "p95_response_ms": 359.35,
+      "min_response_ms": 58.22,
+      "max_response_ms": 2017.94,
+      "validation_passed": 198,
       "validation_failed": 0,
       "status_codes": {
-        "200": 185,
-        "429": 15
+        "200": 198,
+        "429": 2
       }
     },
     "/pulse/status": {
       "total_requests": 200,
-      "success": 177,
-      "failed": 23,
-      "success_rate_percent": 88.5,
-      "avg_response_ms": 195.55,
-      "median_response_ms": 109.16,
-      "p95_response_ms": 677.4,
-      "min_response_ms": 21.75,
-      "max_response_ms": 953.84,
-      "validation_passed": 177,
+      "success": 197,
+      "failed": 3,
+      "success_rate_percent": 98.5,
+      "avg_response_ms": 341.04,
+      "median_response_ms": 167.65,
+      "p95_response_ms": 1294.3,
+      "min_response_ms": 55.9,
+      "max_response_ms": 1939.95,
+      "validation_passed": 197,
       "validation_failed": 0,
       "status_codes": {
-        "200": 177,
-        "429": 23
+        "200": 197,
+        "429": 3
       }
     },
     "/roulotte/nearby?lat=-17.532&lng=-149.5685&radius=50": {
       "total_requests": 200,
-      "success": 188,
-      "failed": 12,
-      "success_rate_percent": 94.0,
-      "avg_response_ms": 285.09,
-      "median_response_ms": 249.42,
-      "p95_response_ms": 686.56,
-      "min_response_ms": 23.31,
-      "max_response_ms": 798.16,
-      "validation_passed": 188,
+      "success": 190,
+      "failed": 10,
+      "success_rate_percent": 95.0,
+      "avg_response_ms": 194.17,
+      "median_response_ms": 136.25,
+      "p95_response_ms": 628.91,
+      "min_response_ms": 19.61,
+      "max_response_ms": 1332.46,
+      "validation_passed": 190,
       "validation_failed": 0,
       "status_codes": {
-        "200": 188,
-        "429": 12
+        "200": 190,
+        "429": 10
       }
     },
     "/search?q=tahiti": {
       "total_requests": 200,
-      "success": 162,
-      "failed": 38,
-      "success_rate_percent": 81.0,
-      "avg_response_ms": 173.71,
-      "median_response_ms": 153.47,
-      "p95_response_ms": 388.57,
-      "min_response_ms": 18.38,
-      "max_response_ms": 647.06,
-      "validation_passed": 162,
+      "success": 190,
+      "failed": 10,
+      "success_rate_percent": 95.0,
+      "avg_response_ms": 229.76,
+      "median_response_ms": 209.22,
+      "p95_response_ms": 471.06,
+      "min_response_ms": 22.08,
+      "max_response_ms": 1242.06,
+      "validation_passed": 190,
       "validation_failed": 0,
       "status_codes": {
-        "200": 162,
-        "429": 37,
-        "403": 1
+        "200": 190,
+        "429": 10
       }
     },
     "/stories": {
-      "total_requests": 213,
-      "success": 209,
-      "failed": 4,
-      "success_rate_percent": 98.12,
-      "avg_response_ms": 185.77,
-      "median_response_ms": 103.12,
-      "p95_response_ms": 750.68,
-      "min_response_ms": 19.82,
-      "max_response_ms": 1895.51,
+      "total_requests": 222,
+      "success": 220,
+      "failed": 2,
+      "success_rate_percent": 99.1,
+      "avg_response_ms": 297.08,
+      "median_response_ms": 135.09,
+      "p95_response_ms": 1664.42,
+      "min_response_ms": 29.25,
+      "max_response_ms": 2951.68,
       "validation_passed": 0,
-      "validation_failed": 209,
+      "validation_failed": 220,
       "status_codes": {
-        "200": 209,
-        "429": 4
+        "200": 220,
+        "429": 2
       }
     },
     "/users/user_41d7bb1c8367": {
       "total_requests": 100,
-      "success": 79,
-      "failed": 21,
-      "success_rate_percent": 79.0,
-      "avg_response_ms": 121.49,
-      "median_response_ms": 119.26,
-      "p95_response_ms": 217.21,
-      "min_response_ms": 19.28,
-      "max_response_ms": 299.82,
-      "validation_passed": 79,
+      "success": 96,
+      "failed": 4,
+      "success_rate_percent": 96.0,
+      "avg_response_ms": 140.6,
+      "median_response_ms": 120.52,
+      "p95_response_ms": 283.4,
+      "min_response_ms": 21.44,
+      "max_response_ms": 647.33,
+      "validation_passed": 96,
       "validation_failed": 0,
       "status_codes": {
-        "200": 79,
-        "429": 21
+        "200": 96,
+        "429": 4
       }
     },
     "/users/user_6ed274100411": {
       "total_requests": 100,
-      "success": 74,
-      "failed": 26,
-      "success_rate_percent": 74.0,
-      "avg_response_ms": 120.71,
-      "median_response_ms": 117.82,
-      "p95_response_ms": 210.19,
-      "min_response_ms": 19.32,
-      "max_response_ms": 348.11,
-      "validation_passed": 74,
+      "success": 95,
+      "failed": 5,
+      "success_rate_percent": 95.0,
+      "avg_response_ms": 152.85,
+      "median_response_ms": 119.57,
+      "p95_response_ms": 468.8,
+      "min_response_ms": 21.39,
+      "max_response_ms": 743.89,
+      "validation_passed": 95,
       "validation_failed": 0,
       "status_codes": {
-        "200": 74,
-        "429": 26
+        "200": 95,
+        "429": 5
       }
     }
   },
-  "errors_summary": [
-    {
-      "error": "Timeout",
-      "count": 4
-    }
-  ]
+  "errors_summary": []
 }
