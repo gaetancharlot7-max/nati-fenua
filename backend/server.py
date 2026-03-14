@@ -1630,21 +1630,90 @@ async def send_message(message_data: MessageCreate, request: Request):
     message_dict.pop("_id", None)
     return message_dict
 
+# ==================== FEED ALIAS ROUTES ====================
+
+@api_router.get("/feed")
+async def get_feed(page: int = 1, per_page: int = 10, request: Request = None):
+    """Get paginated feed (alias for posts/paginated)"""
+    skip = (page - 1) * per_page
+    
+    # Optimized aggregation with $lookup
+    pipeline = [
+        {"$match": {"moderation_status": {"$ne": "rejected"}}},
+        {"$sort": {"created_at": -1}},
+        {"$skip": skip},
+        {"$limit": per_page},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "user_id",
+            "as": "user_data"
+        }},
+        {"$unwind": {"path": "$user_data", "preserveNullAndEmptyArrays": True}},
+        {"$addFields": {
+            "user": {
+                "user_id": "$user_data.user_id",
+                "name": "$user_data.name",
+                "picture": "$user_data.picture",
+                "is_verified": {"$ifNull": ["$user_data.is_verified", False]}
+            }
+        }},
+        {"$project": {"_id": 0, "user_data": 0}}
+    ]
+    
+    posts = await db.posts.aggregate(pipeline).to_list(per_page)
+    total = await db.posts.count_documents({"moderation_status": {"$ne": "rejected"}})
+    
+    return {
+        "posts": posts,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "has_more": skip + per_page < total
+        }
+    }
+
 # ==================== MARKETPLACE ROUTES ====================
 
 @api_router.get("/marketplace/products")
 async def get_products(category: Optional[str] = None, limit: int = 20, skip: int = 0):
+    """Get marketplace products (optimized)"""
     query = {"is_available": True}
     if category:
         query["category"] = category
     
-    products = await db.products.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    # Optimized: Use aggregation with $lookup to avoid N+1 queries
+    pipeline = [
+        {"$match": query},
+        {"$sort": {"created_at": -1}},
+        {"$skip": skip},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "user_id",
+            "as": "seller_data"
+        }},
+        {"$unwind": {"path": "$seller_data", "preserveNullAndEmptyArrays": True}},
+        {"$addFields": {
+            "seller": {
+                "user_id": "$seller_data.user_id",
+                "name": "$seller_data.name",
+                "picture": "$seller_data.picture"
+            }
+        }},
+        {"$project": {"_id": 0, "seller_data": 0}}
+    ]
     
-    for product in products:
-        user = await db.users.find_one({"user_id": product["user_id"]}, {"_id": 0, "user_id": 1, "name": 1, "picture": 1})
-        product["seller"] = user
-    
+    products = await db.products.aggregate(pipeline).to_list(limit)
     return products
+
+# Alias routes for /market/* (compatibility)
+@api_router.get("/market/products")
+async def get_market_products(category: Optional[str] = None, limit: int = 20, skip: int = 0):
+    """Alias for /marketplace/products"""
+    return await get_products(category, limit, skip)
 
 @api_router.get("/marketplace/products/{product_id}")
 async def get_product(product_id: str):
@@ -1677,17 +1746,42 @@ async def create_product(product_data: ProductCreate, request: Request):
 
 @api_router.get("/marketplace/services")
 async def get_services(category: Optional[str] = None, limit: int = 20, skip: int = 0):
+    """Get marketplace services (optimized)"""
     query = {"is_available": True}
     if category:
         query["category"] = category
     
-    services = await db.services.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    # Optimized: Use aggregation with $lookup to avoid N+1 queries
+    pipeline = [
+        {"$match": query},
+        {"$sort": {"created_at": -1}},
+        {"$skip": skip},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "user_id",
+            "as": "provider_data"
+        }},
+        {"$unwind": {"path": "$provider_data", "preserveNullAndEmptyArrays": True}},
+        {"$addFields": {
+            "provider": {
+                "user_id": "$provider_data.user_id",
+                "name": "$provider_data.name",
+                "picture": "$provider_data.picture"
+            }
+        }},
+        {"$project": {"_id": 0, "provider_data": 0}}
+    ]
     
-    for service in services:
-        user = await db.users.find_one({"user_id": service["user_id"]}, {"_id": 0, "user_id": 1, "name": 1, "picture": 1})
-        service["provider"] = user
-    
+    services = await db.services.aggregate(pipeline).to_list(limit)
     return services
+
+# Alias route for /market/services (compatibility)
+@api_router.get("/market/services")
+async def get_market_services(category: Optional[str] = None, limit: int = 20, skip: int = 0):
+    """Alias for /marketplace/services"""
+    return await get_services(category, limit, skip)
 
 @api_router.post("/marketplace/services")
 async def create_service(service_data: ServiceCreate, request: Request):
@@ -3554,6 +3648,22 @@ async def extend_roulotte_opening(request: Request):
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/roulotte/nearby")
+async def get_nearby_roulottes(
+    lat: float = -17.532,
+    lng: float = -149.5685,
+    radius: float = 50
+):
+    """Get open roulottes near a location"""
+    _, _, _, _, _, roulotte = get_app_services()
+    
+    roulottes = await roulotte.get_open_roulottes(
+        lat=lat,
+        lng=lng,
+        radius_km=radius
+    )
+    return roulottes
 
 @api_router.post("/roulotte/menu")
 async def add_menu_item(request: Request):

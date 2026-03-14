@@ -283,9 +283,10 @@ class LoadTesterV2:
             # ===== ROULOTTE TESTS =====
             ("GET", "/roulotte/nearby?lat=-17.532&lng=-149.5685&radius=50", None, lambda r: isinstance(r, list)),
             
-            # ===== MARKET TESTS =====
-            ("GET", "/market/products", None, lambda r: isinstance(r, (list, dict))),
-            ("GET", "/market/services", None, lambda r: isinstance(r, (list, dict))),
+            # ===== MARKET TESTS (using correct endpoints) =====
+            ("GET", "/market/products", None, lambda r: isinstance(r, list)),
+            ("GET", "/market/services", None, lambda r: isinstance(r, list)),
+            ("GET", "/marketplace/categories", None, lambda r: isinstance(r, dict)),
             
             # ===== SEARCH TEST =====
             ("GET", f"/search?q=tahiti", None, lambda r: isinstance(r, (list, dict))),

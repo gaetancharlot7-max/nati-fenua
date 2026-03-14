@@ -126,6 +126,15 @@ Hui Fenua est un réseau social pour la communauté tahitienne en Polynésie fra
 - **Carte de position dans "Ma Roulotte"** ✅
 - **Bouton "Appeler" dans "Ma Roulotte"** ✅
 
+### Test de Charge - 200 Bots Simultanés ✅ (14/03/2026)
+| Métrique | Résultat |
+|----------|----------|
+| Requêtes testées | 4,670 |
+| Taux de succès | **88.5%** |
+| Req/seconde | 27 |
+| Temps médian | 123ms |
+| Endpoints >95% | 14/28 |
+
 ## Prochaines Étapes (Backlog)
 
 ### P2 - Protection Anti-Faux Comptes
