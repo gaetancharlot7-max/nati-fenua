@@ -2,6 +2,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Respons
 from fastapi.security import HTTPBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -68,6 +69,16 @@ from roulotte import (
 # Import Auto Publisher module
 from auto_publisher import AutoPublisherService, run_daily_publisher, ISLAND_CONTENT
 
+# Import Cache and DB optimization modules
+from cache import (
+    cache, static_cache, markers_cache, feed_cache, user_cache,
+    cached, cache_key, warm_up_cache, get_cache_stats
+)
+from db_optimization import (
+    create_optimized_client, create_indexes, get_db_stats,
+    get_collection_stats, MONGO_POOL_CONFIG
+)
+
 # Import RSS Feed module
 from rss_feeds import RSSFeedService, cleanup_youtube_links
 
@@ -79,15 +90,18 @@ UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
+# MongoDB connection with optimized pooling
 mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
+client = create_optimized_client(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # Create the main app
-app = FastAPI(title="Hui Fenua API")
+app = FastAPI(title="Hui Fenua API", docs_url="/api/docs", redoc_url="/api/redoc")
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
+
+# Add GZip Middleware for compression (reduces bandwidth by ~70%)
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # Add CORS Middleware - CRITICAL for production
 app.add_middleware(
@@ -1634,8 +1648,14 @@ async def send_message(message_data: MessageCreate, request: Request):
 
 @api_router.get("/feed")
 async def get_feed(page: int = 1, per_page: int = 10, request: Request = None):
-    """Get paginated feed (alias for posts/paginated)"""
+    """Get paginated feed with cache"""
     skip = (page - 1) * per_page
+    
+    # Check cache first
+    cache_key_str = f"feed:{page}:{per_page}"
+    cached_feed = await feed_cache.get(cache_key_str)
+    if cached_feed:
+        return cached_feed
     
     # Optimized aggregation with $lookup
     pipeline = [
@@ -1664,7 +1684,7 @@ async def get_feed(page: int = 1, per_page: int = 10, request: Request = None):
     posts = await db.posts.aggregate(pipeline).to_list(per_page)
     total = await db.posts.count_documents({"moderation_status": {"$ne": "rejected"}})
     
-    return {
+    result = {
         "posts": posts,
         "pagination": {
             "page": page,
@@ -1673,6 +1693,10 @@ async def get_feed(page: int = 1, per_page: int = 10, request: Request = None):
             "has_more": skip + per_page < total
         }
     }
+    
+    # Cache the result for 30 seconds
+    await feed_cache.set(cache_key_str, result, ttl=30)
+    return result
 
 # ==================== MARKETPLACE ROUTES ====================
 
@@ -2846,6 +2870,29 @@ app.mount("/uploads", StaticFiles(directory="/app/uploads"), name="uploads")
 async def shutdown_db_client():
     client.close()
 
+# ==================== STARTUP OPTIMIZATION ====================
+
+@app.on_event("startup")
+async def optimize_database():
+    """Create indexes and warm up cache on startup"""
+    try:
+        logger.info("🚀 Starting database optimization...")
+        
+        # Create MongoDB indexes
+        index_result = await create_indexes(db)
+        logger.info(f"✅ Created {index_result['total']} MongoDB indexes")
+        
+        # Warm up cache with static data
+        cache_result = await warm_up_cache(db)
+        logger.info(f"✅ Cache warmed up: {cache_result['warmed_keys']}")
+        
+        # Log DB stats
+        db_stats = await get_db_stats(db)
+        logger.info(f"📊 DB Stats: {db_stats.get('objects', 0)} objects, {db_stats.get('dataSize_mb', 0)}MB data")
+        
+    except Exception as e:
+        logger.error(f"❌ Optimization error: {e}")
+
 # ==================== ADMIN ROUTES ====================
 
 import hashlib
@@ -3014,6 +3061,67 @@ async def update_moderation_settings(request: Request):
     
     logger.info(f"Moderation settings updated: {updates}")
     return {"success": True, "updated": updates}
+
+# ==================== CACHE & PERFORMANCE ADMIN ====================
+
+@api_router.get("/admin/cache/stats")
+async def get_admin_cache_stats(request: Request):
+    """Get cache statistics (admin only)"""
+    await verify_admin_token(request)
+    return get_cache_stats()
+
+@api_router.post("/admin/cache/clear")
+async def clear_admin_cache(request: Request):
+    """Clear all caches (admin only)"""
+    await verify_admin_token(request)
+    
+    await cache.clear()
+    await static_cache.clear()
+    await markers_cache.clear()
+    await feed_cache.clear()
+    await user_cache.clear()
+    
+    # Warm up static cache again
+    warm_result = await warm_up_cache(db)
+    
+    return {
+        "success": True,
+        "message": "All caches cleared and warmed up",
+        "warmed_keys": warm_result["warmed_keys"]
+    }
+
+@api_router.get("/admin/db/stats")
+async def get_admin_db_stats(request: Request):
+    """Get database statistics (admin only)"""
+    await verify_admin_token(request)
+    
+    db_stats = await get_db_stats(db)
+    
+    # Get stats for main collections
+    collections = ["users", "posts", "markers", "conversations", "messages", "vendors"]
+    collection_stats = {}
+    for coll in collections:
+        collection_stats[coll] = await get_collection_stats(db, coll)
+    
+    return {
+        "database": db_stats,
+        "collections": collection_stats,
+        "mongo_pool_config": MONGO_POOL_CONFIG
+    }
+
+@api_router.post("/admin/db/optimize")
+async def optimize_admin_db(request: Request):
+    """Recreate indexes and optimize database (admin only)"""
+    await verify_admin_token(request)
+    
+    index_result = await create_indexes(db)
+    cache_result = await warm_up_cache(db)
+    
+    return {
+        "success": True,
+        "indexes_created": index_result["total"],
+        "cache_warmed": cache_result["warmed_keys"]
+    }
 
 @api_router.post("/admin/users/{user_id}/ban")
 async def ban_user(user_id: str, request: Request):
@@ -3414,24 +3522,53 @@ async def get_geo_analytics(request: Request):
 
 @api_router.get("/pulse/islands")
 async def get_pulse_islands():
-    """Get list of islands with coordinates"""
-    return get_islands()
+    """Get list of islands with coordinates (cached)"""
+    # Try cache first
+    cached_islands = await static_cache.get("islands")
+    if cached_islands:
+        return cached_islands
+    
+    # Fallback to function
+    islands = get_islands()
+    await static_cache.set("islands", islands, ttl=3600)
+    return islands
 
 @api_router.get("/pulse/marker-types")
 async def get_pulse_marker_types():
-    """Get list of marker types"""
-    return get_marker_types()
+    """Get list of marker types (cached)"""
+    # Try cache first
+    cached_types = await static_cache.get("marker_types")
+    if cached_types:
+        return cached_types
+    
+    # Fallback to function
+    types = get_marker_types()
+    await static_cache.set("marker_types", types, ttl=3600)
+    return types
 
 @api_router.get("/pulse/badges")
 async def get_all_badges():
-    """Get list of all available badges"""
-    return get_badges_list()
+    """Get list of all available badges (cached)"""
+    cached_badges = await static_cache.get("badges")
+    if cached_badges:
+        return cached_badges
+    
+    badges = get_badges_list()
+    await static_cache.set("badges", badges, ttl=3600)
+    return badges
 
 @api_router.get("/pulse/status")
 async def get_pulse_status():
-    """Get current pulse status of the fenua"""
+    """Get current pulse status of the fenua (cached 30s)"""
+    status_cache_key = "pulse_status"
+    cached_status = await markers_cache.get(status_cache_key)
+    if cached_status:
+        return cached_status
+    
     _, _, _, _, pulse, _ = get_app_services()
-    return await pulse.get_pulse_status()
+    status = await pulse.get_pulse_status()
+    await markers_cache.set(status_cache_key, status, ttl=30)
+    return status
 
 @api_router.get("/pulse/markers")
 async def get_pulse_markers(
@@ -3441,18 +3578,27 @@ async def get_pulse_markers(
     lng: Optional[float] = None,
     radius_km: Optional[float] = None
 ):
-    """Get active pulse markers"""
+    """Get active pulse markers (cached 60s)"""
+    # Generate cache key from parameters
+    cache_key_str = f"markers:{types}:{island}:{lat}:{lng}:{radius_km}"
+    cached_markers = await markers_cache.get(cache_key_str)
+    if cached_markers:
+        return cached_markers
+    
     _, _, _, _, pulse, _ = get_app_services()
     
     marker_types = types.split(",") if types else None
     
-    return await pulse.get_active_markers(
+    markers = await pulse.get_active_markers(
         marker_types=marker_types,
         island=island,
         lat=lat,
         lng=lng,
         radius_km=radius_km
     )
+    
+    await markers_cache.set(cache_key_str, markers, ttl=60)
+    return markers
 
 @api_router.post("/pulse/markers")
 async def create_pulse_marker(request: Request):
