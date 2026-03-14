@@ -1,0 +1,424 @@
+{
+  "test_info": {
+    "date": "2026-03-14T00:21:49.863754",
+    "duration_seconds": 159.02,
+    "num_bots": 200,
+    "api_url": "https://fenua-connect.preview.emergentagent.com/api",
+    "batch_size": 25,
+    "max_concurrent": 50
+  },
+  "summary": {
+    "total_requests": 4300,
+    "successful_requests": 2981,
+    "failed_requests": 1319,
+    "success_rate_percent": 69.33,
+    "requests_per_second": 27.04,
+    "authenticated_sessions": 2
+  },
+  "response_times": {
+    "min_ms": 17.48,
+    "max_ms": 30525.57,
+    "avg_ms": 599.84,
+    "median_ms": 111.7,
+    "p95_ms": 1799.17,
+    "p99_ms": 20044.33,
+    "total_samples": 4300
+  },
+  "endpoints": {
+    "/auth/me": {
+      "total_requests": 200,
+      "success": 185,
+      "failed": 15,
+      "success_rate_percent": 92.5,
+      "avg_response_ms": 110.12,
+      "median_response_ms": 108.07,
+      "p95_response_ms": 178.84,
+      "min_response_ms": 21.06,
+      "max_response_ms": 426.21,
+      "validation_passed": 185,
+      "validation_failed": 0,
+      "status_codes": {
+        "200": 185,
+        "429": 15
+      }
+    },
+    "/conversations": {
+      "total_requests": 214,
+      "success": 194,
+      "failed": 20,
+      "success_rate_percent": 90.65,
+      "avg_response_ms": 1128.2,
+      "median_response_ms": 123.42,
+      "p95_response_ms": 1080.19,
+      "min_response_ms": 21.52,
+      "max_response_ms": 30525.57,
+      "validation_passed": 180,
+      "validation_failed": 14,
+      "status_codes": {
+        "200": 194,
+        "429": 14,
+        "0": 6
+      }
+    },
+    "/feed?page=1&per_page=10": {
+      "total_requests": 222,
+      "success": 0,
+      "failed": 222,
+      "success_rate_percent": 0.0,
+      "avg_response_ms": 358.39,
+      "median_response_ms": 98.55,
+      "p95_response_ms": 606.85,
+      "min_response_ms": 27.87,
+      "max_response_ms": 30520.49,
+      "validation_passed": 0,
+      "validation_failed": 0,
+      "status_codes": {
+        "404": 206,
+        "429": 14,
+        "403": 1,
+        "0": 1
+      }
+    },
+    "/market/products": {
+      "total_requests": 200,
+      "success": 0,
+      "failed": 200,
+      "success_rate_percent": 0.0,
+      "avg_response_ms": 296.08,
+      "median_response_ms": 99.14,
+      "p95_response_ms": 174.04,
+      "min_response_ms": 21.23,
+      "max_response_ms": 20137.63,
+      "validation_passed": 0,
+      "validation_failed": 0,
+      "status_codes": {
+        "404": 182,
+        "429": 17,
+        "403": 1
+      }
+    },
+    "/market/services": {
+      "total_requests": 200,
+      "success": 0,
+      "failed": 200,
+      "success_rate_percent": 0.0,
+      "avg_response_ms": 246.66,
+      "median_response_ms": 97.9,
+      "p95_response_ms": 165.04,
+      "min_response_ms": 20.05,
+      "max_response_ms": 30267.77,
+      "validation_passed": 0,
+      "validation_failed": 0,
+      "status_codes": {
+        "404": 166,
+        "429": 32,
+        "403": 1,
+        "0": 1
+      }
+    },
+    "/notifications": {
+      "total_requests": 200,
+      "success": 187,
+      "failed": 13,
+      "success_rate_percent": 93.5,
+      "avg_response_ms": 762.62,
+      "median_response_ms": 113.16,
+      "p95_response_ms": 254.0,
+      "min_response_ms": 21.9,
+      "max_response_ms": 30520.11,
+      "validation_passed": 93,
+      "validation_failed": 94,
+      "status_codes": {
+        "200": 187,
+        "429": 9,
+        "0": 4
+      }
+    },
+    "/posts": {
+      "total_requests": 200,
+      "success": 0,
+      "failed": 200,
+      "success_rate_percent": 0.0,
+      "avg_response_ms": 120.86,
+      "median_response_ms": 95.61,
+      "p95_response_ms": 158.5,
+      "min_response_ms": 21.17,
+      "max_response_ms": 5234.18,
+      "validation_passed": 0,
+      "validation_failed": 0,
+      "status_codes": {
+        "422": 153,
+        "429": 47
+      }
+    },
+    "/pulse/islands": {
+      "total_requests": 216,
+      "success": 195,
+      "failed": 21,
+      "success_rate_percent": 90.28,
+      "avg_response_ms": 2661.96,
+      "median_response_ms": 168.04,
+      "p95_response_ms": 30346.15,
+      "min_response_ms": 48.87,
+      "max_response_ms": 30349.62,
+      "validation_passed": 179,
+      "validation_failed": 16,
+      "status_codes": {
+        "200": 195,
+        "429": 6,
+        "0": 15
+      }
+    },
+    "/pulse/leaderboard": {
+      "total_requests": 216,
+      "success": 199,
+      "failed": 17,
+      "success_rate_percent": 92.13,
+      "avg_response_ms": 266.87,
+      "median_response_ms": 221.67,
+      "p95_response_ms": 719.62,
+      "min_response_ms": 24.18,
+      "max_response_ms": 1051.86,
+      "validation_passed": 183,
+      "validation_failed": 16,
+      "status_codes": {
+        "200": 199,
+        "429": 16,
+        "403": 1
+      }
+    },
+    "/pulse/marker-types": {
+      "total_requests": 200,
+      "success": 194,
+      "failed": 6,
+      "success_rate_percent": 97.0,
+      "avg_response_ms": 951.58,
+      "median_response_ms": 94.06,
+      "p95_response_ms": 283.49,
+      "min_response_ms": 22.06,
+      "max_response_ms": 30169.71,
+      "validation_passed": 194,
+      "validation_failed": 0,
+      "status_codes": {
+        "200": 194,
+        "0": 4,
+        "429": 2
+      }
+    },
+    "/pulse/markers": {
+      "total_requests": 200,
+      "success": 151,
+      "failed": 49,
+      "success_rate_percent": 75.5,
+      "avg_response_ms": 138.63,
+      "median_response_ms": 124.4,
+      "p95_response_ms": 266.63,
+      "min_response_ms": 17.48,
+      "max_response_ms": 611.87,
+      "validation_passed": 151,
+      "validation_failed": 0,
+      "status_codes": {
+        "200": 151,
+        "429": 49
+      }
+    },
+    "/pulse/markers?island=tahiti": {
+      "total_requests": 214,
+      "success": 207,
+      "failed": 7,
+      "success_rate_percent": 96.73,
+      "avg_response_ms": 1760.15,
+      "median_response_ms": 1314.22,
+      "p95_response_ms": 4017.95,
+      "min_response_ms": 21.86,
+      "max_response_ms": 4245.39,
+      "validation_passed": 193,
+      "validation_failed": 14,
+      "status_codes": {
+        "200": 207,
+        "429": 7
+      }
+    },
+    "/pulse/markers?types=event": {
+      "total_requests": 200,
+      "success": 195,
+      "failed": 5,
+      "success_rate_percent": 97.5,
+      "avg_response_ms": 1711.63,
+      "median_response_ms": 1550.31,
+      "p95_response_ms": 3688.91,
+      "min_response_ms": 38.39,
+      "max_response_ms": 4388.61,
+      "validation_passed": 195,
+      "validation_failed": 0,
+      "status_codes": {
+        "200": 195,
+        "429": 5
+      }
+    },
+    "/pulse/markers?types=roulotte": {
+      "total_requests": 200,
+      "success": 190,
+      "failed": 10,
+      "success_rate_percent": 95.0,
+      "avg_response_ms": 289.73,
+      "median_response_ms": 114.45,
+      "p95_response_ms": 216.01,
+      "min_response_ms": 23.47,
+      "max_response_ms": 30416.06,
+      "validation_passed": 190,
+      "validation_failed": 0,
+      "status_codes": {
+        "200": 190,
+        "429": 9,
+        "0": 1
+      }
+    },
+    "/pulse/markers?types=surf": {
+      "total_requests": 200,
+      "success": 193,
+      "failed": 7,
+      "success_rate_percent": 96.5,
+      "avg_response_ms": 330.82,
+      "median_response_ms": 116.3,
+      "p95_response_ms": 200.94,
+      "min_response_ms": 19.5,
+      "max_response_ms": 30323.95,
+      "validation_passed": 0,
+      "validation_failed": 193,
+      "status_codes": {
+        "200": 193,
+        "429": 6,
+        "0": 1
+      }
+    },
+    "/pulse/markers?types=webcam": {
+      "total_requests": 200,
+      "success": 193,
+      "failed": 7,
+      "success_rate_percent": 96.5,
+      "avg_response_ms": 404.57,
+      "median_response_ms": 95.16,
+      "p95_response_ms": 180.33,
+      "min_response_ms": 45.65,
+      "max_response_ms": 30521.18,
+      "validation_passed": 193,
+      "validation_failed": 0,
+      "status_codes": {
+        "200": 193,
+        "429": 5,
+        "0": 2
+      }
+    },
+    "/pulse/status": {
+      "total_requests": 200,
+      "success": 181,
+      "failed": 19,
+      "success_rate_percent": 90.5,
+      "avg_response_ms": 134.78,
+      "median_response_ms": 114.34,
+      "p95_response_ms": 301.41,
+      "min_response_ms": 21.69,
+      "max_response_ms": 531.09,
+      "validation_passed": 181,
+      "validation_failed": 0,
+      "status_codes": {
+        "200": 181,
+        "429": 19
+      }
+    },
+    "/roulotte/nearby?lat=-17.532&lng=-149.5685&radius=50": {
+      "total_requests": 200,
+      "success": 0,
+      "failed": 200,
+      "success_rate_percent": 0.0,
+      "avg_response_ms": 107.87,
+      "median_response_ms": 101.99,
+      "p95_response_ms": 188.29,
+      "min_response_ms": 18.52,
+      "max_response_ms": 448.69,
+      "validation_passed": 0,
+      "validation_failed": 0,
+      "status_codes": {
+        "404": 190,
+        "429": 10
+      }
+    },
+    "/search?q=tahiti": {
+      "total_requests": 200,
+      "success": 160,
+      "failed": 40,
+      "success_rate_percent": 80.0,
+      "avg_response_ms": 227.26,
+      "median_response_ms": 110.5,
+      "p95_response_ms": 283.33,
+      "min_response_ms": 20.9,
+      "max_response_ms": 19690.41,
+      "validation_passed": 160,
+      "validation_failed": 0,
+      "status_codes": {
+        "200": 160,
+        "429": 39,
+        "403": 1
+      }
+    },
+    "/stories": {
+      "total_requests": 218,
+      "success": 204,
+      "failed": 14,
+      "success_rate_percent": 93.58,
+      "avg_response_ms": 284.54,
+      "median_response_ms": 101.13,
+      "p95_response_ms": 791.87,
+      "min_response_ms": 27.55,
+      "max_response_ms": 30521.62,
+      "validation_passed": 0,
+      "validation_failed": 204,
+      "status_codes": {
+        "200": 204,
+        "429": 13,
+        "0": 1
+      }
+    },
+    "/users/user_41d7bb1c8367": {
+      "total_requests": 100,
+      "success": 77,
+      "failed": 23,
+      "success_rate_percent": 77.0,
+      "avg_response_ms": 99.78,
+      "median_response_ms": 96.66,
+      "p95_response_ms": 185.26,
+      "min_response_ms": 20.27,
+      "max_response_ms": 347.93,
+      "validation_passed": 77,
+      "validation_failed": 0,
+      "status_codes": {
+        "200": 77,
+        "429": 23
+      }
+    },
+    "/users/user_6ed274100411": {
+      "total_requests": 100,
+      "success": 76,
+      "failed": 24,
+      "success_rate_percent": 76.0,
+      "avg_response_ms": 103.72,
+      "median_response_ms": 102.32,
+      "p95_response_ms": 174.06,
+      "min_response_ms": 21.02,
+      "max_response_ms": 318.61,
+      "validation_passed": 76,
+      "validation_failed": 0,
+      "status_codes": {
+        "200": 76,
+        "429": 24
+      }
+    }
+  },
+  "errors_summary": [
+    {
+      "error": "Timeout",
+      "count": 36
+    }
+  ]
+}
