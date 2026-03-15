@@ -5,14 +5,14 @@
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#FF6B35" />
-    <meta name="description" content="Fenua Social - Le réseau social de la Polynésie Française. Photos, vidéos, stories, lives, marketplace et chat." />
+    <meta name="description" content="Hui Fenua - Le réseau social de la Polynésie Française. Connectez-vous avec la communauté tahitienne." />
     
     <!-- PWA Meta Tags -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Fenua Social" />
-    <meta name="application-name" content="Fenua Social" />
+    <meta name="apple-mobile-web-app-title" content="Hui Fenua" />
+    <meta name="application-name" content="Hui Fenua" />
     <meta name="msapplication-TileColor" content="#FF6B35" />
     <meta name="msapplication-tap-highlight" content="no" />
     
@@ -35,7 +35,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
-    <title>Fenua Social - Polynésie Française</title>
+    <title>Hui Fenua - Polynésie Française</title>
     
     <style>
       /* Prevent pull-to-refresh on mobile */
@@ -83,13 +83,13 @@
     </style>
   </head>
   <body>
-    <noscript>Vous devez activer JavaScript pour utiliser Fenua Social.</noscript>
+    <noscript>Vous devez activer JavaScript pour utiliser Hui Fenua.</noscript>
     <div id="root"></div>
     
     <!-- PWA Install Banner -->
     <div id="pwa-install-banner" class="pwa-install-banner">
       <div style="flex: 1;">
-        <strong>Installer Fenua Social</strong>
+        <strong>Installer Hui Fenua</strong>
         <p style="margin: 4px 0 0; font-size: 14px; opacity: 0.9;">Ajoutez l'app sur votre écran d'accueil</p>
       </div>
       <button id="pwa-install-btn">Installer</button>
@@ -100,7 +100,7 @@
       // Register Service Worker
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
+          navigator.serviceWorker.register('/service-worker.js')
             .then((registration) => {
               console.log('SW registered:', registration.scope);
             })

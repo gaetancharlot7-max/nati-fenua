@@ -47,6 +47,7 @@ const getMarkerEmoji = (type) => {
     webcam: '📹',
     weather: '☁️',
     market: '🛍️',
+    carpool: '🚗',
     other: '📍'
   };
   return emojis[type] || '📍';

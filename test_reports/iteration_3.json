@@ -1,0 +1,123 @@
+{
+  "summary": "Testing of Hui Fenua new features completed successfully. All 4 features requested are working: Déconnexion button, Zoom controls, Translation FR/TAH, and Covoiturage category.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/auth/request-password-reset",
+        "issue": "Rate limit (3/min) triggered during rapid testing - expected behavior for security",
+        "priority": "LOW"
+      }
+    ]
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "✅ API: POST /api/translate - French to Tahitian translation works (bonjour → ia ora na)",
+    "✅ API: POST /api/translate - Tahitian to French translation works (mauruuru → merci)",
+    "✅ API: POST /api/translate - Empty text returns 400 error",
+    "✅ API: POST /api/translate - Invalid direction returns 400 error",
+    "✅ API: GET /api/translate/dictionary - Returns stats (199 French words, 232 Tahitian words)",
+    "✅ API: GET /api/translate/phrases - Returns 10 common phrases for learning",
+    "✅ API: GET /api/pulse/marker-types - Now includes 'carpool' type with #10B981 color",
+    "✅ API: GET /api/pulse/marker-types - All 9 types present (roulotte, accident, surf, event, webcam, weather, market, carpool, other)",
+    "✅ API: POST /api/auth/request-password-reset - Returns success with valid email",
+    "✅ API: POST /api/auth/request-password-reset - Invalid email format returns 400",
+    "✅ API: POST /api/auth/request-password-reset - Prevents email enumeration (returns success for unknown email)",
+    "✅ API: POST /api/auth/logout - Endpoint works and clears session",
+    "✅ API: POST /api/auth/logout-all - Requires authentication (401 without auth)",
+    "✅ API: GET /api/auth/me - Returns user data after login",
+    "✅ API: POST /api/posts/{post_id}/translate - Returns 404 for invalid post ID",
+    "✅ UI: Login works with user1@test.com credentials",
+    "✅ UI: Profile page - Logout button (Déconnexion) visible with data-testid='logout-btn'",
+    "✅ UI: Profile page - Logout button styled in red with proper hover states",
+    "✅ UI: Profile page - Edit button (Modifier) also visible",
+    "✅ UI: Feed page - 20 translate buttons found on posts (data-testid='translate-post-btn')",
+    "✅ UI: Feed page - Translation works - shows 'Traduit en Tahitien' toast notification",
+    "✅ UI: Feed page - 'Voir l'original' link appears after translation",
+    "✅ UI: Pulse page - Zoom In button (data-testid='zoom-in-btn') works",
+    "✅ UI: Pulse page - Zoom Out button (data-testid='zoom-out-btn') works",
+    "✅ UI: Pulse page - 'Ma position' button (data-testid='locate-me-btn') visible",
+    "✅ UI: Pulse page - Covoiturage filter visible in filter bar with car emoji 🚗",
+    "✅ UI: Pulse page - Covoiturage filter clickable and filters markers",
+    "✅ UI: Forgot Password page - Accessible at /forgot-password",
+    "✅ UI: Forgot Password page - Email input with data-testid='forgot-password-email'",
+    "✅ UI: Forgot Password page - Submit button with data-testid='forgot-password-submit'",
+    "✅ UI: Forgot Password page - Back to login link present"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_new_features.py",
+    "/app/test_reports/pytest/pytest_new_features.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [],
+
+  "updated_files": [
+    "/app/backend/tests/test_new_features.py"
+  ],
+
+  "success_rate": {
+    "backend": "94% (17/18 tests - 1 failed due to rate limiting which is expected)",
+    "frontend": "100% (all UI features working)"
+  },
+
+  "test_credentials": {
+    "test_user": "user1@test.com / TestPass123!"
+  },
+  
+  "seed_data_creation": "No new seed data created",
+
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "mocked_apis": {
+    "Resend Email": "Password reset email sending via Resend API is MOCKED (no API key configured). Endpoint returns success but no actual email is sent."
+  },
+  
+  "context_for_next_testing_agent": "All new features tested and working: 1) Déconnexion button on ProfilePage.js line 119-131 - visible and styled in red, 2) Zoom controls on PulsePage.js lines 141-187 - zoom in/out/locate buttons working, 3) Translation FR/TAH via button in FeedPage.js lines 669-733 - shows toast on success, 4) Covoiturage category in fenua_pulse.py MARKER_TYPES - visible on UI with emerald color #10B981, 5) Forgot password at ForgotPasswordPage.js - form functional. Note: Backend was restarted to clear marker types cache so carpool type would appear.",
+
+  "features_verified": {
+    "logout_button": {
+      "status": "WORKING",
+      "location": "ProfilePage.js line 119-131",
+      "data_testid": "logout-btn",
+      "styling": "Red text with red border, hover:bg-red-50"
+    },
+    "zoom_controls": {
+      "status": "WORKING",
+      "location": "PulsePage.js lines 141-187",
+      "zoom_in_testid": "zoom-in-btn",
+      "zoom_out_testid": "zoom-out-btn",
+      "locate_testid": "locate-me-btn"
+    },
+    "translation": {
+      "status": "WORKING",
+      "api_endpoint": "POST /api/translate",
+      "frontend_button_testid": "translate-post-btn",
+      "dictionary_stats": "199 French words, 232 Tahitian words"
+    },
+    "carpool_category": {
+      "status": "WORKING",
+      "api_endpoint": "GET /api/pulse/marker-types includes 'carpool'",
+      "color": "#10B981 (emerald)",
+      "label": "Covoiturage",
+      "icon": "car"
+    },
+    "forgot_password": {
+      "status": "WORKING",
+      "page_url": "/forgot-password",
+      "api_endpoint": "POST /api/auth/request-password-reset",
+      "email_sending": "MOCKED (returns success without sending)"
+    }
+  }
+}

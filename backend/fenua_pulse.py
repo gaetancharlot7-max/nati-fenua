@@ -111,6 +111,12 @@ MARKER_TYPES = {
         "label": "Bonne affaire / Marché",
         "duration_hours": 4
     },
+    "carpool": {
+        "color": "#10B981",  # Emerald
+        "icon": "car",
+        "label": "Covoiturage",
+        "duration_hours": 8
+    },
     "other": {
         "color": "#06B6D4",  # Cyan
         "icon": "map-pin",

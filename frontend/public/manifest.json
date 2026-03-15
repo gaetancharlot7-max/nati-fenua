@@ -1,7 +1,7 @@
 {
-  "name": "Fenua Social",
-  "short_name": "Fenua",
-  "description": "Le réseau social de la Polynésie Française - Photos, Vidéos, Stories, Lives, Marketplace, Chat",
+  "name": "Hui Fenua",
+  "short_name": "Hui Fenua",
+  "description": "Le réseau social de la Polynésie Française - Connectez-vous avec la communauté tahitienne",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1A1A2E",
