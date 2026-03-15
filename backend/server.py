@@ -949,6 +949,123 @@ async def reset_password(request: Request):
     logger.info(f"Password reset completed for {reset_record['email']}")
     return {"success": True, "message": "Mot de passe réinitialisé avec succès"}
 
+# ==================== EMAIL VERIFICATION ====================
+
+@api_router.post("/auth/send-verification")
+@limiter.limit("3/minute")
+async def send_email_verification(request: Request):
+    """Send email verification code to current user"""
+    user = await require_auth(request)
+    
+    # Check if already verified
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    if user_doc and user_doc.get("email_verified"):
+        return {"success": True, "message": "Email déjà vérifié"}
+    
+    protection = AccountProtectionService(db)
+    result = await protection.send_email_verification(user.user_id, user.email)
+    
+    # If Resend is configured, send the actual email
+    resend_api_key = os.environ.get("RESEND_API_KEY")
+    if resend_api_key and result.get("success"):
+        try:
+            resend.api_key = resend_api_key
+            sender_email = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+            
+            html_content = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="color: #FF6B35;">🌺 Hui Fenua</h1>
+                </div>
+                
+                <h2 style="color: #1A1A2E;">Vérifiez votre email</h2>
+                
+                <p>Ia ora na {user.name} !</p>
+                
+                <p>Voici votre code de vérification :</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <div style="background: linear-gradient(135deg, #FF6B35, #FF1493);
+                                color: white;
+                                padding: 20px 40px;
+                                font-size: 32px;
+                                font-weight: bold;
+                                letter-spacing: 8px;
+                                border-radius: 15px;
+                                display: inline-block;">
+                        {result.get('code')}
+                    </div>
+                </div>
+                
+                <p style="color: #666; font-size: 14px;">
+                    Ce code expire dans 30 minutes.
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                
+                <p style="color: #999; font-size: 12px; text-align: center;">
+                    Mauruuru roa ! 🌴<br>
+                    L'équipe Hui Fenua
+                </p>
+            </div>
+            """
+            
+            import asyncio
+            await asyncio.to_thread(
+                resend.Emails.send,
+                {
+                    "from": sender_email,
+                    "to": [user.email],
+                    "subject": "🔐 Code de vérification - Hui Fenua",
+                    "html": html_content
+                }
+            )
+            logger.info(f"Verification email sent to {user.email}")
+            # Remove code from response when email is sent
+            result.pop("code", None)
+            
+        except Exception as e:
+            logger.error(f"Failed to send verification email: {e}")
+    
+    return result
+
+@api_router.post("/auth/verify-email")
+async def verify_email_code(request: Request):
+    """Verify email with code"""
+    user = await require_auth(request)
+    body = await request.json()
+    code = body.get("code", "")
+    
+    if not code or len(code) != 6:
+        raise HTTPException(status_code=400, detail="Code à 6 chiffres requis")
+    
+    protection = AccountProtectionService(db)
+    result = await protection.verify_email_code(user.user_id, code)
+    
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["message"])
+    
+    return result
+
+@api_router.get("/auth/verification-status")
+async def get_verification_status(request: Request):
+    """Get current user's verification status"""
+    user = await require_auth(request)
+    
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    
+    protection = AccountProtectionService(db)
+    trust_info = await protection.get_user_trust_score(user.user_id)
+    
+    return {
+        "email_verified": user_doc.get("email_verified", False),
+        "email_verified_at": user_doc.get("email_verified_at"),
+        "trust_score": trust_info.get("trust_score", 0),
+        "trust_level": trust_info.get("level", "Nouveau"),
+        "factors": trust_info.get("factors", [])
+    }
+
+
 # ==================== FACEBOOK OAUTH ====================
 
 FACEBOOK_CLIENT_ID = os.environ.get("FACEBOOK_CLIENT_ID")

@@ -28,7 +28,7 @@ SUSPICIOUS_EMAIL_PATTERNS = [
 RATE_LIMITS = {
     "registrations_per_ip_per_day": 3,
     "registrations_per_device_per_day": 2,
-    "phone_verifications_per_day": 5,
+    "email_verifications_per_day": 5,
     "failed_logins_before_captcha": 3,
 }
 
@@ -98,18 +98,7 @@ class AccountProtectionService:
             issues.append("Limite d'inscriptions atteinte pour cet appareil")
             risk_score += 50
         
-        # 5. Check if phone number already used (if provided)
-        if phone:
-            phone_normalized = self._normalize_phone(phone)
-            existing_phone = await self.db.users.find_one({
-                "phone_verified": phone_normalized,
-                "is_active": True
-            })
-            if existing_phone:
-                issues.append("Ce numéro de téléphone est déjà associé à un compte")
-                risk_score += 60
-        
-        # 6. Check for similar emails (name+number pattern)
+        # 5. Check for similar emails (name+number pattern)
         email_base = email.split('@')[0].lower()
         email_base_clean = re.sub(r'\d+$', '', email_base)  # Remove trailing numbers
         
@@ -124,13 +113,13 @@ class AccountProtectionService:
         # Determine action
         allowed = risk_score < 50
         requires_verification = risk_score >= 30 and risk_score < 50
-        requires_phone = risk_score >= 40
+        requires_email_verification = risk_score >= 30  # Email verification for moderate risk
         
         return {
             "allowed": allowed,
             "risk_score": risk_score,
             "issues": issues,
-            "requires_phone_verification": requires_phone,
+            "requires_email_verification": requires_email_verification,
             "requires_captcha": requires_verification,
             "message": "Inscription autorisée" if allowed else "Inscription refusée - activité suspecte détectée"
         }
@@ -212,15 +201,12 @@ class AccountProtectionService:
         
         await self.db.login_logs.insert_one(log)
     
-    async def verify_phone(self, user_id: str, phone: str, code: str) -> Dict:
-        """Verify a phone number for a user"""
-        
-        phone_normalized = self._normalize_phone(phone)
+    async def verify_email_code(self, user_id: str, code: str) -> Dict:
+        """Verify an email verification code for a user"""
         
         # Check if code is valid
-        verification = await self.db.phone_verifications.find_one({
+        verification = await self.db.email_verifications.find_one({
             "user_id": user_id,
-            "phone": phone_normalized,
             "code": code,
             "used": False,
             "expires_at": {"$gt": datetime.now(timezone.utc).isoformat()}
@@ -230,7 +216,7 @@ class AccountProtectionService:
             return {"success": False, "message": "Code invalide ou expiré"}
         
         # Mark as used
-        await self.db.phone_verifications.update_one(
+        await self.db.email_verifications.update_one(
             {"_id": verification["_id"]},
             {"$set": {"used": True, "used_at": datetime.now(timezone.utc).isoformat()}}
         )
@@ -239,28 +225,25 @@ class AccountProtectionService:
         await self.db.users.update_one(
             {"user_id": user_id},
             {"$set": {
-                "phone": phone_normalized,
-                "phone_verified": phone_normalized,
-                "phone_verified_at": datetime.now(timezone.utc).isoformat(),
-                "trust_score": 80  # Higher trust for verified phone
+                "email_verified": True,
+                "email_verified_at": datetime.now(timezone.utc).isoformat(),
+                "trust_score": 50  # Higher trust for verified email
             }}
         )
         
-        return {"success": True, "message": "Numéro vérifié avec succès"}
+        return {"success": True, "message": "Email vérifié avec succès"}
     
-    async def send_phone_verification(self, user_id: str, phone: str) -> Dict:
-        """Send a verification code to a phone number"""
-        
-        phone_normalized = self._normalize_phone(phone)
+    async def send_email_verification(self, user_id: str, email: str) -> Dict:
+        """Send a verification code to an email address"""
         
         # Check rate limit
         today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-        today_verifications = await self.db.phone_verifications.count_documents({
+        today_verifications = await self.db.email_verifications.count_documents({
             "user_id": user_id,
             "created_at": {"$gte": today.isoformat()}
         })
         
-        if today_verifications >= RATE_LIMITS["phone_verifications_per_day"]:
+        if today_verifications >= RATE_LIMITS["email_verifications_per_day"]:
             return {"success": False, "message": "Limite de vérifications atteinte pour aujourd'hui"}
         
         # Generate code
@@ -269,26 +252,24 @@ class AccountProtectionService:
         
         # Save verification
         verification = {
-            "verification_id": f"phone_{uuid.uuid4().hex[:12]}",
+            "verification_id": f"email_{uuid.uuid4().hex[:12]}",
             "user_id": user_id,
-            "phone": phone_normalized,
+            "email": email.lower(),
             "code": code,
             "used": False,
-            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat(),
+            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat(),
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         
-        await self.db.phone_verifications.insert_one(verification)
+        await self.db.email_verifications.insert_one(verification)
         
-        # In production: send SMS via Twilio or similar
-        # For now, just log it
-        logger.info(f"Phone verification code for {phone_normalized}: {code}")
+        logger.info(f"Email verification code for {email}: {code}")
         
         return {
             "success": True,
-            "message": "Code envoyé",
-            # In dev mode, return code for testing
-            "code": code if True else None  # Remove in production
+            "message": "Code envoyé par email",
+            "code": code,  # For testing - remove in production with Resend
+            "email": email
         }
     
     async def get_user_trust_score(self, user_id: str) -> Dict:
@@ -303,13 +284,8 @@ class AccountProtectionService:
         
         # Email verified
         if user.get("email_verified"):
-            score += 15
-            factors.append({"factor": "Email vérifié", "points": 15})
-        
-        # Phone verified
-        if user.get("phone_verified"):
             score += 25
-            factors.append({"factor": "Téléphone vérifié", "points": 25})
+            factors.append({"factor": "Email vérifié", "points": 25})
         
         # Account age
         created_at = datetime.fromisoformat(user.get("created_at", datetime.now(timezone.utc).isoformat()).replace('Z', '+00:00'))
