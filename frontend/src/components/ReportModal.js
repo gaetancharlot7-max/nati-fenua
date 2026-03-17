@@ -246,7 +246,7 @@ export const BlockUserModal = ({ isOpen, onClose, userId, userName }) => {
             Bloquer {userName} ?
           </h3>
           <p className="text-gray-600 mb-6 text-sm">
-            Cette personne ne pourra plus voir vos publications, vous envoyer de messages ou vous trouver sur Hui Fenua.
+            Cette personne ne pourra plus voir vos publications, vous envoyer de messages ou vous trouver sur Nati Fenua.
           </p>
 
           <div className="flex gap-3">

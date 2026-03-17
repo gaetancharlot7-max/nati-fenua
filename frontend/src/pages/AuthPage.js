@@ -59,7 +59,7 @@ const AuthPage = () => {
     window.location.href = `${API_URL}/api/auth/facebook`;
   };
 
-  // Hui Fenua Logo Component - Style original
+  // Nati Fenua Logo Component - Style original
   const HuiFenuaLogo = ({ size = 'md' }) => {
     const sizes = {
       sm: { outer: 'w-10 h-10', inner: 'text-lg' },
@@ -120,7 +120,7 @@ const AuthPage = () => {
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
             <HuiFenuaLogo size="md" />
             <h1 className="text-3xl font-black">
-              <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">Hui</span>
+              <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">Nati</span>
               <span className="text-[#1A1A2E]"> Fenua</span>
             </h1>
           </div>
@@ -132,7 +132,7 @@ const AuthPage = () => {
             <p className="text-gray-500 mb-8">
               {isLogin 
                 ? 'Heureux de vous revoir !' 
-                : 'Créez votre compte Hui Fenua'}
+                : 'Créez votre compte Nati Fenua'}
             </p>
 
             {/* Google Login Button */}

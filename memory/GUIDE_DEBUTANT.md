@@ -1,4 +1,4 @@
-# 🚀 Guide de Lancement Hui Fenua - Étape par Étape
+# 🚀 Guide de Lancement Nati Fenua - Étape par Étape
 
 ## Où en êtes-vous ?
 
@@ -79,9 +79,9 @@ Prenez **4 captures d'écran** de l'application sur votre téléphone :
 | Google Domains | ~12$ | https://domains.google |
 
 ### Noms suggérés :
-- huifenua.com
-- huifenua.app
-- huifenua.pf (domaine Polynésie)
+- natifenua.com
+- natifenua.app
+- natifenua.pf (domaine Polynésie)
 
 ---
 
@@ -107,9 +107,9 @@ npx @anthropic/anthropic-anthropic init --manifest https://VOTRE-DOMAINE.com/man
 
 | Question | Réponse |
 |----------|---------|
-| Package ID | `com.huifenua.app` |
-| App name | `Hui Fenua` |
-| Short name | `Hui Fenua` |
+| Package ID | `com.natifenua.app` |
+| App name | `Nati Fenua` |
+| Short name | `Nati Fenua` |
 | Display mode | `standalone` |
 
 ### Générez l'APK :
@@ -129,7 +129,7 @@ npx @anthropic/anthropic-anthropic build
 1. Retournez sur **https://play.google.com/console**
 
 2. Cliquez **"Créer une application"**
-   - Nom : `Hui Fenua`
+   - Nom : `Nati Fenua`
    - Langue : Français
    - Application ou Jeu : Application
    - Gratuite
@@ -143,7 +143,7 @@ Le réseau social de la Polynésie Française 🌺
 
 **Description complète :**
 ```
-Hui Fenua - Le réseau social de la Polynésie Française
+Nati Fenua - Le réseau social de la Polynésie Française
 
 Découvrez l'application qui connecte la communauté polynésienne !
 
@@ -230,4 +230,4 @@ Ia ora na ! 🇵🇫
 
 ---
 
-*Bonne chance pour le lancement de Hui Fenua ! 🌺🇵🇫*
+*Bonne chance pour le lancement de Nati Fenua ! 🌺🇵🇫*

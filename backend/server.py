@@ -108,7 +108,7 @@ client = create_optimized_client(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # Create the main app
-app = FastAPI(title="Hui Fenua API", docs_url="/api/docs", redoc_url="/api/redoc")
+app = FastAPI(title="Nati Fenua API", docs_url="/api/docs", redoc_url="/api/redoc")
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
@@ -838,14 +838,14 @@ async def request_password_reset(request: Request):
             html_content = f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                 <div style="text-align: center; margin-bottom: 30px;">
-                    <h1 style="color: #FF6B35;">🌺 Hui Fenua</h1>
+                    <h1 style="color: #FF6B35;">🌺 Nati Fenua</h1>
                 </div>
                 
                 <h2 style="color: #1A1A2E;">Réinitialisation de votre mot de passe</h2>
                 
                 <p>Ia ora na {user.get('name', 'cher utilisateur')} !</p>
                 
-                <p>Vous avez demandé à réinitialiser votre mot de passe sur Hui Fenua.</p>
+                <p>Vous avez demandé à réinitialiser votre mot de passe sur Nati Fenua.</p>
                 
                 <p>Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
                 
@@ -871,7 +871,7 @@ async def request_password_reset(request: Request):
                 
                 <p style="color: #999; font-size: 12px; text-align: center;">
                     Mauruuru roa ! 🌴<br>
-                    L'équipe Hui Fenua
+                    L'équipe Nati Fenua
                 </p>
             </div>
             """
@@ -883,7 +883,7 @@ async def request_password_reset(request: Request):
                 {
                     "from": sender_email,
                     "to": [email],
-                    "subject": "🔑 Réinitialisation de votre mot de passe - Hui Fenua",
+                    "subject": "🔑 Réinitialisation de votre mot de passe - Nati Fenua",
                     "html": html_content
                 }
             )
@@ -975,7 +975,7 @@ async def send_email_verification(request: Request):
             html_content = f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                 <div style="text-align: center; margin-bottom: 30px;">
-                    <h1 style="color: #FF6B35;">🌺 Hui Fenua</h1>
+                    <h1 style="color: #FF6B35;">🌺 Nati Fenua</h1>
                 </div>
                 
                 <h2 style="color: #1A1A2E;">Vérifiez votre email</h2>
@@ -1005,7 +1005,7 @@ async def send_email_verification(request: Request):
                 
                 <p style="color: #999; font-size: 12px; text-align: center;">
                     Mauruuru roa ! 🌴<br>
-                    L'équipe Hui Fenua
+                    L'équipe Nati Fenua
                 </p>
             </div>
             """
@@ -1016,7 +1016,7 @@ async def send_email_verification(request: Request):
                 {
                     "from": sender_email,
                     "to": [user.email],
-                    "subject": "🔐 Code de vérification - Hui Fenua",
+                    "subject": "🔐 Code de vérification - Nati Fenua",
                     "html": html_content
                 }
             )

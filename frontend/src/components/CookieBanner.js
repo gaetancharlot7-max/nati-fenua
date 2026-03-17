@@ -101,7 +101,7 @@ const CookieBanner = () => {
                     Nous utilisons des cookies
                   </h3>
                   <p className="text-gray-600 text-sm">
-                    Hui Fenua utilise des cookies pour améliorer votre expérience, analyser le trafic et personnaliser le contenu. 
+                    Nati Fenua utilise des cookies pour améliorer votre expérience, analyser le trafic et personnaliser le contenu. 
                     En continuant à utiliser notre site, vous acceptez notre{' '}
                     <Link to="/legal#cookies" className="text-[#FF6B35] hover:underline">
                       politique de cookies

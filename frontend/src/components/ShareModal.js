@@ -8,8 +8,8 @@ export const ShareModal = ({ isOpen, onClose, url, title, description }) => {
   const [copied, setCopied] = useState(false);
   
   const shareUrl = url || window.location.href;
-  const shareTitle = title || 'Hui Fenua';
-  const shareText = description || 'Découvrez ce contenu sur Hui Fenua !';
+  const shareTitle = title || 'Nati Fenua';
+  const shareText = description || 'Découvrez ce contenu sur Nati Fenua !';
   
   const shareOptions = [
     {

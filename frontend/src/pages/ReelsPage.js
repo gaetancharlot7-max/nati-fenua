@@ -323,7 +323,7 @@ const ReelsPage = () => {
         isOpen={!!shareReel}
         onClose={() => setShareReel(null)}
         url={shareReel ? `${window.location.origin}/reels/${shareReel.post_id}` : ''}
-        title={shareReel?.caption?.substring(0, 50) || 'Regardez ce reel sur Hui Fenua'}
+        title={shareReel?.caption?.substring(0, 50) || 'Regardez ce reel sur Nati Fenua'}
         description={shareReel?.caption || ''}
       />
 

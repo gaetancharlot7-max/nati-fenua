@@ -64,7 +64,7 @@ const LegalPage = () => {
                 <h3 className="text-lg font-semibold text-[#1A1A2E]">1. Objet</h3>
                 <p className="text-gray-600">
                   Les présentes Conditions Générales d'Utilisation (CGU) ont pour objet de définir les modalités 
-                  et conditions d'utilisation de la plateforme Hui Fenua, réseau social dédié à la communauté 
+                  et conditions d'utilisation de la plateforme Nati Fenua, réseau social dédié à la communauté 
                   polynésienne.
                 </p>
               </section>
@@ -72,7 +72,7 @@ const LegalPage = () => {
               <section>
                 <h3 className="text-lg font-semibold text-[#1A1A2E]">2. Acceptation des CGU</h3>
                 <p className="text-gray-600">
-                  L'inscription et l'utilisation de Hui Fenua impliquent l'acceptation pleine et entière 
+                  L'inscription et l'utilisation de Nati Fenua impliquent l'acceptation pleine et entière 
                   des présentes CGU. Si vous n'acceptez pas ces conditions, vous ne devez pas utiliser 
                   la plateforme.
                 </p>
@@ -81,7 +81,7 @@ const LegalPage = () => {
               <section>
                 <h3 className="text-lg font-semibold text-[#1A1A2E]">3. Description du service</h3>
                 <p className="text-gray-600">
-                  Hui Fenua est un réseau social permettant aux utilisateurs de :
+                  Nati Fenua est un réseau social permettant aux utilisateurs de :
                 </p>
                 <ul className="list-disc pl-6 text-gray-600 mt-2 space-y-1">
                   <li>Partager des photos, vidéos et stories</li>
@@ -94,7 +94,7 @@ const LegalPage = () => {
               <section>
                 <h3 className="text-lg font-semibold text-[#1A1A2E]">4. Inscription et compte</h3>
                 <p className="text-gray-600">
-                  Pour utiliser Hui Fenua, vous devez créer un compte en fournissant des informations exactes. 
+                  Pour utiliser Nati Fenua, vous devez créer un compte en fournissant des informations exactes. 
                   Vous êtes responsable de la confidentialité de vos identifiants de connexion.
                 </p>
               </section>
@@ -114,7 +114,7 @@ const LegalPage = () => {
               <section>
                 <h3 className="text-lg font-semibold text-[#1A1A2E]">6. Modération</h3>
                 <p className="text-gray-600">
-                  Hui Fenua se réserve le droit de supprimer tout contenu ne respectant pas les présentes CGU 
+                  Nati Fenua se réserve le droit de supprimer tout contenu ne respectant pas les présentes CGU 
                   et de suspendre ou supprimer les comptes des utilisateurs contrevenants.
                 </p>
               </section>
@@ -122,7 +122,7 @@ const LegalPage = () => {
               <section>
                 <h3 className="text-lg font-semibold text-[#1A1A2E]">7. Propriété intellectuelle</h3>
                 <p className="text-gray-600">
-                  Les utilisateurs conservent la propriété de leurs contenus. En publiant sur Hui Fenua, 
+                  Les utilisateurs conservent la propriété de leurs contenus. En publiant sur Nati Fenua, 
                   vous accordez une licence non-exclusive permettant la diffusion de vos contenus sur la plateforme.
                 </p>
               </section>
@@ -130,7 +130,7 @@ const LegalPage = () => {
               <section>
                 <h3 className="text-lg font-semibold text-[#1A1A2E]">8. Limitation de responsabilité</h3>
                 <p className="text-gray-600">
-                  Hui Fenua ne peut être tenu responsable des contenus publiés par les utilisateurs, 
+                  Nati Fenua ne peut être tenu responsable des contenus publiés par les utilisateurs, 
                   ni des transactions effectuées via le marché.
                 </p>
               </section>
@@ -248,7 +248,7 @@ const LegalPage = () => {
                 <h3 className="text-lg font-semibold text-[#1A1A2E]">3. Gestion des cookies</h3>
                 <p className="text-gray-600">
                   Vous pouvez à tout moment modifier vos préférences de cookies dans les paramètres 
-                  de votre navigateur ou dans les paramètres de votre compte Hui Fenua.
+                  de votre navigateur ou dans les paramètres de votre compte Nati Fenua.
                 </p>
               </section>
             </div>
@@ -271,7 +271,7 @@ const LegalPage = () => {
               <section>
                 <h3 className="text-lg font-semibold text-[#1A1A2E]">Éditeur</h3>
                 <p className="text-gray-600">
-                  Hui Fenua<br />
+                  Nati Fenua<br />
                   Réseau social pour la Polynésie Française<br />
                   Contact : contact@huifenua.pf
                 </p>

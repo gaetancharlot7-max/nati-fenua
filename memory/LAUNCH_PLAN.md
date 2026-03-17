@@ -1,8 +1,8 @@
-# Plan de Lancement - Hui Fenua
+# Plan de Lancement - Nati Fenua
 
 ## 1. Résumé du Projet
 
-**Hui Fenua** - Le réseau social de la Polynésie Française
+**Nati Fenua** - Le réseau social de la Polynésie Française
 - Application web PWA (Progressive Web App)
 - Cible : Polynésiens locaux et diaspora mondiale
 - Fonctionnalités : Feed social, Stories, Fenua Pulse (carte), Marketplace, Chat
@@ -17,7 +17,7 @@
 |---------|------|-------|
 | Google Play Console | 25$ | Paiement unique |
 | Apple Developer | 99$/an | Optionnel pour iOS |
-| Nom de domaine | 12$/an | huifenua.com ou .pf |
+| Nom de domaine | 12$/an | natifenua.com ou .pf |
 | **Total lancement** | **~40$** | Sans iOS |
 
 ### Coûts mensuels (Exploitation)
@@ -194,7 +194,7 @@
 ## 8. Support et Maintenance
 
 ### Support utilisateurs
-- Email : support@huifenua.com
+- Email : support@natifenua.com
 - Page FAQ dans l'application
 - Réponse sous 24-48h
 
@@ -231,4 +231,4 @@
 ---
 
 *Document créé le 16 Mars 2026*
-*Hui Fenua v1.0.0*
+*Nati Fenua v1.0.0*

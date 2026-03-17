@@ -757,7 +757,7 @@ const FeedPage = () => {
         isOpen={!!sharePost}
         onClose={() => setSharePost(null)}
         url={sharePost ? `${window.location.origin}/post/${sharePost.post_id}` : ''}
-        title={sharePost?.caption?.substring(0, 50) || 'Découvrez ce post sur Hui Fenua'}
+        title={sharePost?.caption?.substring(0, 50) || 'Découvrez ce post sur Nati Fenua'}
         description={sharePost?.caption || ''}
       />
 

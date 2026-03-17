@@ -190,7 +190,7 @@ const AdminDashboardPage = () => {
           </div>
           <div>
             <h1 className="font-bold">Admin Panel</h1>
-            <p className="text-xs text-white/50">Hui Fenua</p>
+            <p className="text-xs text-white/50">Nati Fenua</p>
           </div>
         </div>
 

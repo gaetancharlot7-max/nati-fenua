@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import NotificationBell from '../NotificationBell';
 
-// Hui Fenua Logo Component - Style original
+// Nati Fenua Logo Component - Style original
 const HuiFenuaLogo = ({ size = 'md' }) => {
   const sizes = {
     sm: { outer: 'w-8 h-8', inner: 'text-lg' },
@@ -64,7 +64,7 @@ const MainLayout = ({ children, hideNav = false }) => {
             <HuiFenuaLogo size="md" />
             <div>
               <h1 className="text-2xl font-black">
-                <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">Hui</span>
+                <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">Nati</span>
                 <span className="text-[#1A1A2E]"> Fenua</span>
               </h1>
               <p className="text-xs text-gray-400 font-medium">Polynésie Française</p>
@@ -259,7 +259,7 @@ const MainLayout = ({ children, hideNav = false }) => {
             className="flex items-center gap-3 w-full px-5 py-2.5 bg-gray-100 rounded-2xl text-gray-500 hover:bg-gray-200 transition-all"
           >
             <Search size={20} strokeWidth={1.5} />
-            <span>Rechercher sur Hui Fenua...</span>
+            <span>Rechercher sur Nati Fenua...</span>
           </Link>
         </div>
         
@@ -321,7 +321,7 @@ const MainLayout = ({ children, hideNav = false }) => {
             <span>·</span>
             <Link to="/legal#privacy" className="hover:text-gray-600">Confidentialité</Link>
             <span>·</span>
-            <span>© 2024 Hui Fenua</span>
+            <span>© 2024 Nati Fenua</span>
           </div>
         </div>
       </aside>
@@ -331,7 +331,7 @@ const MainLayout = ({ children, hideNav = false }) => {
         <Link to="/feed" className="flex items-center gap-2">
           <HuiFenuaLogo size="sm" />
           <h1 className="text-xl font-black">
-            <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">Hui Fenua</span>
+            <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">Nati Fenua</span>
           </h1>
         </Link>
         

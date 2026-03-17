@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Users, ShoppingBag, Play, Heart, MapPin, MessageCircle, Radio, Sparkles, Camera, Film } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
-// Hui Fenua Logo Component - Style original
+// Nati Fenua Logo Component - Style original
 const HuiFenuaLogo = ({ size = 'lg' }) => {
   const sizes = {
     sm: { outer: 'w-8 h-8', inner: 'text-lg' },
@@ -19,7 +19,7 @@ const HuiFenuaLogo = ({ size = 'lg' }) => {
       transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
     >
       <div className="w-full h-full rounded-[20px] bg-white flex items-center justify-center">
-        <span className={`${sizes[size].inner} font-black bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent`}>H</span>
+        <span className={`${sizes[size].inner} font-black bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent`}>N</span>
       </div>
     </motion.div>
   );
@@ -96,7 +96,7 @@ const LandingPage = () => {
             </div>
 
             <h1 className="text-6xl md:text-8xl font-black text-white mb-4 tracking-tight">
-              <span className="bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent">Hui</span>
+              <span className="bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent">Nati</span>
               {' '}
               <span className="text-white">Fenua</span>
             </h1>
@@ -295,7 +295,7 @@ const LandingPage = () => {
                 Téléchargez l'application
               </h2>
               <p className="text-lg text-white/70 mb-8 leading-relaxed">
-                Hui Fenua est disponible sur votre smartphone. 
+                Nati Fenua est disponible sur votre smartphone. 
                 Installez l'application et restez connecté à la communauté polynésienne.
               </p>
               
@@ -390,13 +390,13 @@ const LandingPage = () => {
             <div className="flex items-center gap-3">
               <HuiFenuaLogo size="md" />
               <div>
-                <span className="text-white font-black text-xl">Hui Fenua</span>
+                <span className="text-white font-black text-xl">Nati Fenua</span>
                 <p className="text-white/50 text-sm">Polynésie Française</p>
               </div>
             </div>
             
             <p className="text-white/50 text-sm">
-              © 2026 Hui Fenua. Fait avec ❤️ à Tahiti
+              © 2026 Nati Fenua. Fait avec ❤️ à Tahiti
             </p>
           </div>
         </div>

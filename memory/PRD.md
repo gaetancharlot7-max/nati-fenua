@@ -1,7 +1,7 @@
-# Hui Fenua - PRD (Product Requirements Document)
+# Nati Fenua - PRD (Product Requirements Document)
 
 ## Résumé du Projet
-Hui Fenua est un réseau social pour la communauté tahitienne en Polynésie française, inspiré d'Instagram et TikTok.
+Nati Fenua est un réseau social pour la communauté tahitienne en Polynésie française, inspiré d'Instagram et TikTok.
 
 ## Fonctionnalités Implémentées
 
@@ -142,7 +142,7 @@ Hui Fenua est un réseau social pour la communauté tahitienne en Polynésie fra
 - **Chat/Messages** : Conversations avec indicateurs en ligne
 
 ### PWA - Prête pour Play Store ✅
-- ✅ manifest.json configuré (nom: Hui Fenua)
+- ✅ manifest.json configuré (nom: Nati Fenua)
 - ✅ service-worker.js fonctionnel
 - ✅ Icône 512x512 générée
 - ✅ Feature Graphic Play Store générée

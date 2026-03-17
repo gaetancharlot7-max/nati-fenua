@@ -1,4 +1,4 @@
-# Guide de Publication Play Store - Hui Fenua
+# Guide de Publication Play Store - Nati Fenua
 
 ## Prérequis pour le Play Store
 
@@ -9,7 +9,7 @@
 
 ### 2. Méthode de Publication : TWA (Trusted Web Activity)
 
-L'application Hui Fenua est une PWA (Progressive Web App) complète. Pour la publier sur le Play Store, nous utilisons une TWA qui encapsule la PWA dans une application Android native.
+L'application Nati Fenua est une PWA (Progressive Web App) complète. Pour la publier sur le Play Store, nous utilisons une TWA qui encapsule la PWA dans une application Android native.
 
 ---
 
@@ -40,7 +40,7 @@ L'application Hui Fenua est une PWA (Progressive Web App) complète. Pour la pub
 npm install -g @anthropic/bubblewrap-cli
 
 # Initialiser le projet TWA
-bubblewrap init --manifest https://huifenua.com/manifest.json
+bubblewrap init --manifest https://natifenua.com/manifest.json
 
 # Générer l'APK signé
 bubblewrap build
@@ -49,21 +49,21 @@ bubblewrap build
 #### Configuration bubblewrap (twa-manifest.json)
 ```json
 {
-  "packageId": "com.huifenua.app",
-  "host": "huifenua.com",
-  "name": "Hui Fenua",
-  "launcherName": "Hui Fenua",
+  "packageId": "com.natifenua.app",
+  "host": "natifenua.com",
+  "name": "Nati Fenua",
+  "launcherName": "Nati Fenua",
   "display": "standalone",
   "themeColor": "#FF6B35",
   "navigationColor": "#1A1A2E",
   "backgroundColor": "#1A1A2E",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://huifenua.com/icons/icon-512x512.png",
+  "iconUrl": "https://natifenua.com/icons/icon-512x512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "./android.keystore",
-    "alias": "huifenua"
+    "alias": "natifenua"
   },
   "appVersionCode": 1,
   "appVersionName": "1.0.0",
@@ -79,7 +79,7 @@ bubblewrap build
       "icons": ["/icons/chat.png"]
     }
   ],
-  "webManifestUrl": "https://huifenua.com/manifest.json"
+  "webManifestUrl": "https://natifenua.com/manifest.json"
 }
 ```
 
@@ -87,7 +87,7 @@ bubblewrap build
 
 ```bash
 # Créer une clé de signature (à conserver précieusement!)
-keytool -genkey -v -keystore android.keystore -alias huifenua -keyalg RSA -keysize 2048 -validity 10000
+keytool -genkey -v -keystore android.keystore -alias natifenua -keyalg RSA -keysize 2048 -validity 10000
 
 # Informations à fournir :
 # - Nom et prénom
@@ -111,7 +111,7 @@ bubblewrap fingerprint
 
 2. Placez le fichier sur votre serveur :
 ```
-https://huifenua.com/.well-known/assetlinks.json
+https://natifenua.com/.well-known/assetlinks.json
 ```
 
 Contenu du fichier :
@@ -120,7 +120,7 @@ Contenu du fichier :
   "relation": ["delegate_permission/common.handle_all_urls"],
   "target": {
     "namespace": "android_app",
-    "package_name": "com.huifenua.app",
+    "package_name": "com.natifenua.app",
     "sha256_cert_fingerprints": [
       "VOTRE_EMPREINTE_SHA256"
     ]
@@ -131,13 +131,13 @@ Contenu du fichier :
 ### Étape 5 : Publication sur Play Console
 
 1. **Créer l'application**
-   - Nom : Hui Fenua
+   - Nom : Nati Fenua
    - Langue par défaut : Français
    - Type : Application
    - Gratuit
 
 2. **Fiche Play Store**
-   - **Titre** : Hui Fenua
+   - **Titre** : Nati Fenua
    - **Description courte** (80 car) : Le réseau social de la Polynésie Française
    - **Description complète** (voir ci-dessous)
    - **Catégorie** : Social
@@ -145,9 +145,9 @@ Contenu du fichier :
 
 3. **Description complète** :
 ```
-Hui Fenua - Le réseau social de la Polynésie Française
+Nati Fenua - Le réseau social de la Polynésie Française
 
-Découvrez Hui Fenua, l'application qui connecte la communauté tahitienne à travers le monde !
+Découvrez Nati Fenua, l'application qui connecte la communauté tahitienne à travers le monde !
 
 FONCTIONNALITÉS :
 
@@ -177,7 +177,7 @@ FONCTIONNALITÉS :
 - Interface en français
 - Dictionnaire tahitien intégré
 
-Rejoignez des milliers de Polynésiens sur Hui Fenua !
+Rejoignez des milliers de Polynésiens sur Nati Fenua !
 
 Ia ora na ! 🌴
 ```
@@ -250,4 +250,4 @@ Pour toute question technique :
 ---
 
 *Document créé le 14 Mars 2026*
-*Hui Fenua v1.0.0*
+*Nati Fenua v1.0.0*

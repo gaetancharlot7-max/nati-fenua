@@ -133,7 +133,7 @@ export const PrivacyPolicyModal = ({ isOpen, onClose, onAccept }) => {
             <section>
               <h3 className="font-bold text-[#1A1A2E] mb-2">📸 Photos et Vidéos</h3>
               <p className="text-gray-600 text-sm">
-                En publiant des photos ou vidéos sur Hui Fenua, vous acceptez que :
+                En publiant des photos ou vidéos sur Nati Fenua, vous acceptez que :
               </p>
               <ul className="mt-2 space-y-2 text-sm text-gray-600">
                 <li className="flex items-start gap-2">

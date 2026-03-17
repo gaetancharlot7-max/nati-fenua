@@ -356,7 +356,7 @@ const LiveViewPage = () => {
         isOpen={showShare}
         onClose={() => setShowShare(false)}
         url={`${window.location.origin}/live/${liveId}`}
-        title={`Regardez ${live.user?.name} en direct sur Hui Fenua !`}
+        title={`Regardez ${live.user?.name} en direct sur Nati Fenua !`}
       />
     </div>
   );

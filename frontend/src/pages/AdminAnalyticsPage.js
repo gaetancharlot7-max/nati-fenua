@@ -51,7 +51,7 @@ const AdminAnalyticsPage = () => {
             <BarChart3 className="text-[#FF6B35]" />
             Analytics
           </h1>
-          <p className="text-gray-500 mt-1">Statistiques et performances de Hui Fenua</p>
+          <p className="text-gray-500 mt-1">Statistiques et performances de Nati Fenua</p>
         </div>
 
         {/* Tabs */}

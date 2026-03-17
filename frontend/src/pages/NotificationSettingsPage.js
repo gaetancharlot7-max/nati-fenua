@@ -100,7 +100,7 @@ const NotificationSettingsPage = () => {
       key: 'marketing',
       icon: Megaphone,
       title: 'Promotions',
-      description: 'Offres spéciales et actualités de Hui Fenua',
+      description: 'Offres spéciales et actualités de Nati Fenua',
       color: 'from-amber-400 to-orange-500'
     }
   ];
@@ -144,7 +144,7 @@ const NotificationSettingsPage = () => {
             <div>
               <h3 className="font-semibold text-[#1A1A2E]">Restez connecté avec vos amis</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Activez les notifications pour ne rien manquer de ce que vos amis partagent sur Hui Fenua
+                Activez les notifications pour ne rien manquer de ce que vos amis partagent sur Nati Fenua
               </p>
             </div>
           </div>
@@ -182,7 +182,7 @@ const NotificationSettingsPage = () => {
         <div className="mt-8 bg-gradient-to-r from-[#00CED1] to-[#006994] rounded-2xl p-6 text-white">
           <h3 className="text-lg font-semibold mb-2">Notifications push sur téléphone</h3>
           <p className="text-white/80 text-sm mb-4">
-            Installez Hui Fenua sur votre téléphone pour recevoir des notifications même quand l'app est fermée
+            Installez Nati Fenua sur votre téléphone pour recevoir des notifications même quand l'app est fermée
           </p>
           <Button
             onClick={() => {
