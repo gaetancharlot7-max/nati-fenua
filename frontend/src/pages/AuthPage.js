@@ -60,7 +60,7 @@ const AuthPage = () => {
   };
 
   // Nati Fenua Logo Component - Style original
-  const HuiFenuaLogo = ({ size = 'md' }) => {
+  const NatiFenuaLogo = ({ size = 'md' }) => {
     const sizes = {
       sm: { outer: 'w-10 h-10', inner: 'text-lg' },
       md: { outer: 'w-14 h-14', inner: 'text-2xl' },
@@ -70,7 +70,7 @@ const AuthPage = () => {
     return (
       <div className={`${sizes[size].outer} rounded-2xl bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] p-0.5 rotate-3`}>
         <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
-          <span className={`${sizes[size].inner} font-black bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent`}>H</span>
+          <span className={`${sizes[size].inner} font-black bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent`}>N</span>
         </div>
       </div>
     );
@@ -91,9 +91,9 @@ const AuthPage = () => {
         
         <div className="relative z-10 p-12 flex flex-col justify-between">
           <div className="flex items-center gap-3">
-            <HuiFenuaLogo size="md" />
+            <NatiFenuaLogo size="md" />
             <h1 className="text-3xl font-black text-white">
-              Hui <span className="text-white/90">Fenua</span>
+              Nati <span className="text-white/90">Fenua</span>
             </h1>
           </div>
           
@@ -118,7 +118,7 @@ const AuthPage = () => {
         >
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-            <HuiFenuaLogo size="md" />
+            <NatiFenuaLogo size="md" />
             <h1 className="text-3xl font-black">
               <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">Nati</span>
               <span className="text-[#1A1A2E]"> Fenua</span>

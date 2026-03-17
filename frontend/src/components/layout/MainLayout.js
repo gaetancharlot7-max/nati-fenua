@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import NotificationBell from '../NotificationBell';
 
 // Nati Fenua Logo Component - Style original
-const HuiFenuaLogo = ({ size = 'md' }) => {
+const NatiFenuaLogo = ({ size = 'md' }) => {
   const sizes = {
     sm: { outer: 'w-8 h-8', inner: 'text-lg' },
     md: { outer: 'w-10 h-10', inner: 'text-xl' },
@@ -16,7 +16,7 @@ const HuiFenuaLogo = ({ size = 'md' }) => {
   return (
     <div className={`${sizes[size].outer} rounded-2xl bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] p-0.5 rotate-3 hover:rotate-0 transition-transform duration-300`}>
       <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
-        <span className={`${sizes[size].inner} font-black bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent`}>H</span>
+        <span className={`${sizes[size].inner} font-black bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent`}>N</span>
       </div>
     </div>
   );
@@ -61,7 +61,7 @@ const MainLayout = ({ children, hideNav = false }) => {
         {/* Logo */}
         <div className="p-6 border-b border-gray-100">
           <Link to="/feed" className="flex items-center gap-3">
-            <HuiFenuaLogo size="md" />
+            <NatiFenuaLogo size="md" />
             <div>
               <h1 className="text-2xl font-black">
                 <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">Nati</span>
@@ -329,7 +329,7 @@ const MainLayout = ({ children, hideNav = false }) => {
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-14 glass z-30 flex items-center justify-between px-4">
         <Link to="/feed" className="flex items-center gap-2">
-          <HuiFenuaLogo size="sm" />
+          <NatiFenuaLogo size="sm" />
           <h1 className="text-xl font-black">
             <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">Nati Fenua</span>
           </h1>

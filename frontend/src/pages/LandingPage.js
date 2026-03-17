@@ -4,7 +4,7 @@ import { ArrowRight, Users, ShoppingBag, Play, Heart, MapPin, MessageCircle, Rad
 import { Button } from '../components/ui/button';
 
 // Nati Fenua Logo Component - Style original
-const HuiFenuaLogo = ({ size = 'lg' }) => {
+const NatiFenuaLogo = ({ size = 'lg' }) => {
   const sizes = {
     sm: { outer: 'w-8 h-8', inner: 'text-lg' },
     md: { outer: 'w-12 h-12', inner: 'text-2xl' },
@@ -92,7 +92,7 @@ const LandingPage = () => {
           >
             {/* Logo */}
             <div className="flex justify-center mb-8">
-              <HuiFenuaLogo size="xl" />
+              <NatiFenuaLogo size="xl" />
             </div>
 
             <h1 className="text-6xl md:text-8xl font-black text-white mb-4 tracking-tight">
@@ -388,7 +388,7 @@ const LandingPage = () => {
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <HuiFenuaLogo size="md" />
+              <NatiFenuaLogo size="md" />
               <div>
                 <span className="text-white font-black text-xl">Nati Fenua</span>
                 <p className="text-white/50 text-sm">Polynésie Française</p>
