@@ -34,7 +34,7 @@ SENDER_EMAIL=noreply@natifenua.com
 ### 2. Variables d'environnement (Frontend)
 ```env
 # /app/frontend/.env
-REACT_APP_BACKEND_URL=https://votre-domaine.com
+REACT_APP_BACKEND_URL=https://nati-fenua.com.com
 ```
 
 ### 3. Build de production

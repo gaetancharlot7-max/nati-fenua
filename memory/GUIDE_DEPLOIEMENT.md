@@ -46,7 +46,7 @@ Dans Railway → votre service → **Variables**, ajoutez :
 MONGO_URL = (voir étape 4)
 DB_NAME = natifenua
 JWT_SECRET = GenerezUneLongueChaineAleatoire123456789
-CORS_ORIGINS = https://votre-domaine.com
+CORS_ORIGINS = https://nati-fenua.com
 ```
 
 ### C. Créer le service Frontend
@@ -135,7 +135,7 @@ mkdir nati-fenua-app
 cd nati-fenua-app
 
 # Initialiser (remplacez par votre domaine)
-npx @anthropic/anthropic-anthropic init --manifest https://VOTRE-DOMAINE.com/manifest.json
+npx @anthropic/anthropic-anthropic init --manifest https://nati-fenua.com/manifest.json
 ```
 
 3. **Répondez aux questions** :
@@ -145,7 +145,7 @@ npx @anthropic/anthropic-anthropic init --manifest https://VOTRE-DOMAINE.com/man
 | Package ID | `com.natifenua.app` |
 | App name | `Nati Fenua` |
 | Short name | `Nati Fenua` |
-| Host | `VOTRE-DOMAINE.com` |
+| Host | `nati-fenua.com` |
 | Start URL | `/` |
 | Theme color | `#FF6B35` |
 | Background | `#1A1A2E` |

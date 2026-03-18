@@ -2,9 +2,9 @@
   "relation": ["delegate_permission/common.handle_all_urls"],
   "target": {
     "namespace": "android_app",
-    "package_name": "com.huifenua.app",
+    "package_name": "com.natifenua.app",
     "sha256_cert_fingerprints": [
-      "XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX"
+      "REMPLACER_PAR_VOTRE_EMPREINTE_SHA256"
     ]
   }
 }]
