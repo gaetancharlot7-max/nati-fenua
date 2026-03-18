@@ -1,45 +1,58 @@
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Toaster } from './components/ui/sonner';
+import { Suspense, lazy } from 'react';
 import './App.css';
 
-// Pages
-import LandingPage from './pages/LandingPage';
-import AuthPage from './pages/AuthPage';
-import AuthCallback from './pages/AuthCallback';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import FeedPage from './pages/FeedPage';
-import ReelsPage from './pages/ReelsPage';
-import LivePage from './pages/LivePage';
-import MarketplacePage from './pages/MarketplacePage';
-import ProfilePage from './pages/ProfilePage';
-import CreatePostPage from './pages/CreatePostPage';
-import CreateProductPage from './pages/CreateProductPage';
-import BusinessDashboard from './pages/BusinessDashboard';
-import SearchPage from './pages/SearchPage';
-import NotificationsPage from './pages/NotificationsPage';
-import ChatPage from './pages/ChatPage';
-import CreateAdPage from './pages/CreateAdPage';
-import SecuritySettingsPage from './pages/SecuritySettingsPage';
-import NotificationSettingsPage from './pages/NotificationSettingsPage';
-import AdminLoginPage from './pages/AdminLoginPage';
-import AdminDashboardPage from './pages/AdminDashboardPage';
-import EditProfilePage from './pages/EditProfilePage';
-import LegalPage from './pages/LegalPage';
-import GDPRSettingsPage from './pages/GDPRSettingsPage';
-import AdminAnalyticsPage from './pages/AdminAnalyticsPage';
-import AdminMonitoringPage from './pages/AdminMonitoringPage';
-import AdminModerationPage from './pages/AdminModerationPage';
-import AdminAutoPublishPage from './pages/AdminAutoPublishPage';
-import PulsePage from './pages/PulsePage';
-import VendorDashboardPage from './pages/VendorDashboardPage';
-import LiveViewPage from './pages/LiveViewPage';
+// Loading component
+const PageLoader = () => (
+  <div className="min-h-screen bg-[#1A1A2E] flex items-center justify-center">
+    <div className="text-center">
+      <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] p-0.5 animate-pulse">
+        <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
+          <span className="text-2xl font-black bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent">N</span>
+        </div>
+      </div>
+      <p className="text-white/60 text-sm">Chargement...</p>
+    </div>
+  </div>
+);
 
-// Components
+// Lazy load pages for better performance
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const AuthCallback = lazy(() => import('./pages/AuthCallback'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const FeedPage = lazy(() => import('./pages/FeedPage'));
+const ReelsPage = lazy(() => import('./pages/ReelsPage'));
+const LivePage = lazy(() => import('./pages/LivePage'));
+const MarketplacePage = lazy(() => import('./pages/MarketplacePage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const CreatePostPage = lazy(() => import('./pages/CreatePostPage'));
+const CreateProductPage = lazy(() => import('./pages/CreateProductPage'));
+const BusinessDashboard = lazy(() => import('./pages/BusinessDashboard'));
+const SearchPage = lazy(() => import('./pages/SearchPage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+const CreateAdPage = lazy(() => import('./pages/CreateAdPage'));
+const SecuritySettingsPage = lazy(() => import('./pages/SecuritySettingsPage'));
+const NotificationSettingsPage = lazy(() => import('./pages/NotificationSettingsPage'));
+const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage'));
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'));
+const EditProfilePage = lazy(() => import('./pages/EditProfilePage'));
+const LegalPage = lazy(() => import('./pages/LegalPage'));
+const GDPRSettingsPage = lazy(() => import('./pages/GDPRSettingsPage'));
+const AdminAnalyticsPage = lazy(() => import('./pages/AdminAnalyticsPage'));
+const AdminMonitoringPage = lazy(() => import('./pages/AdminMonitoringPage'));
+const AdminModerationPage = lazy(() => import('./pages/AdminModerationPage'));
+const AdminAutoPublishPage = lazy(() => import('./pages/AdminAutoPublishPage'));
+const PulsePage = lazy(() => import('./pages/PulsePage'));
+const VendorDashboardPage = lazy(() => import('./pages/VendorDashboardPage'));
+const LiveViewPage = lazy(() => import('./pages/LiveViewPage'));
+
+// Components (loaded immediately as they're small)
 import CookieBanner from './components/CookieBanner';
-
-// Layout
 import MainLayout from './components/layout/MainLayout';
 
 // Protected Route Component
@@ -48,19 +61,7 @@ const ProtectedRoute = ({ children }) => {
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FFF5E6] to-white">
-        <div className="text-center">
-          <div className="w-20 h-20 mx-auto mb-6 relative">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#FF6B35] to-[#00CED1] animate-spin"></div>
-            <div className="absolute inset-1 rounded-full bg-white flex items-center justify-center">
-              <span className="text-3xl font-bold gradient-text">F</span>
-            </div>
-          </div>
-          <p className="text-[#1A1A2E] font-semibold text-lg">Chargement...</p>
-        </div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!user) {
@@ -70,200 +71,80 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-// App Router Component
-function AppRouter() {
-  const location = useLocation();
+// Admin Route Component
+const AdminRoute = ({ children }) => {
+  const { user, loading } = useAuth();
 
-  // Check URL fragment for session_id (OAuth callback)
-  if (location.hash?.includes('session_id=')) {
-    return <AuthCallback />;
+  if (loading) {
+    return <PageLoader />;
   }
 
+  if (!user || user.role !== 'admin') {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  return children;
+};
+
+function AppContent() {
+  const location = useLocation();
+  const isLandingPage = location.pathname === '/';
+  const isAuthPage = location.pathname === '/auth' || location.pathname.startsWith('/forgot-password') || location.pathname.startsWith('/reset-password');
+  const isAdminPage = location.pathname.startsWith('/admin');
+  const isLegalPage = location.pathname.startsWith('/legal');
+
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/auth" element={<AuthPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/legal/*" element={<LegalPage />} />
+        
+        {/* Admin Routes */}
+        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
+        <Route path="/admin/analytics" element={<AdminRoute><AdminAnalyticsPage /></AdminRoute>} />
+        <Route path="/admin/monitoring" element={<AdminRoute><AdminMonitoringPage /></AdminRoute>} />
+        <Route path="/admin/moderation" element={<AdminRoute><AdminModerationPage /></AdminRoute>} />
+        <Route path="/admin/auto-publish" element={<AdminRoute><AdminAutoPublishPage /></AdminRoute>} />
+        
+        {/* Protected Routes with Layout */}
+        <Route path="/feed" element={<ProtectedRoute><MainLayout><FeedPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/reels" element={<ProtectedRoute><MainLayout><ReelsPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/live" element={<ProtectedRoute><MainLayout><LivePage /></MainLayout></ProtectedRoute>} />
+        <Route path="/live/:liveId" element={<ProtectedRoute><MainLayout><LiveViewPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/marketplace" element={<ProtectedRoute><MainLayout><MarketplacePage /></MainLayout></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><MainLayout><ProfilePage /></MainLayout></ProtectedRoute>} />
+        <Route path="/profile/edit" element={<ProtectedRoute><MainLayout><EditProfilePage /></MainLayout></ProtectedRoute>} />
+        <Route path="/profile/:userId" element={<ProtectedRoute><MainLayout><ProfilePage /></MainLayout></ProtectedRoute>} />
+        <Route path="/create" element={<ProtectedRoute><MainLayout><CreatePostPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/create-product" element={<ProtectedRoute><MainLayout><CreateProductPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/business" element={<ProtectedRoute><MainLayout><BusinessDashboard /></MainLayout></ProtectedRoute>} />
+        <Route path="/search" element={<ProtectedRoute><MainLayout><SearchPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><MainLayout><NotificationsPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/chat" element={<ProtectedRoute><MainLayout><ChatPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/chat/:conversationId" element={<ProtectedRoute><MainLayout><ChatPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/create-ad" element={<ProtectedRoute><MainLayout><CreateAdPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/settings/security" element={<ProtectedRoute><MainLayout><SecuritySettingsPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/settings/notifications" element={<ProtectedRoute><MainLayout><NotificationSettingsPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/settings/privacy" element={<ProtectedRoute><MainLayout><GDPRSettingsPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/pulse" element={<ProtectedRoute><MainLayout><PulsePage /></MainLayout></ProtectedRoute>} />
+        <Route path="/vendor/dashboard" element={<ProtectedRoute><MainLayout><VendorDashboardPage /></MainLayout></ProtectedRoute>} />
+        
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
       
-      {/* Protected Routes */}
-      <Route path="/feed" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <FeedPage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
+      {/* Cookie Banner - shown on all pages except auth */}
+      {!isAuthPage && !isAdminPage && <CookieBanner />}
       
-      <Route path="/reels" element={
-        <ProtectedRoute>
-          <MainLayout hideNav>
-            <ReelsPage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/live" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <LivePage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/live/:liveId" element={
-        <ProtectedRoute>
-          <LiveViewPage />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/marketplace" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <MarketplacePage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/profile" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <ProfilePage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/profile/:userId" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <ProfilePage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/profile/edit" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <EditProfilePage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/create" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <CreatePostPage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/create-product" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <CreateProductPage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/business" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <BusinessDashboard />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/create-ad" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <CreateAdPage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/search" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <SearchPage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/notifications" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <NotificationsPage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/chat" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <ChatPage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/security" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <SecuritySettingsPage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/notifications/settings" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <NotificationSettingsPage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      {/* Admin Routes (no auth provider needed) */}
-      <Route path="/admin/login" element={<AdminLoginPage />} />
-      <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-      <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
-      <Route path="/admin/monitoring" element={<AdminMonitoringPage />} />
-      <Route path="/admin/moderation" element={<AdminModerationPage />} />
-      <Route path="/admin/auto-publish" element={<AdminAutoPublishPage />} />
-      
-      {/* Fenua Pulse */}
-      <Route path="/pulse" element={
-        <ProtectedRoute>
-          <MainLayout hideNav>
-            <PulsePage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      {/* Vendor Dashboard */}
-      <Route path="/vendor" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <VendorDashboardPage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      {/* GDPR Settings */}
-      <Route path="/privacy/settings" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <GDPRSettingsPage />
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-      
-      {/* Legal Pages (public) */}
-      <Route path="/legal" element={<LegalPage />} />
-      <Route path="/cgu" element={<LegalPage />} />
-      <Route path="/privacy" element={<LegalPage />} />
-      
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      {/* Toast notifications */}
+      <Toaster position="top-center" richColors />
+    </Suspense>
   );
 }
 
@@ -271,9 +152,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRouter />
-        <CookieBanner />
-        <Toaster position="top-center" richColors />
+        <AppContent />
       </AuthProvider>
     </BrowserRouter>
   );

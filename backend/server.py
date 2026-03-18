@@ -129,6 +129,12 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
+# Health check endpoint (pour Railway/monitoring)
+@app.get("/api/health")
+async def health_check():
+    return {"status": "healthy", "app": "Nati Fenua", "version": "1.0.0"}
+
+
 # Initialize services
 moderation_service = None
 gdpr_service = None
