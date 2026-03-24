@@ -121,19 +121,37 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # Add CORS Middleware - CRITICAL for production
-# Define allowed origins for CORS (Railway + Emergent + localhost)
-cors_origins_env = os.environ.get('CORS_ORIGINS', '')
-default_origins = [
-    "https://accurate-quietude-production-ff09.up.railway.app",
+# Build allowed origins dynamically so credentials work with specific origins
+# (wildcard '*' is forbidden by browsers when credentials: 'include' is used).
+
+# 1. Start with safe development / preview defaults
+cors_origins: list = [
     "https://fenua-connect.preview.emergentagent.com",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
-# Add custom origins from environment if provided
-if cors_origins_env and cors_origins_env != '*':
-    cors_origins = [o.strip() for o in cors_origins_env.split(',') if o.strip()]
-else:
-    cors_origins = default_origins
+
+# 2. Explicit frontend URL set via Railway service variable (highest priority)
+_frontend_url = os.environ.get('FRONTEND_URL', '').strip().rstrip('/')
+if _frontend_url:
+    if _frontend_url not in cors_origins:
+        cors_origins.append(_frontend_url)
+
+# 3. Derive frontend URL from RAILWAY_PUBLIC_DOMAIN of the frontend service
+#    (Railway sets this automatically; you can expose it as FRONTEND_RAILWAY_DOMAIN)
+_railway_frontend_domain = os.environ.get('RAILWAY_FRONTEND_DOMAIN', '').strip().rstrip('/')
+if _railway_frontend_domain:
+    _railway_frontend_url = f"https://{_railway_frontend_domain}"
+    if _railway_frontend_url not in cors_origins:
+        cors_origins.append(_railway_frontend_url)
+
+# 4. Comma-separated override list (e.g. CORS_ORIGINS="https://a.com,https://b.com")
+#    When provided it completely replaces the list above (except it must not be '*').
+_cors_origins_env = os.environ.get('CORS_ORIGINS', '').strip()
+if _cors_origins_env and _cors_origins_env != '*':
+    cors_origins = [o.strip().rstrip('/') for o in _cors_origins_env.split(',') if o.strip()]
+
+logging.info("CORS allowed origins: %s", cors_origins)
 
 app.add_middleware(
     CORSMiddleware,
