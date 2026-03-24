@@ -1,8 +1,2 @@
-# Railpack is no longer used for this service.
-# A Dockerfile has been added to bypass a Railpack builder bug where
-# `pip install` is corrupted to `ip install` in the final build layer,
-# causing deployments to fail with "sh: 1: ip: not found".
-# Railway will automatically prefer the Dockerfile over Railpack.
-
 [deploy]
-startCommand = "uvicorn server:app --host 0.0.0.0 --port $PORT"
+startCommand = "uvicorn server:app --host 0.0.0.0 --port 8080"
