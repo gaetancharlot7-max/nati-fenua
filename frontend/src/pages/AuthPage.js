@@ -59,30 +59,26 @@ const AuthPage = () => {
     window.location.href = `${API_URL}/api/auth/facebook`;
   };
 
-  // Nati Fenua Logo Component - Style original avec drapeau polynésien
+  // Nati Fenua Logo Component - Style Play Store avec drapeau polynésien
   const NatiFenuaLogo = ({ size = 'md' }) => {
     const sizes = {
-      sm: { outer: 'w-10 h-10', inner: 'text-lg', flag: 'w-4 h-3' },
-      md: { outer: 'w-14 h-14', inner: 'text-2xl', flag: 'w-5 h-3.5' },
-      lg: { outer: 'w-16 h-16', inner: 'text-3xl', flag: 'w-6 h-4' }
+      sm: { outer: 'w-10 h-10', inner: 'text-lg', flag: 'w-3.5 h-2.5', radius: 'rounded-xl', padding: 'p-0.5' },
+      md: { outer: 'w-14 h-14', inner: 'text-2xl', flag: 'w-4 h-3', radius: 'rounded-2xl', padding: 'p-1' },
+      lg: { outer: 'w-16 h-16', inner: 'text-3xl', flag: 'w-5 h-3.5', radius: 'rounded-2xl', padding: 'p-1' }
     };
     
     return (
       <div className="relative">
-        <div className={`${sizes[size].outer} rounded-2xl bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] p-0.5 rotate-3`}>
-          <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
-            <span className={`${sizes[size].inner} font-black bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent`}>N</span>
+        <div className={`${sizes[size].outer} ${sizes[size].radius} bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] ${sizes[size].padding} rotate-3 shadow-lg`}>
+          <div className={`w-full h-full ${sizes[size].radius} bg-white flex items-center justify-center relative`}>
+            <span className={`${sizes[size].inner} font-black bg-gradient-to-b from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent`}>N</span>
+            {/* Drapeau polynésien */}
+            <img 
+              src="/icons/drapeau-polynesie.png" 
+              alt="🇵🇫" 
+              className={`absolute bottom-0.5 right-0.5 ${sizes[size].flag} object-cover rounded-sm shadow-sm`}
+            />
           </div>
-        </div>
-        {/* Drapeau polynésien en bas à droite */}
-        <div className={`absolute -bottom-1 -right-1 ${sizes[size].flag} rounded-sm overflow-hidden shadow-md border border-white`}>
-          <div className="h-[30%] bg-[#CE1126]"></div>
-          <div className="h-[40%] bg-white flex items-center justify-center">
-            <div className="w-2 h-2 rounded-full bg-[#0055A4] flex items-center justify-center">
-              <div className="w-1 h-1 rounded-full bg-[#CE1126]"></div>
-            </div>
-          </div>
-          <div className="h-[30%] bg-[#CE1126]"></div>
         </div>
       </div>
     );

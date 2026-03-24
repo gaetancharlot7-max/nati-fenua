@@ -3,36 +3,32 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Users, ShoppingBag, Play, Heart, MapPin, MessageCircle, Radio, Sparkles, Camera, Film } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
-// Nati Fenua Logo Component - Style original avec drapeau polynésien
+// Nati Fenua Logo Component - Style Play Store avec drapeau polynésien
 const NatiFenuaLogo = ({ size = 'lg' }) => {
   const sizes = {
-    sm: { outer: 'w-8 h-8', inner: 'text-lg', flag: 'w-4 h-3' },
-    md: { outer: 'w-12 h-12', inner: 'text-2xl', flag: 'w-5 h-3.5' },
-    lg: { outer: 'w-24 h-24', inner: 'text-5xl', flag: 'w-8 h-5' },
-    xl: { outer: 'w-32 h-32', inner: 'text-6xl', flag: 'w-10 h-6' }
+    sm: { outer: 'w-8 h-8', inner: 'text-lg', flag: 'w-3 h-2', radius: 'rounded-lg', padding: 'p-0.5' },
+    md: { outer: 'w-12 h-12', inner: 'text-2xl', flag: 'w-4 h-2.5', radius: 'rounded-xl', padding: 'p-1' },
+    lg: { outer: 'w-24 h-24', inner: 'text-5xl', flag: 'w-7 h-5', radius: 'rounded-3xl', padding: 'p-1.5' },
+    xl: { outer: 'w-32 h-32', inner: 'text-6xl', flag: 'w-9 h-6', radius: 'rounded-3xl', padding: 'p-2' }
   };
   
   return (
     <div className="relative">
       <motion.div 
-        className={`${sizes[size].outer} rounded-3xl bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] p-1 rotate-6`}
-        animate={{ rotate: [6, -6, 6] }}
+        className={`${sizes[size].outer} ${sizes[size].radius} bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] ${sizes[size].padding} shadow-xl`}
+        animate={{ rotate: [3, -3, 3] }}
         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
       >
-        <div className="w-full h-full rounded-[20px] bg-white flex items-center justify-center">
-          <span className={`${sizes[size].inner} font-black bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent`}>N</span>
+        <div className={`w-full h-full ${sizes[size].radius} bg-white flex items-center justify-center relative`}>
+          <span className={`${sizes[size].inner} font-black bg-gradient-to-b from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent`}>N</span>
+          {/* Drapeau polynésien */}
+          <img 
+            src="/icons/drapeau-polynesie.png" 
+            alt="🇵🇫" 
+            className={`absolute bottom-1 right-1 ${sizes[size].flag} object-cover rounded-sm shadow-md`}
+          />
         </div>
       </motion.div>
-      {/* Drapeau polynésien en bas à droite */}
-      <div className={`absolute -bottom-1 -right-1 ${sizes[size].flag} rounded-sm overflow-hidden shadow-md border border-white`}>
-        <div className="h-[30%] bg-[#CE1126]"></div>
-        <div className="h-[40%] bg-white flex items-center justify-center">
-          <div className="w-2 h-2 rounded-full bg-[#0055A4] flex items-center justify-center">
-            <div className="w-1 h-1 rounded-full bg-[#CE1126]"></div>
-          </div>
-        </div>
-        <div className="h-[30%] bg-[#CE1126]"></div>
-      </div>
     </div>
   );
 };
