@@ -121,9 +121,23 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # Add CORS Middleware - CRITICAL for production
+# Define allowed origins for CORS (Railway + Emergent + localhost)
+cors_origins_env = os.environ.get('CORS_ORIGINS', '')
+default_origins = [
+    "https://accurate-quietude-production-ff09.up.railway.app",
+    "https://fenua-connect.preview.emergentagent.com",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+# Add custom origins from environment if provided
+if cors_origins_env and cors_origins_env != '*':
+    cors_origins = [o.strip() for o in cors_origins_env.split(',') if o.strip()]
+else:
+    cors_origins = default_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'],
