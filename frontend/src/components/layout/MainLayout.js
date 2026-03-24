@@ -5,18 +5,33 @@ import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import NotificationBell from '../NotificationBell';
 
-// Nati Fenua Logo Component - Style original
+// Nati Fenua Logo Component - Style original avec drapeau polynésien
 const NatiFenuaLogo = ({ size = 'md' }) => {
   const sizes = {
-    sm: { outer: 'w-8 h-8', inner: 'text-lg' },
-    md: { outer: 'w-10 h-10', inner: 'text-xl' },
-    lg: { outer: 'w-14 h-14', inner: 'text-2xl' }
+    sm: { outer: 'w-8 h-8', inner: 'text-lg', flag: 'w-4 h-3' },
+    md: { outer: 'w-10 h-10', inner: 'text-xl', flag: 'w-5 h-3.5' },
+    lg: { outer: 'w-14 h-14', inner: 'text-2xl', flag: 'w-6 h-4' }
   };
   
   return (
-    <div className={`${sizes[size].outer} rounded-2xl bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] p-0.5 rotate-3 hover:rotate-0 transition-transform duration-300`}>
-      <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
-        <span className={`${sizes[size].inner} font-black bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent`}>N</span>
+    <div className="relative">
+      <div className={`${sizes[size].outer} rounded-2xl bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] p-0.5 rotate-3 hover:rotate-0 transition-transform duration-300`}>
+        <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
+          <span className={`${sizes[size].inner} font-black bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent`}>N</span>
+        </div>
+      </div>
+      {/* Drapeau polynésien en bas à droite */}
+      <div className={`absolute -bottom-1 -right-1 ${sizes[size].flag} rounded-sm overflow-hidden shadow-md border border-white`}>
+        {/* Bande rouge du haut */}
+        <div className="h-[30%] bg-[#CE1126]"></div>
+        {/* Bande blanche centrale avec emblème */}
+        <div className="h-[40%] bg-white flex items-center justify-center">
+          <div className="w-2 h-2 rounded-full bg-[#0055A4] flex items-center justify-center">
+            <div className="w-1 h-1 rounded-full bg-[#CE1126]"></div>
+          </div>
+        </div>
+        {/* Bande rouge du bas */}
+        <div className="h-[30%] bg-[#CE1126]"></div>
       </div>
     </div>
   );
