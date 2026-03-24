@@ -7,9 +7,10 @@ Nati Fenua est un réseau social pour la communauté tahitienne en Polynésie fr
 
 ### Phase 1 - MVP (Complète)
 - **Authentification sécurisée** : Email/Mot de passe avec bcrypt, protection anti-brute force, JWT
-- **Connexion Google** : OAuth 2.0 via Emergent
-- **Mot de passe oublié** : Page dédiée, envoi d'email via Resend ✅ (14/03/2026)
-- **Déconnexion** : Bouton visible sur le profil utilisateur ✅ (14/03/2026)
+- **Connexion Google** : OAuth 2.0 via Emergent ✅
+- **Connexion Facebook** : OAuth 2.0 ✅
+- **Mot de passe oublié** : Page dédiée, envoi d'email via Resend (mode simulation si pas de clé) ✅
+- **Déconnexion** : Bouton visible sur le profil utilisateur ✅
 - **Fil d'actualité** : Posts photo/vidéo avec lazy loading, skeleton loaders, pagination infinie
 - **Stories** : Durée de vie de 7 jours dans le fil, 30 jours sur profil
 - **Chat en temps réel** : Conversations et messages
@@ -19,7 +20,7 @@ Nati Fenua est un réseau social pour la communauté tahitienne en Polynésie fr
 - **Modération de contenu** : Système de signalement avec catégories, avertissements progressifs, tableau de bord admin
 - **Conformité RGPD** : Consentement cookies, export de données, suppression de compte, vérification d'âge
 - **Monitoring & Analytics** : Tableau de bord admin avec statistiques
-- **Traduction FR ↔ Tahitien** : Dictionnaire 200+ mots, bouton sur chaque post ✅ (14/03/2026)
+- **Traduction FR ↔ Tahitien** : Dictionnaire 163+ mots français, 157+ mots tahitiens, bouton sur chaque post ✅
 
 ### Phase 3 - Fenua Pulse avec Webcams Live (Complète)
 
@@ -48,15 +49,15 @@ Nati Fenua est un réseau social pour la communauté tahitienne en Polynésie fr
 - 📹 **Webcam Live**
 - ☁️ Alerte météo
 - 🛍️ Bonne affaire / Marché
-- 🚗 **Covoiturage** ✅ (14/03/2026)
+- 🚗 **Covoiturage** ✅
 - 📍 Autre signalement
 
 #### Fonctionnalités Fenua Pulse
 - **Clic sur catégorie** = voir tous les emplacements de ce type
 - **Bouton "Contacter par message"** pour roulottes/marché → ouvre conversation directe ✅
 - **Bouton "Appeler"** avec lien tel: pour appeler directement le vendeur ✅
-- **Boutons Zoom +/-** sur la carte ✅ (14/03/2026)
-- **Bouton "Ma position"** pour géolocalisation ✅ (14/03/2026)
+- **Boutons Zoom +/-** sur la carte ✅
+- **Bouton "Ma position"** pour géolocalisation ✅
 - **Vidéos 5 secondes en boucle** sur chaque point webcam
 - Gamification avec points Mana
 
@@ -72,108 +73,70 @@ Nati Fenua est un réseau social pour la communauté tahitienne en Polynésie fr
 - Air Tahiti Magazine
 - Surf Report Tahiti
 
-#### Détection Améliorée des Îles
-- Système de scoring avec mots-clés étendus
-- 11 archipels/îles détectables :
-  - Tahiti, Moorea, Bora Bora, Raiatea, Taha'a, Huahine, Maupiti
-  - Tuamotu, Marquises, Gambier, Australes
-
-#### Nettoyage Automatique
-- Suppression des liens YouTube non fonctionnels
-- API `/api/admin/cleanup/youtube`
-
-### Phase 5 - Tableau de Bord Vendeur "Ma Roulotte" (Complète) ✅ 13/03/2026
-
-#### Fonctionnalités "Ma Roulotte"
-- **Profil de roulotte** : Nom, description, type de cuisine, méthodes de paiement
-- **Gestion d'ouverture** : Boutons "Ouvrir", "+2 heures", "Je ferme"
-- **Carte de position en direct** : Affiche la localisation GPS quand la roulotte est ouverte ✅
-- **Bouton "Appeler"** : Lien `tel:` pour appeler directement le numéro du vendeur ✅
-- **Onglets** : Tableau de bord, Menu, Paramètres
-- **Gestion du menu** : Ajout/modification/suppression de plats
-
-### Protection Anti-Faux Comptes (En cours - Mode Simulation)
-- Module `account_protection.py` créé
-- Score de confiance basé sur IP, User-Agent, email
-- Vérification par téléphone (placeholders pour SMS, Twilio non intégré)
-- Limites d'inscription par IP
-
-### Fonction Live (Temporairement Désactivée)
-- Retiré de la navigation principale
-- Retiré du sidebar droit
-- Les webcams sur Fenua Pulse remplacent cette fonction
+### Phase 5 - Tableau de Bord Vendeur "Ma Roulotte" (Complète)
 
 ## Architecture Technique
 
 ### Backend
+- `/app/backend/server.py` - API principale FastAPI
+- `/app/backend/tahitian_dictionary.py` - Dictionnaire de traduction (163 mots FR, 157 mots TAH)
 - `/app/backend/fenua_pulse.py` - Carte + 10 webcams
-- `/app/backend/rss_feeds.py` - 8 sources RSS + détection améliorée
-- `/app/backend/auto_publisher.py` - Publication automatique
-- `/app/backend/roulotte.py` - Gestion des roulottes et vendeurs
-- `/app/backend/account_protection.py` - Protection anti-faux comptes (simulation)
+- `/app/backend/rss_feeds.py` - 8 sources RSS
+- `/app/backend/roulotte.py` - Gestion des roulottes
 
 ### Frontend
-- `/app/frontend/src/pages/PulsePage.js` - Carte avec webcams + boutons contact ✅
-- `/app/frontend/src/pages/VendorDashboardPage.js` - Tableau de bord vendeur avec carte + bouton appeler ✅
-- `/app/frontend/src/components/layout/MainLayout.js` - Navigation sans Live
+- `/app/frontend/src/pages/FeedPage.js` - Feed avec bouton traduction sur chaque post
+- `/app/frontend/src/pages/ForgotPasswordPage.js` - Page mot de passe oublié
+- `/app/frontend/src/pages/AuthCallback.js` - Callback OAuth Google
+- `/app/frontend/src/contexts/AuthContext.js` - Gestion authentification
 
-## Statut : Application Fonctionnelle ✅ - Prête pour Play Store
+## Statut : Application Fonctionnelle ✅
 
-### Testé et validé (15/03/2026) - Test complet réussi 100%
-- **Navigation & UI** : Page d'accueil, inscription, connexion
-- **Feed** : Posts avec photos, stories, likes/commentaires
-- **Traduction FR ↔ Tahitien** : 200+ mots, bouton sur chaque post ✅
-- **Profil** : Bouton déconnexion visible et fonctionnel ✅
-- **Fenua Pulse** :
-  - 9 îles sur la carte interactive
-  - 10 webcams avec vidéos live
-  - 9 catégories incluant **Covoiturage** 🚗 ✅
-  - Boutons **Zoom +/-** ✅
-  - Bouton **Ma position** ✅
-  - Filtrage par catégorie au clic
-  - Bouton "Contacter par message" ✅
-  - Bouton "Appeler" ✅
-- **Vérification Email** :
-  - Envoi code de vérification ✅
-  - Validation du code ✅
-  - Statut de vérification ✅
-- **Mot de passe oublié** : Page et endpoint fonctionnels ✅
-- **Marketplace** : Produits, catégories, prix en XPF
-- **Chat/Messages** : Conversations avec indicateurs en ligne
+### Testé et validé (24/03/2026)
+- **Connexion** : Email/password ✅, Google (prêt) ✅
+- **Mot de passe oublié** : Page et API fonctionnels ✅
+- **Traduction** : 163 mots FR → TAH, bouton sur posts ✅
+- **Feed** : Posts, stories, likes, commentaires ✅
+- **Fenua Pulse** : Carte, webcams, catégories ✅
 
-### PWA - Prête pour Play Store ✅
-- ✅ manifest.json configuré (nom: Nati Fenua)
-- ✅ service-worker.js fonctionnel
-- ✅ Icône 512x512 générée
-- ✅ Feature Graphic Play Store générée
-- ✅ apple-touch-icon configurée
-- ✅ assetlinks.json préparé
-- ✅ Guide de publication créé
+### Configuration requise pour production
+- `RESEND_API_KEY` : Pour l'envoi réel d'emails
+- `MONGO_URL` : MongoDB Atlas (configuré pour Railway)
+- `DB_NAME` : `nati_fenua`
 
-### Test de Charge - 200 Bots Simultanés ✅
-| Métrique | Résultat |
-|----------|----------|
-| Requêtes testées | 4,670 |
-| Taux de succès | **92.1%** |
-| Backend Tests | 30/30 (100%) |
-| Frontend Tests | 100% |
+## Déploiement Railway (En cours)
+
+### Services créés
+- **grateful-presence** : Backend Python/FastAPI
+- **accurate-quietude** : Frontend React
+
+### Configuration MongoDB Atlas
+- Cluster : M0FREE (gratuit)
+- Région : Sydney (proche Polynésie)
+- User : gaetancharlot7_db_user
+
+### À finaliser
+1. Générer domaines publics sur Railway
+2. Configurer `REACT_APP_BACKEND_URL` dans le frontend
+3. Tester le déploiement complet
 
 ## Prochaines Étapes
 
-### P0 - Pour l'envoi réel d'emails
-- Configurer **clé API Resend** pour activer l'envoi réel d'emails
+### P0 - Immédiat
+- Tester la connexion Google avec un vrai compte
 
-### P1 - Publication Play Store
-1. Créer compte Google Play Console (25$)
-2. Générer APK avec Bubblewrap
-3. Configurer assetlinks.json sur le domaine
-4. Soumettre l'application
+### P1 - Court terme
+- Finaliser le déploiement Railway
+- Ajouter clé API Resend pour les emails
 
-### P2 - Améliorations Futures
-- Application mobile Expo native
+### P2 - Moyen terme
+- Enrichir le dictionnaire tahitien
+- Application mobile Expo
+
+### P3 - Long terme
 - Système de publicité
-- Système d'abonnement premium
+- Abonnement premium
 
 ---
-*Dernière mise à jour : 15 Mars 2026*
-*Version : 1.0.0 - Prête pour lancement*
+*Dernière mise à jour : 24 Mars 2026*
+*Version : 1.0.0*
