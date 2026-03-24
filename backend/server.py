@@ -124,8 +124,14 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 # Build allowed origins dynamically so credentials work with specific origins
 # (wildcard '*' is forbidden by browsers when credentials: 'include' is used).
 
-# 1. Start with safe development / preview defaults
+# 1. Start with safe development / preview defaults, plus the known Railway
+#    production URLs for this project (hardcoded as a reliable fallback so
+#    CORS works even when environment variables are not configured).
 cors_origins: list = [
+    # Known Railway production URLs — hardcoded so they always work
+    "https://accurate-quietude-production-ff09.up.railway.app",  # frontend
+    "https://grateful-presence-production-50e7.up.railway.app",  # backend (backend-to-backend)
+    # Legacy preview / local development
     "https://fenua-connect.preview.emergentagent.com",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -136,6 +142,7 @@ _frontend_url = os.environ.get('FRONTEND_URL', '').strip().rstrip('/')
 if _frontend_url:
     if _frontend_url not in cors_origins:
         cors_origins.append(_frontend_url)
+        logging.info("CORS: added FRONTEND_URL from env: %s", _frontend_url)
 
 # 3. Derive frontend URL from RAILWAY_PUBLIC_DOMAIN of the frontend service
 #    (Railway sets this automatically; you can expose it as FRONTEND_RAILWAY_DOMAIN)
@@ -144,21 +151,25 @@ if _railway_frontend_domain:
     _railway_frontend_url = f"https://{_railway_frontend_domain}"
     if _railway_frontend_url not in cors_origins:
         cors_origins.append(_railway_frontend_url)
+        logging.info("CORS: added RAILWAY_FRONTEND_DOMAIN origin: %s", _railway_frontend_url)
 
 # 4. Comma-separated override list (e.g. CORS_ORIGINS="https://a.com,https://b.com")
 #    When provided it completely replaces the list above (except it must not be '*').
 _cors_origins_env = os.environ.get('CORS_ORIGINS', '').strip()
 if _cors_origins_env and _cors_origins_env != '*':
     cors_origins = [o.strip().rstrip('/') for o in _cors_origins_env.split(',') if o.strip()]
+    logging.info("CORS: origins overridden by CORS_ORIGINS env var")
 
-logging.info("CORS allowed origins: %s", cors_origins)
+# Log the final list so it is visible in Railway's deployment logs
+logging.info("CORS final allowed origins (%d): %s", len(cors_origins), cors_origins)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*'],
+    allow_credentials=True,  # required for cookie/session-based auth
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Health check endpoint (pour Railway/monitoring)
