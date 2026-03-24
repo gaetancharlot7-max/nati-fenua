@@ -1,0 +1,9 @@
+[options]
+# Disable the second pip install phase that Railpack triggers in the final
+# layer. This works around a known Railpack bug where the re-run of
+# `pip install -r requirements.txt` gets corrupted to `ip install`,
+# causing the build to fail with "sh: 1: ip: not found".
+install_python_packages = false
+
+[deploy]
+startCommand = "uvicorn server:app --host 0.0.0.0 --port $PORT"
