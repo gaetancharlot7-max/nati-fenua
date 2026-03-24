@@ -1,9 +1,8 @@
-[options]
-# Disable the second pip install phase that Railpack triggers in the final
-# layer. This works around a known Railpack bug where the re-run of
-# `pip install -r requirements.txt` gets corrupted to `ip install`,
-# causing the build to fail with "sh: 1: ip: not found".
-install_python_packages = false
+# Railpack is no longer used for this service.
+# A Dockerfile has been added to bypass a Railpack builder bug where
+# `pip install` is corrupted to `ip install` in the final build layer,
+# causing deployments to fail with "sh: 1: ip: not found".
+# Railway will automatically prefer the Dockerfile over Railpack.
 
 [deploy]
 startCommand = "uvicorn server:app --host 0.0.0.0 --port $PORT"
