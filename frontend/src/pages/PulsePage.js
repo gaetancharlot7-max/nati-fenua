@@ -212,18 +212,24 @@ const PulsePage = () => {
   const defaultCenter = { lat: -17.6509, lng: -149.4260, zoom: 11 };
 
   // Load initial data
-  useEffect(() => {
-    loadInitialData();
-  }, []);
-
-  // Reload markers when filters change
-  useEffect(() => {
-    if (islands.length > 0) {
-      loadMarkers();
+  const loadMarkers = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (activeFilters.length > 0) {
+        params.append('types', activeFilters.join(','));
+      }
+      if (selectedIsland) {
+        params.append('island', selectedIsland);
+      }
+      
+      const response = await api.get(`/pulse/markers?${params.toString()}`);
+      setMarkers(response.data);
+    } catch (error) {
+      console.error('Error loading markers:', error);
     }
-  }, [activeFilters, selectedIsland, islands]);
+  }, [activeFilters, selectedIsland]);
 
-  const loadInitialData = async () => {
+  const loadInitialData = useCallback(async () => {
     try {
       const [islandsRes, typesRes, statusRes] = await Promise.all([
         api.get('/pulse/islands'),
@@ -253,24 +259,18 @@ const PulsePage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, loadMarkers]);
 
-  const loadMarkers = async () => {
-    try {
-      const params = new URLSearchParams();
-      if (activeFilters.length > 0) {
-        params.append('types', activeFilters.join(','));
-      }
-      if (selectedIsland) {
-        params.append('island', selectedIsland);
-      }
-      
-      const response = await api.get(`/pulse/markers?${params.toString()}`);
-      setMarkers(response.data);
-    } catch (error) {
-      console.error('Error loading markers:', error);
+  useEffect(() => {
+    loadInitialData();
+  }, [loadInitialData]);
+
+  // Reload markers when filters change
+  useEffect(() => {
+    if (islands.length > 0) {
+      loadMarkers();
     }
-  };
+  }, [activeFilters, selectedIsland, islands, loadMarkers]);
 
   const navigateToIsland = (islandId) => {
     setSelectedIsland(islandId);
@@ -624,13 +624,7 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
   const [loading, setLoading] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && !location) {
-      getLocation();
-    }
-  }, [isOpen]);
-
-  const getLocation = () => {
+  const getLocation = useCallback(() => {
     if (navigator.geolocation) {
       setGettingLocation(true);
       navigator.geolocation.getCurrentPosition(
@@ -647,7 +641,13 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
         }
       );
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && !location) {
+      getLocation();
+    }
+  }, [isOpen, location, getLocation]);
 
   const handleSubmit = async () => {
     if (!selectedType || !title || !location) {

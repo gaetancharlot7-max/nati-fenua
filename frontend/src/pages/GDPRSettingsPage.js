@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Shield, Download, Trash2, Bell, Cookie, FileText, 
@@ -20,11 +20,7 @@ const GDPRSettingsPage = () => {
   const [deletionRequested, setDeletionRequested] = useState(false);
   const [deletionDate, setDeletionDate] = useState(null);
 
-  useEffect(() => {
-    loadConsents();
-  }, []);
-
-  const loadConsents = async () => {
+  const loadConsents = useCallback(async () => {
     try {
       const response = await gdprApi.getMyConsents();
       setConsents(response.data || {});
@@ -39,7 +35,11 @@ const GDPRSettingsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadConsents();
+  }, [loadConsents]);
 
   const handleConsentChange = async (consentType, granted) => {
     try {

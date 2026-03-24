@@ -32,7 +32,7 @@ const CookieBanner = () => {
         console.error('Error loading cookie preferences:', e);
       }
     }
-  }, []);
+  }, [preferences]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveConsent = (acceptAll = false) => {
     const consentData = {

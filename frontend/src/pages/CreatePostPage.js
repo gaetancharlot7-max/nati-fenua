@@ -40,7 +40,7 @@ const CreatePostPage = () => {
     if (!privacyAccepted) {
       setShowPrivacyPolicy(true);
     }
-  }, []);
+  }, [privacyAccepted]);
 
   // Get current location
   const getCurrentLocation = () => {

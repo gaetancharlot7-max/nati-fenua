@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -40,20 +40,11 @@ const AdminDashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    const token = localStorage.getItem('admin_token');
-    if (!token) {
-      navigate('/admin/login');
-      return;
-    }
-    loadDashboardData();
-  }, [navigate]);
-
   const getAuthHeaders = () => ({
     headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
   });
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_URL}/api/admin/dashboard`, getAuthHeaders());
@@ -75,7 +66,17 @@ const AdminDashboardPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('admin_token');
+    if (!token) {
+      navigate('/admin/login');
+      return;
+    }
+    loadDashboardData();
+  }, [navigate, loadDashboardData]);
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token');

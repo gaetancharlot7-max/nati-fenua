@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Search as SearchIcon, X, Users, Image, ShoppingBag, Briefcase, TrendingUp, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -45,17 +45,7 @@ const SearchPage = () => {
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
 
-  useEffect(() => {
-    if (query.length >= 2) {
-      searchItems();
-      setShowSuggestions(false);
-    } else {
-      setResults(null);
-      setShowSuggestions(true);
-    }
-  }, [query]);
-
-  const searchItems = async () => {
+  const searchItems = useCallback(async () => {
     setLoading(true);
     try {
       const response = await searchApi.search({ q: query, type: activeTab });
@@ -66,7 +56,17 @@ const SearchPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [query, activeTab]);
+
+  useEffect(() => {
+    if (query.length >= 2) {
+      searchItems();
+      setShowSuggestions(false);
+    } else {
+      setResults(null);
+      setShowSuggestions(true);
+    }
+  }, [query, searchItems]);
 
   const handleRecentSearch = (term) => {
     setQuery(term);

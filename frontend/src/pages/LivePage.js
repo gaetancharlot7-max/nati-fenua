@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Radio, Play, Heart, MessageCircle, Share2, Users, Eye, Plus, X, Video, Camera, SwitchCamera, Mic, MicOff, VideoOff } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -50,12 +50,14 @@ const LiveCamera = ({ onClose, title }) => {
   const [comments, setComments] = useState([]);
   const [isLive, setIsLive] = useState(false);
 
-  useEffect(() => {
-    startCamera();
-    return () => stopCamera();
-  }, [facingMode]);
+  const stopCamera = useCallback(() => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+  }, [stream]);
 
-  const startCamera = async () => {
+  const startCamera = useCallback(async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -69,14 +71,12 @@ const LiveCamera = ({ onClose, title }) => {
       console.error('Camera error:', err);
       toast.error('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
     }
-  };
+  }, [facingMode]);
 
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-  };
+  useEffect(() => {
+    startCamera();
+    return () => stopCamera();
+  }, [facingMode, startCamera, stopCamera]);
 
   const switchCamera = () => {
     stopCamera();
@@ -251,11 +251,7 @@ const LivePage = () => {
   const [loading, setLoading] = useState(true);
   const [shareLive, setShareLive] = useState(null);
 
-  useEffect(() => {
-    loadLives();
-  }, []);
-
-  const loadLives = async () => {
+  const loadLives = useCallback(async () => {
     try {
       const response = await liveApi.getAll();
       if (response.data?.length > 0) {
@@ -266,7 +262,11 @@ const LivePage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadLives();
+  }, [loadLives]);
 
   const startLive = async () => {
     if (!liveTitle.trim()) {

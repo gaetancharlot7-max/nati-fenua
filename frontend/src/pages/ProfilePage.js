@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Settings, Grid3X3, Bookmark, ShoppingBag, MapPin, LogOut } from 'lucide-react';
@@ -32,11 +32,7 @@ const ProfilePage = () => {
 
   const isOwnProfile = !userId || userId === user?.user_id;
 
-  useEffect(() => {
-    loadProfile();
-  }, [userId, user]);
-
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       if (isOwnProfile && user) {
         setProfileUser(user);
@@ -55,7 +51,11 @@ const ProfilePage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, user, isOwnProfile]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [userId, user, loadProfile]);
 
   const handleFollow = async () => {
     if (!userId) return;

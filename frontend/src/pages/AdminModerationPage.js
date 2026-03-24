@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Shield, Flag, AlertTriangle, CheckCircle, XCircle, 
@@ -25,11 +25,7 @@ const AdminModerationPage = () => {
   const [selectedReport, setSelectedReport] = useState(null);
   const [processing, setProcessing] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, [activeTab]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [reportsRes, statsRes] = await Promise.all([
@@ -44,7 +40,11 @@ const AdminModerationPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    loadData();
+  }, [activeTab, loadData]);
 
   const handleResolve = async (reportId, action) => {
     setProcessing(true);

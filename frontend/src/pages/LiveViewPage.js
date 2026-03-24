@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -31,6 +31,20 @@ const LiveViewPage = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showHeart, setShowHeart] = useState(false);
 
+  const loadLive = useCallback(async () => {
+    try {
+      const response = await liveApi.get(liveId);
+      setLive(response.data);
+      setLikes(response.data.likes_count || 0);
+      setViewerCount(response.data.viewer_count || 0);
+    } catch (error) {
+      console.error('Error loading live:', error);
+      setError('Live introuvable ou terminé');
+    } finally {
+      setLoading(false);
+    }
+  }, [liveId]);
+
   useEffect(() => {
     loadLive();
     
@@ -59,7 +73,7 @@ const LiveViewPage = () => {
       clearInterval(viewerInterval);
       clearInterval(commentInterval);
     };
-  }, [liveId]);
+  }, [liveId, loadLive]);
 
   useEffect(() => {
     // Auto-scroll chat
@@ -67,20 +81,6 @@ const LiveViewPage = () => {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [comments]);
-
-  const loadLive = async () => {
-    try {
-      const response = await liveApi.get(liveId);
-      setLive(response.data);
-      setLikes(response.data.likes_count || 0);
-      setViewerCount(response.data.viewer_count || 0);
-    } catch (error) {
-      console.error('Error loading live:', error);
-      setError('Live introuvable ou terminé');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleLike = async () => {
     try {
