@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Truck, MapPin, Clock, Phone, CreditCard, Camera, Plus, X,
@@ -60,15 +60,8 @@ const VendorDashboardPage = () => {
   const [openingStatus, setOpeningStatus] = useState(null);
   const [gettingLocation, setGettingLocation] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard'); // dashboard, menu, settings
-  
-  // Prevent double loading
-  const hasLoaded = useRef(false);
 
   const loadData = useCallback(async () => {
-    // Prevent double loading in StrictMode or re-renders
-    if (hasLoaded.current) return;
-    hasLoaded.current = true;
-    
     try {
       const [cuisineRes, paymentRes] = await Promise.all([
         api.get('/roulotte/cuisine-types'),
@@ -95,7 +88,8 @@ const VendorDashboardPage = () => {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleOpenRoulotte = async () => {
     if (!navigator.geolocation) {

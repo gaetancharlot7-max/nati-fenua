@@ -139,60 +139,61 @@ const LandingPage = () => {
               </Link>
             </div>
           </motion.div>
+        </div>
 
-          {/* Floating Elements */}
+        {/* Floating Elements - Outside the centered container, positioned at screen edges */}
+        <div className="absolute left-8 top-1/3 hidden 2xl:flex flex-col gap-6 z-20">
           <motion.div 
-            className="absolute left-8 top-1/3 hidden xl:block"
-            initial={{ opacity: 0, x: -100 }}
+            initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 1, duration: 0.8 }}
+            transition={{ delay: 1.2, duration: 0.6 }}
           >
-            <div className="glass-dark rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493] flex items-center justify-center">
-                <Heart size={24} className="text-white" fill="white" />
+            <div className="glass-dark rounded-2xl p-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493] flex items-center justify-center">
+                <Heart size={20} className="text-white" fill="white" />
               </div>
               <div>
-                <p className="text-white font-bold">Partagez</p>
-                <p className="text-white/60 text-sm">vos moments</p>
+                <p className="text-white font-bold text-sm">Partagez</p>
+                <p className="text-white/60 text-xs">vos moments</p>
               </div>
             </div>
           </motion.div>
 
           <motion.div 
-            className="absolute right-8 top-1/4 hidden xl:block"
-            initial={{ opacity: 0, x: 100 }}
+            initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 1.2, duration: 0.8 }}
+            transition={{ delay: 1.6, duration: 0.6 }}
           >
-            <div className="glass-dark rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-[#00CED1] to-[#006994] flex items-center justify-center">
-                <MapPin size={24} className="text-white" />
+            <div className="glass-dark rounded-2xl p-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-500 flex items-center justify-center relative">
+                <Radio size={20} className="text-white" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full animate-ping"></span>
               </div>
               <div>
-                <p className="text-white font-bold">Tahiti • Moorea</p>
-                <p className="text-white/60 text-sm">Bora Bora • Raiatea</p>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div 
-            className="absolute right-16 bottom-1/4 hidden xl:block"
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 1.4, duration: 0.8 }}
-          >
-            <div className="glass-dark rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center relative">
-                <Radio size={24} className="text-white" />
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-ping"></span>
-              </div>
-              <div>
-                <p className="text-white font-bold">Lives</p>
-                <p className="text-white/60 text-sm">en direct</p>
+                <p className="text-white font-bold text-sm">Lives</p>
+                <p className="text-white/60 text-xs">en direct</p>
               </div>
             </div>
           </motion.div>
         </div>
+
+        {/* Right side badge */}
+        <motion.div 
+          className="absolute right-8 top-1/3 hidden 2xl:block z-20"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 1.4, duration: 0.6 }}
+        >
+          <div className="glass-dark rounded-2xl p-3 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-[#00CED1] to-[#006994] flex items-center justify-center">
+              <MapPin size={20} className="text-white" />
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm">Tahiti • Moorea</p>
+              <p className="text-white/60 text-xs">Bora Bora • Raiatea</p>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Scroll Indicator */}
         <motion.div 
