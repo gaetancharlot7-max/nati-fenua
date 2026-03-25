@@ -97,6 +97,9 @@ from tahitian_dictionary import translate_text, get_dictionary_stats, get_common
 # Import Resend for emails
 import resend
 
+# Configure logging early so all subsequent logging.info() calls are visible
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
 ROOT_DIR = Path(__file__).parent
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -201,8 +204,6 @@ def get_app_services():
         auto_publisher_service = AutoPublisherService(db)
     return moderation_service, gdpr_service, analytics_service, monitoring_service, pulse_service, roulotte_service
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # WebSocket connection manager for chat and live
