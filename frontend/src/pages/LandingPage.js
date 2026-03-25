@@ -1,7 +1,10 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Users, ShoppingBag, Play, Heart, MapPin, MessageCircle, Radio, Sparkles, Camera, Film } from 'lucide-react';
+import { ArrowRight, Users, ShoppingBag, Play, Heart, MapPin, MessageCircle, Radio, Sparkles, Camera, Film, CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { authApi } from '../lib/api';
 
 // Nati Fenua Logo Component - Style Play Store avec drapeau polynésien
 const NatiFenuaLogo = ({ size = 'lg' }) => {
@@ -34,6 +37,75 @@ const NatiFenuaLogo = ({ size = 'lg' }) => {
 };
 
 const LandingPage = () => {
+  const navigate = useNavigate();
+  const [showSignupForm, setShowSignupForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    address: '',
+    city: '',
+    postalCode: '',
+    password: '',
+    confirmPassword: ''
+  });
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setError('');
+  };
+
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    // Validation
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.address || !formData.city || !formData.postalCode || !formData.password) {
+      setError('Tous les champs sont obligatoires');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      setError('Le mot de passe doit contenir au moins 8 caractères');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const fullName = `${formData.firstName} ${formData.lastName}`;
+      const fullAddress = `${formData.address}, ${formData.postalCode} ${formData.city}`;
+      
+      await authApi.register({
+        email: formData.email,
+        password: formData.password,
+        name: fullName,
+        address: fullAddress
+      });
+
+      setSignupSuccess(true);
+      
+      // Rediriger vers la page de connexion après 2 secondes
+      setTimeout(() => {
+        navigate('/auth');
+      }, 2000);
+      
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Erreur lors de l\'inscription');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const features = [
     {
       icon: Camera,
@@ -117,27 +189,173 @@ const LandingPage = () => {
               Photos • Vidéos • Stories • Reels • Lives • Marché • Chat
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/auth">
+            {/* Formulaire d'inscription ou boutons */}
+            {!showSignupForm ? (
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button 
+                  onClick={() => setShowSignupForm(true)}
                   data-testid="get-started-btn"
                   className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:from-[#FF8E72] hover:to-[#FF1493] text-white px-10 py-7 text-xl font-bold rounded-2xl shadow-2xl shadow-orange-500/30 transition-all duration-300 hover:scale-105 hover:shadow-orange-500/50"
                 >
-                  Commencer Gratuit
+                  Créer mon compte
                   <ArrowRight className="ml-2" size={24} />
                 </Button>
-              </Link>
-              
-              <Link to="/auth">
-                <Button 
-                  variant="outline"
-                  data-testid="login-btn"
-                  className="border-2 border-white/30 text-white hover:bg-white/10 px-10 py-7 text-xl font-semibold rounded-2xl transition-all duration-300 backdrop-blur-sm"
-                >
-                  Se connecter
-                </Button>
-              </Link>
-            </div>
+                
+                <Link to="/auth">
+                  <Button 
+                    variant="outline"
+                    data-testid="login-btn"
+                    className="border-2 border-white/30 text-white hover:bg-white/10 px-10 py-7 text-xl font-semibold rounded-2xl transition-all duration-300 backdrop-blur-sm"
+                  >
+                    Se connecter
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="max-w-md mx-auto"
+              >
+                {signupSuccess ? (
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 text-center"
+                  >
+                    <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-green-500 flex items-center justify-center">
+                      <CheckCircle size={40} className="text-white" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-2">Mauruuru ! 🌺</h3>
+                    <p className="text-white/80">Votre compte a été créé avec succès.</p>
+                    <p className="text-white/60 text-sm mt-2">Redirection vers la connexion...</p>
+                  </motion.div>
+                ) : (
+                  <form onSubmit={handleSignup} className="bg-white/10 backdrop-blur-xl rounded-3xl p-6 space-y-4">
+                    <div className="text-center mb-4">
+                      <h3 className="text-xl font-bold text-white">Créer votre compte</h3>
+                      <p className="text-white/60 text-sm">Rejoignez la communauté polynésienne</p>
+                    </div>
+
+                    {error && (
+                      <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-3 text-red-200 text-sm text-center">
+                        {error}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <Input
+                        name="firstName"
+                        placeholder="Prénom *"
+                        value={formData.firstName}
+                        onChange={handleInputChange}
+                        className="bg-white/20 border-white/30 text-white placeholder:text-white/50 rounded-xl"
+                        data-testid="signup-firstname"
+                      />
+                      <Input
+                        name="lastName"
+                        placeholder="Nom *"
+                        value={formData.lastName}
+                        onChange={handleInputChange}
+                        className="bg-white/20 border-white/30 text-white placeholder:text-white/50 rounded-xl"
+                        data-testid="signup-lastname"
+                      />
+                    </div>
+
+                    <Input
+                      name="email"
+                      type="email"
+                      placeholder="Adresse email *"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="bg-white/20 border-white/30 text-white placeholder:text-white/50 rounded-xl"
+                      data-testid="signup-email"
+                    />
+
+                    <Input
+                      name="address"
+                      placeholder="Adresse (rue) *"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      className="bg-white/20 border-white/30 text-white placeholder:text-white/50 rounded-xl"
+                      data-testid="signup-address"
+                    />
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <Input
+                        name="postalCode"
+                        placeholder="Code postal *"
+                        value={formData.postalCode}
+                        onChange={handleInputChange}
+                        className="bg-white/20 border-white/30 text-white placeholder:text-white/50 rounded-xl"
+                        data-testid="signup-postalcode"
+                      />
+                      <Input
+                        name="city"
+                        placeholder="Ville *"
+                        value={formData.city}
+                        onChange={handleInputChange}
+                        className="bg-white/20 border-white/30 text-white placeholder:text-white/50 rounded-xl"
+                        data-testid="signup-city"
+                      />
+                    </div>
+
+                    <Input
+                      name="password"
+                      type="password"
+                      placeholder="Mot de passe (min. 8 caractères) *"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      className="bg-white/20 border-white/30 text-white placeholder:text-white/50 rounded-xl"
+                      data-testid="signup-password"
+                    />
+
+                    <Input
+                      name="confirmPassword"
+                      type="password"
+                      placeholder="Confirmer le mot de passe *"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      className="bg-white/20 border-white/30 text-white placeholder:text-white/50 rounded-xl"
+                      data-testid="signup-confirm-password"
+                    />
+
+                    <Button
+                      type="submit"
+                      disabled={isLoading}
+                      data-testid="signup-submit-btn"
+                      className="w-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:from-[#FF8E72] hover:to-[#FF1493] text-white py-6 text-lg font-bold rounded-xl transition-all duration-300"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Inscription...
+                        </>
+                      ) : (
+                        <>
+                          S'inscrire
+                          <ArrowRight className="ml-2" size={20} />
+                        </>
+                      )}
+                    </Button>
+
+                    <div className="text-center">
+                      <button
+                        type="button"
+                        onClick={() => setShowSignupForm(false)}
+                        className="text-white/60 hover:text-white text-sm underline"
+                      >
+                        Retour
+                      </button>
+                      <span className="text-white/40 mx-2">•</span>
+                      <Link to="/auth" className="text-white/60 hover:text-white text-sm underline">
+                        Déjà un compte ?
+                      </Link>
+                    </div>
+                  </form>
+                )}
+              </motion.div>
+            )}
           </motion.div>
         </div>
 

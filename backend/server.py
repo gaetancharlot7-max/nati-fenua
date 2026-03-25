@@ -250,6 +250,7 @@ class UserCreate(BaseModel):
     email: str
     password: str
     name: str
+    address: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: str
@@ -571,6 +572,7 @@ async def register(request: Request, response: Response):
         "picture": f"https://ui-avatars.com/api/?name={clean_name}&background=FF6B35&color=fff&bold=true",
         "bio": None,
         "location": "Polynésie Française",
+        "address": user_data.address,
         "is_business": False,
         "is_verified": False,
         "is_banned": False,

@@ -1,11 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { Send, Image, Smile, Phone, Video, MoreVertical, ArrowLeft, Search } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Send, Image, Smile, Phone, Video, MoreVertical, ArrowLeft, Search, X } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { chatApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+
+// Liste d'emojis populaires polynésiens et généraux
+const EMOJI_LIST = [
+  '🌺', '🌴', '🌊', '🐚', '🥥', '🍍', '🌸', '🦋', '🐠', '🐬',
+  '☀️', '🌅', '🏝️', '⛵', '🎣', '🏄', '🤙', '💪', '🔥', '✨',
+  '😀', '😊', '😍', '🥰', '😎', '🤩', '😂', '🤣', '😇', '🙂',
+  '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '💕', '💖',
+  '👍', '👏', '🙏', '💪', '✌️', '🤝', '👋', '🎉', '🎊', '🎁',
+  '🌈', '⭐', '🌙', '🌟', '💫', '🔆', '🎵', '🎶', '📸', '🎬'
+];
 
 // Demo conversations
 const demoConversations = [
@@ -48,7 +58,48 @@ const ChatPage = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const emojiPickerRef = useRef(null);
+
+  // Fermer le picker emoji si on clique en dehors
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeSelectedImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const addEmoji = (emoji) => {
+    setNewMessage(prev => prev + emoji);
+    setShowEmojiPicker(false);
+  };
 
   useEffect(() => {
     loadConversations();
@@ -91,22 +142,30 @@ const ChatPage = () => {
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation) return;
+    if ((!newMessage.trim() && !selectedImage) || !selectedConversation) return;
+
+    const messageContent = selectedImage 
+      ? `[Image] ${newMessage}`.trim() 
+      : newMessage;
 
     const tempMessage = {
       message_id: `temp_${Date.now()}`,
       sender_id: user?.user_id || 'me',
-      content: newMessage,
+      content: messageContent,
+      media_url: imagePreview,
       created_at: new Date().toISOString()
     };
 
     setMessages(prev => [...prev, tempMessage]);
     setNewMessage('');
+    removeSelectedImage();
 
     try {
       await chatApi.sendMessage({
         receiver_id: selectedConversation.other_user.user_id,
-        content: newMessage
+        content: messageContent,
+        message_type: selectedImage ? 'image' : 'text',
+        media_url: imagePreview
       });
     } catch (error) {
       console.error('Error sending message:', error);
@@ -243,6 +302,13 @@ const ChatPage = () => {
                         ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-2xl rounded-br-md' 
                         : 'bg-white text-[#1A1A2E] rounded-2xl rounded-bl-md shadow-sm'
                     }`}>
+                      {message.media_url && (
+                        <img 
+                          src={message.media_url} 
+                          alt="Message image" 
+                          className="max-w-full rounded-lg mb-2"
+                        />
+                      )}
                       <p className="text-[15px]">{message.content}</p>
                     </div>
                     <p className={`text-xs text-gray-400 mt-1 ${isMe ? 'text-right' : ''}`}>
@@ -257,13 +323,79 @@ const ChatPage = () => {
 
           {/* Input Area */}
           <div className="p-4 bg-white border-t border-gray-100">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" className="rounded-xl flex-shrink-0">
-                <Image size={22} className="text-gray-500" />
+            {/* Image Preview */}
+            {imagePreview && (
+              <div className="mb-3 relative inline-block">
+                <img 
+                  src={imagePreview} 
+                  alt="Preview" 
+                  className="max-h-32 rounded-xl border border-gray-200"
+                />
+                <button
+                  onClick={removeSelectedImage}
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+            
+            <div className="flex items-center gap-3 relative">
+              {/* Hidden file input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageSelect}
+                accept="image/*"
+                className="hidden"
+              />
+              
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="rounded-xl flex-shrink-0 hover:bg-[#FF6B35]/10"
+                onClick={() => fileInputRef.current?.click()}
+                data-testid="image-picker-btn"
+              >
+                <Image size={22} className="text-[#FF6B35]" />
               </Button>
-              <Button variant="ghost" size="icon" className="rounded-xl flex-shrink-0">
-                <Smile size={22} className="text-gray-500" />
-              </Button>
+              
+              <div className="relative" ref={emojiPickerRef}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="rounded-xl flex-shrink-0 hover:bg-[#FFD700]/10"
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  data-testid="emoji-picker-btn"
+                >
+                  <Smile size={22} className="text-[#FFD700]" />
+                </Button>
+                
+                {/* Emoji Picker */}
+                <AnimatePresence>
+                  {showEmojiPicker && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute bottom-full left-0 mb-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 w-72 z-50"
+                    >
+                      <p className="text-xs text-gray-500 mb-2 font-medium">Emojis populaires</p>
+                      <div className="grid grid-cols-10 gap-1">
+                        {EMOJI_LIST.map((emoji, index) => (
+                          <button
+                            key={index}
+                            onClick={() => addEmoji(emoji)}
+                            className="w-7 h-7 flex items-center justify-center text-lg hover:bg-gray-100 rounded-lg transition-colors"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
               
               <Input
                 value={newMessage}
@@ -276,7 +408,7 @@ const ChatPage = () => {
               
               <Button 
                 onClick={sendMessage}
-                disabled={!newMessage.trim()}
+                disabled={!newMessage.trim() && !selectedImage}
                 data-testid="send-message-btn"
                 className="rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white px-6 py-6 disabled:opacity-50"
               >

@@ -24,6 +24,16 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
+// Auth API
+export const authApi = {
+  register: (data) => api.post('/auth/register', data),
+  login: (data) => api.post('/auth/login', data),
+  logout: () => api.post('/auth/logout'),
+  getMe: () => api.get('/auth/me'),
+  requestPasswordReset: (email) => api.post('/auth/request-password-reset', { email }),
+  resetPassword: (data) => api.post('/auth/reset-password', data)
+};
+
 // Posts API
 export const postsApi = {
   getAll: (params) => api.get('/posts', { params }),
