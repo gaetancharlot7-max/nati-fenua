@@ -120,9 +120,6 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Add GZip Middleware for compression (reduces bandwidth by ~70%)
-app.add_middleware(GZipMiddleware, minimum_size=500)
-
 # Add CORS Middleware - CRITICAL for production
 # Build allowed origins dynamically so credentials work with specific origins
 # (wildcard '*' is forbidden by browsers when credentials: 'include' is used).
@@ -172,7 +169,15 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'],
+    expose_headers=['*'],
+    max_age=3600,
 )
+
+# Add GZip Middleware AFTER CORS. FastAPI applies middleware in reverse
+# registration order, so the last middleware added executes first on each
+# request — meaning CORS will run before GZip, preventing GZip from
+# overwriting the Access-Control-Allow-Origin header.
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 _cors_origins_raw = os.environ.get('CORS_ORIGINS', '*').split(',')
 logging.info("CORS origins configured: %s", _cors_origins_raw)
