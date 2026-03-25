@@ -36,3 +36,9 @@ beautifulsoup4>=4.12.0
 
 # Utilities
 python-dateutil>=2.8.0
+
+# Rate Limiting
+slowapi>=0.1.9
+
+# Email (Resend)
+resend>=0.7.0
