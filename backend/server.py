@@ -171,6 +171,9 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
+_cors_origins_raw = os.environ.get('CORS_ORIGINS', '*').split(',')
+logging.info("CORS origins configured: %s", _cors_origins_raw)
+
 # Health check endpoint (pour Railway/monitoring)
 @app.get("/api/health")
 async def health_check():
