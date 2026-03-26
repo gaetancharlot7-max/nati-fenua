@@ -85,10 +85,9 @@ const CookieBanner = () => {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-0 left-0 right-0 z-[100] p-4 lg:p-6"
+        className="fixed bottom-4 left-4 right-4 lg:bottom-6 lg:left-auto lg:right-6 z-[60] max-w-md lg:max-w-lg"
       >
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
             {/* Main Content */}
             <div className="p-6">
               <div className="flex items-start gap-4">
@@ -179,32 +178,34 @@ const CookieBanner = () => {
             </div>
 
             {/* Actions */}
-            <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-wrap gap-3 justify-end">
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-wrap gap-2 justify-end">
               <Button
                 onClick={handleAcceptNecessary}
                 variant="outline"
-                className="text-sm"
+                size="sm"
+                className="text-xs"
               >
-                Cookies essentiels uniquement
+                Essentiels uniquement
               </Button>
               {showDetails && (
                 <Button
                   onClick={handleSavePreferences}
                   variant="outline"
-                  className="text-sm"
+                  size="sm"
+                  className="text-xs"
                 >
-                  Enregistrer mes préférences
+                  Enregistrer
                 </Button>
               )}
               <Button
                 onClick={handleAcceptAll}
-                className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:opacity-90 text-sm"
+                size="sm"
+                className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:opacity-90 text-xs"
               >
                 Accepter tout
               </Button>
             </div>
           </div>
-        </div>
       </motion.div>
     </AnimatePresence>
   );

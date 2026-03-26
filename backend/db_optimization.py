@@ -66,9 +66,34 @@ async def create_indexes(db) -> dict:
         await db.users.create_index([("email", 1)], unique=True, background=True)
         created_indexes.append("users.email")
         
-        # Index pour recherche de nom
+        # Index pour recherche de nom (text search)
         await db.users.create_index([("name", "text")], background=True)
         created_indexes.append("users.name_text")
+        
+        # Index pour recherche par nom (regex)
+        await db.users.create_index([("name", 1)], background=True)
+        created_indexes.append("users.name_asc")
+        
+        # Index pour recherche par location
+        await db.users.create_index([("location", 1)], background=True)
+        created_indexes.append("users.location")
+        
+        # Index composé pour recherche utilisateurs
+        await db.users.create_index([("is_banned", 1), ("name", 1)], background=True)
+        created_indexes.append("users.search_optimized")
+        
+        # ==================== PRODUCTS (Marketplace) ====================
+        # Index pour recherche de produits
+        await db.products.create_index([("title", "text"), ("description", "text")], background=True)
+        created_indexes.append("products.text_search")
+        
+        # Index pour produits disponibles
+        await db.products.create_index([("is_available", 1), ("created_at", -1)], background=True)
+        created_indexes.append("products.available")
+        
+        # Index pour catégorie
+        await db.products.create_index([("category", 1), ("is_available", 1)], background=True)
+        created_indexes.append("products.category")
         
         # ==================== MARKERS (Fenua Pulse) ====================
         # Index pour les markers par île

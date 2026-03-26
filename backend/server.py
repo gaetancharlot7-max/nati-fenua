@@ -2475,6 +2475,7 @@ async def get_analytics_dashboard(request: Request):
 
 @api_router.get("/search")
 async def search(q: str, type: str = "all", limit: int = 20):
+    """Search across all content types"""
     results = {"users": [], "posts": [], "products": [], "services": [], "lives": []}
     
     if type in ["all", "users"]:
@@ -2513,6 +2514,115 @@ async def search(q: str, type: str = "all", limit: int = 20):
         results["lives"] = lives
     
     return results
+
+
+# ==================== SEARCH SPECIFIC ENDPOINTS ====================
+
+@api_router.get("/search/users")
+async def search_users(q: str, limit: int = 20, skip: int = 0):
+    """Search users by name, bio, or location"""
+    if not q or len(q) < 2:
+        return []
+    
+    # Optimized search with index
+    pipeline = [
+        {"$match": {
+            "$or": [
+                {"name": {"$regex": q, "$options": "i"}},
+                {"bio": {"$regex": q, "$options": "i"}},
+                {"location": {"$regex": q, "$options": "i"}}
+            ],
+            "is_banned": {"$ne": True}
+        }},
+        {"$project": {
+            "_id": 0,
+            "password_hash": 0,
+            "email": 0
+        }},
+        {"$skip": skip},
+        {"$limit": limit}
+    ]
+    
+    users = await db.users.aggregate(pipeline).to_list(limit)
+    return users
+
+
+@api_router.get("/search/posts")
+async def search_posts(q: str, limit: int = 20, skip: int = 0):
+    """Search posts by caption or hashtags"""
+    if not q or len(q) < 2:
+        return []
+    
+    # Optimized search with user lookup
+    pipeline = [
+        {"$match": {
+            "$or": [
+                {"caption": {"$regex": q, "$options": "i"}},
+                {"hashtags": {"$regex": q, "$options": "i"}}
+            ],
+            "moderation_status": {"$ne": "rejected"}
+        }},
+        {"$sort": {"created_at": -1}},
+        {"$skip": skip},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "user_id",
+            "as": "user_data"
+        }},
+        {"$unwind": {"path": "$user_data", "preserveNullAndEmptyArrays": True}},
+        {"$addFields": {
+            "user": {
+                "user_id": "$user_data.user_id",
+                "name": "$user_data.name",
+                "picture": "$user_data.picture"
+            }
+        }},
+        {"$project": {"_id": 0, "user_data": 0}}
+    ]
+    
+    posts = await db.posts.aggregate(pipeline).to_list(limit)
+    return posts
+
+
+@api_router.get("/search/products")
+async def search_products(q: str, limit: int = 20, skip: int = 0):
+    """Search marketplace products"""
+    if not q or len(q) < 2:
+        return []
+    
+    pipeline = [
+        {"$match": {
+            "$or": [
+                {"title": {"$regex": q, "$options": "i"}},
+                {"description": {"$regex": q, "$options": "i"}},
+                {"category": {"$regex": q, "$options": "i"}}
+            ],
+            "is_available": True
+        }},
+        {"$sort": {"created_at": -1}},
+        {"$skip": skip},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "user_id",
+            "as": "seller_data"
+        }},
+        {"$unwind": {"path": "$seller_data", "preserveNullAndEmptyArrays": True}},
+        {"$addFields": {
+            "seller": {
+                "user_id": "$seller_data.user_id",
+                "name": "$seller_data.name",
+                "picture": "$seller_data.picture"
+            }
+        }},
+        {"$project": {"_id": 0, "seller_data": 0}}
+    ]
+    
+    products = await db.products.aggregate(pipeline).to_list(limit)
+    return products
 
 # ==================== NOTIFICATIONS ====================
 
