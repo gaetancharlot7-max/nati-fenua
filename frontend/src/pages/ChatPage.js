@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Image, Smile, Phone, Video, MoreVertical, ArrowLeft, Search, X } from 'lucide-react';
+import { Send, Image, Smile, Phone, MoreVertical, ArrowLeft, Search, X } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
@@ -22,14 +22,14 @@ const EMOJI_LIST = [
 const demoConversations = [
   {
     conversation_id: 'conv1',
-    other_user: { user_id: '1', name: 'Hinano', picture: 'https://images.unsplash.com/photo-1612708437841-085ba65e370b?w=100' },
+    other_user: { user_id: '1', name: 'Hinano', picture: 'https://images.unsplash.com/photo-1612708437841-085ba65e370b?w=100', phone: '+68987123456' },
     last_message: 'Ia ora na ! Comment ça va ?',
     last_message_at: new Date(Date.now() - 300000).toISOString(),
     unread: 2
   },
   {
     conversation_id: 'conv2',
-    other_user: { user_id: '2', name: 'Maeva Shop', picture: 'https://ui-avatars.com/api/?name=MS&background=FF6B35&color=fff&bold=true' },
+    other_user: { user_id: '2', name: 'Maeva Shop', picture: 'https://ui-avatars.com/api/?name=MS&background=FF6B35&color=fff&bold=true', phone: '+68940567890' },
     last_message: 'Votre commande est prête 📦',
     last_message_at: new Date(Date.now() - 3600000).toISOString(),
     unread: 0
@@ -315,12 +315,18 @@ const ChatPage = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="rounded-xl">
-                <Phone size={20} />
-              </Button>
-              <Button variant="ghost" size="icon" className="rounded-xl">
-                <Video size={20} />
-              </Button>
+              {selectedConversation.other_user?.phone && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="rounded-xl hover:bg-green-50"
+                  onClick={() => window.location.href = `tel:${selectedConversation.other_user.phone}`}
+                  data-testid="call-btn"
+                  title={`Appeler ${selectedConversation.other_user.name}`}
+                >
+                  <Phone size={20} className="text-green-600" />
+                </Button>
+              )}
               <Button variant="ghost" size="icon" className="rounded-xl">
                 <MoreVertical size={20} />
               </Button>
