@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Image, Smile, Phone, MoreVertical, ArrowLeft, Search, X } from 'lucide-react';
+import { Send, Image, Smile, MoreVertical, ArrowLeft, Search, X } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
@@ -315,18 +315,6 @@ const ChatPage = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              {selectedConversation.other_user?.phone && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="rounded-xl hover:bg-green-50"
-                  onClick={() => window.location.href = `tel:${selectedConversation.other_user.phone}`}
-                  data-testid="call-btn"
-                  title={`Appeler ${selectedConversation.other_user.name}`}
-                >
-                  <Phone size={20} className="text-green-600" />
-                </Button>
-              )}
               <Button variant="ghost" size="icon" className="rounded-xl">
                 <MoreVertical size={20} />
               </Button>
