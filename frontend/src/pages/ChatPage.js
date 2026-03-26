@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Image, Smile, Phone, Video, MoreVertical, ArrowLeft, Search, X } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
-import { chatApi } from '../lib/api';
+import { chatApi, usersApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 
 // Liste d'emojis populaires polynésiens et généraux
@@ -53,6 +54,8 @@ const demoMessages = [
 
 const ChatPage = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const targetUserId = searchParams.get('user');
   const [conversations, setConversations] = useState(demoConversations);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -64,6 +67,46 @@ const ChatPage = () => {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const emojiPickerRef = useRef(null);
+
+  // Si on arrive avec un paramètre ?user=, créer ou ouvrir une conversation avec cet utilisateur
+  useEffect(() => {
+    const openConversationWithUser = async () => {
+      if (targetUserId && user) {
+        try {
+          // Chercher si une conversation existe déjà
+          const existingConv = conversations.find(
+            conv => conv.other_user.user_id === targetUserId
+          );
+          
+          if (existingConv) {
+            setSelectedConversation(existingConv);
+            setMessages(demoMessages);
+          } else {
+            // Récupérer les infos de l'utilisateur et créer une nouvelle conversation
+            const userRes = await usersApi.getProfile(targetUserId);
+            const newConv = {
+              conversation_id: `conv_new_${Date.now()}`,
+              other_user: {
+                user_id: targetUserId,
+                name: userRes.data.name,
+                picture: userRes.data.picture
+              },
+              last_message: '',
+              last_message_at: new Date().toISOString(),
+              unread: 0
+            };
+            setConversations(prev => [newConv, ...prev]);
+            setSelectedConversation(newConv);
+            setMessages([]);
+          }
+        } catch (error) {
+          console.error('Error opening conversation:', error);
+        }
+      }
+    };
+    
+    openConversationWithUser();
+  }, [targetUserId, user]);
 
   // Fermer le picker emoji si on clique en dehors
   useEffect(() => {

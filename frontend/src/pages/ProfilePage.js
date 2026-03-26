@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Settings, Grid3X3, Bookmark, ShoppingBag, MapPin, LogOut } from 'lucide-react';
+import { Settings, Grid3X3, Bookmark, ShoppingBag, MapPin, LogOut, MessageCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
@@ -131,13 +131,23 @@ const ProfilePage = () => {
                   </Button>
                 </div>
               ) : (
-                <Button
-                  onClick={handleFollow}
-                  data-testid="follow-btn"
-                  className={`rounded-full ${isFollowing ? 'bg-gray-200 text-[#2F2F31] hover:bg-gray-300' : 'bg-[#00899B] text-white hover:bg-[#007585]'}`}
-                >
-                  {isFollowing ? 'Ami' : 'Ajouter'}
-                </Button>
+                <div className="flex gap-2 justify-center md:justify-start">
+                  <Button
+                    onClick={handleFollow}
+                    data-testid="follow-btn"
+                    className={`rounded-full ${isFollowing ? 'bg-gray-200 text-[#2F2F31] hover:bg-gray-300' : 'bg-[#00899B] text-white hover:bg-[#007585]'}`}
+                  >
+                    {isFollowing ? 'Ami' : 'Ajouter'}
+                  </Button>
+                  <Button
+                    onClick={() => navigate(`/chat?user=${userId}`)}
+                    data-testid="send-message-btn"
+                    className="rounded-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white hover:opacity-90"
+                  >
+                    <MessageCircle size={18} className="mr-2" />
+                    Message
+                  </Button>
+                </div>
               )}
             </div>
 
