@@ -159,7 +159,7 @@ const ZoomControls = ({ onLocateUser }) => {
   };
 
   return (
-    <div className="absolute bottom-24 right-4 z-[1000] flex flex-col gap-2">
+    <div className="absolute bottom-4 right-4 z-[1000] flex flex-col gap-2">
       <button
         onClick={handleZoomIn}
         className="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200"
@@ -368,7 +368,7 @@ const PulsePage = () => {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-100">
+      <div className="h-[calc(100vh-140px)] flex items-center justify-center bg-gray-100">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#FF6B35] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Chargement de Fenua Pulse...</p>
@@ -380,9 +380,9 @@ const PulsePage = () => {
   const mapCenter = islands.find(i => i.id === selectedIsland) || defaultCenter;
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-b from-[#E6F7FF] to-white overflow-hidden">
+    <div className="h-[calc(100vh-140px)] lg:h-[calc(100vh-80px)] flex flex-col bg-gradient-to-b from-[#E6F7FF] to-white">
       {/* Header with Pulse Status */}
-      <div className="bg-white/90 backdrop-blur-xl shadow-sm z-20 px-4 py-3 border-b border-[#00CED1]/20">
+      <div className="bg-white/90 backdrop-blur-xl shadow-sm z-20 px-4 py-2 border-b border-[#00CED1]/20 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <motion.div 
@@ -432,14 +432,14 @@ const PulsePage = () => {
         </div>
 
         {/* Island Navigation */}
-        <div className="flex gap-2 mt-3 overflow-x-auto hide-scrollbar pb-1">
+        <div className="flex gap-2 mt-2 overflow-x-auto hide-scrollbar pb-1">
           {islands.map(island => (
             <motion.button
               key={island.id}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => navigateToIsland(island.id)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all shadow-sm ${
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shadow-sm ${
                 selectedIsland === island.id
                   ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white shadow-lg'
                   : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
@@ -453,7 +453,7 @@ const PulsePage = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white/90 backdrop-blur-xl px-4 py-2.5 flex gap-2 overflow-x-auto hide-scrollbar z-10 border-b border-gray-100">
+      <div className="bg-white/90 backdrop-blur-xl px-4 py-2 flex gap-2 overflow-x-auto hide-scrollbar z-10 border-b border-gray-100 flex-shrink-0">
         {/* Clear filter button */}
         {activeFilters.length > 0 && (
           <motion.button
@@ -559,10 +559,10 @@ const PulsePage = () => {
             whileHover={{ scale: 1.1, rotate: 90 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => setShowCreateModal(true)}
-            className="absolute bottom-24 left-4 w-16 h-16 bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] rounded-2xl shadow-xl flex items-center justify-center z-[1000]"
+            className="absolute bottom-4 left-4 w-14 h-14 bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] rounded-2xl shadow-xl flex items-center justify-center z-[1000]"
             data-testid="create-signal-btn"
           >
-            <Plus size={32} className="text-white" strokeWidth={3} />
+            <Plus size={28} className="text-white" strokeWidth={3} />
           </motion.button>
         )}
 
