@@ -112,12 +112,13 @@ app = FastAPI(title="Nati Fenua API", docs_url="/api/docs", redoc_url="/api/redo
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
-# Initialize Rate Limiter (generous limits for production - disable for load testing)
-DISABLE_RATE_LIMIT = os.environ.get('DISABLE_RATE_LIMIT', 'false').lower() == 'true'
-if DISABLE_RATE_LIMIT:
-    limiter = Limiter(key_func=get_remote_address, default_limits=["10000/minute"])
+# Initialize Rate Limiter (optimized for high load - 2000 req/min per IP)
+RATE_LIMIT_ENABLED = os.environ.get('RATE_LIMIT_ENABLED', 'true').lower() == 'true'
+if not RATE_LIMIT_ENABLED:
+    # Disabled for load testing
+    limiter = Limiter(key_func=get_remote_address, default_limits=["100000/minute"], enabled=False)
 else:
-    limiter = Limiter(key_func=get_remote_address, default_limits=["1000/minute"])
+    limiter = Limiter(key_func=get_remote_address, default_limits=["2000/minute"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -526,7 +527,7 @@ async def require_auth(request: Request) -> UserBase:
 # ==================== AUTH ROUTES ====================
 
 @api_router.post("/auth/register")
-@limiter.limit("100/minute")  # Rate limit: 100 registrations per minute per IP
+@limiter.limit("500/minute")  # Rate limit: 500 registrations per minute per IP
 async def register(request: Request, response: Response):
     user_data_raw = await request.json()
     user_data = UserCreate(**user_data_raw)
@@ -630,7 +631,7 @@ async def register(request: Request, response: Response):
     return {"user": user, "session_token": session_token}
 
 @api_router.post("/auth/login")
-@limiter.limit("200/minute")  # Rate limit: 200 login attempts per minute per IP
+@limiter.limit("1000/minute")  # Rate limit: 1000 login attempts per minute per IP
 async def login(request: Request, response: Response):
     user_data_raw = await request.json()
     user_data = UserLogin(**user_data_raw)
@@ -827,7 +828,7 @@ async def logout_all_devices(request: Request, response: Response):
     }
 
 @api_router.post("/auth/request-password-reset")
-@limiter.limit("10/minute")  # Limite pour éviter les abus
+@limiter.limit("100/minute")  # Limite pour éviter les abus
 async def request_password_reset(request: Request):
     """Request a password reset link - sends email via Resend"""
     body = await request.json()
@@ -1263,8 +1264,19 @@ async def facebook_callback(request: Request, response: Response, code: str = No
 
 @api_router.get("/posts", response_model=List[dict])
 async def get_posts(limit: int = 20, skip: int = 0):
+    """Get posts with caching for better performance"""
+    
+    # Cache key based on pagination
+    cache_key = f"posts:{limit}:{skip}"
+    
+    # Try cache first
+    cached = await cache.get(cache_key)
+    if cached:
+        return cached
+    
     # Optimized: Use aggregation with $lookup to avoid N+1 queries
     pipeline = [
+        {"$match": {"moderation_status": {"$ne": "rejected"}}},
         {"$sort": {"created_at": -1}},
         {"$skip": skip},
         {"$limit": limit},
@@ -1293,6 +1305,25 @@ async def get_posts(limit: int = 20, skip: int = 0):
     ]
     
     posts = await db.posts.aggregate(pipeline).to_list(limit)
+    
+    # Fallback demo posts if empty
+    if not posts:
+        posts = [
+            {
+                "post_id": "demo_post_1",
+                "user_id": "demo_user",
+                "caption": "🌺 Ia ora na ! Bienvenue sur Nati Fenua",
+                "media_url": "https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=800",
+                "content_type": "image",
+                "likes_count": 42,
+                "comments_count": 5,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "user": {"user_id": "demo_user", "name": "Nati Fenua", "picture": None, "is_verified": True}
+            }
+        ]
+    
+    # Cache for 30 seconds
+    await cache.set(cache_key, posts, ttl=30)
     return posts
 
 @api_router.get("/posts/nearby")
@@ -2673,9 +2704,15 @@ async def search(q: str, type: str = "all", limit: int = 20):
 
 @api_router.get("/search/users")
 async def search_users(q: str, limit: int = 20, skip: int = 0):
-    """Search users by name, bio, or location"""
+    """Search users by name, bio, or location with caching"""
     if not q or len(q) < 2:
         return []
+    
+    # Cache key
+    cache_key = f"search_users:{q}:{limit}:{skip}"
+    cached = await cache.get(cache_key)
+    if cached:
+        return cached
     
     # Optimized search with index
     pipeline = [
@@ -2697,14 +2734,23 @@ async def search_users(q: str, limit: int = 20, skip: int = 0):
     ]
     
     users = await db.users.aggregate(pipeline).to_list(limit)
+    
+    # Cache for 60 seconds
+    await cache.set(cache_key, users, ttl=60)
     return users
 
 
 @api_router.get("/search/posts")
 async def search_posts(q: str, limit: int = 20, skip: int = 0):
-    """Search posts by caption or hashtags"""
+    """Search posts by caption or hashtags with caching"""
     if not q or len(q) < 2:
         return []
+    
+    # Cache key
+    cache_key = f"search_posts:{q}:{limit}:{skip}"
+    cached = await cache.get(cache_key)
+    if cached:
+        return cached
     
     # Optimized search with user lookup
     pipeline = [
@@ -2736,14 +2782,23 @@ async def search_posts(q: str, limit: int = 20, skip: int = 0):
     ]
     
     posts = await db.posts.aggregate(pipeline).to_list(limit)
+    
+    # Cache for 60 seconds
+    await cache.set(cache_key, posts, ttl=60)
     return posts
 
 
 @api_router.get("/search/products")
 async def search_products(q: str, limit: int = 20, skip: int = 0):
-    """Search marketplace products"""
+    """Search marketplace products with caching"""
     if not q or len(q) < 2:
         return []
+    
+    # Cache key
+    cache_key = f"search_products:{q}:{limit}:{skip}"
+    cached = await cache.get(cache_key)
+    if cached:
+        return cached
     
     pipeline = [
         {"$match": {
@@ -2775,6 +2830,9 @@ async def search_products(q: str, limit: int = 20, skip: int = 0):
     ]
     
     products = await db.products.aggregate(pipeline).to_list(limit)
+    
+    # Cache for 60 seconds
+    await cache.set(cache_key, products, ttl=60)
     return products
 
 # ==================== NOTIFICATIONS ====================
