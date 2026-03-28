@@ -1,0 +1,110 @@
+{
+  "test_info": {
+    "date": "2026-03-28T20:05:10.932293",
+    "url": "https://fenua-connect.preview.emergentagent.com",
+    "stages_count": 6
+  },
+  "overall_metrics": {
+    "total_requests": 21796,
+    "total_real_errors": 7879,
+    "overall_real_error_rate": 36.15,
+    "max_rps_achieved": 237.06
+  },
+  "thresholds": {
+    "degradation_starts_at_users": 10,
+    "breaking_point_at_users": 10,
+    "safe_concurrent_users": 5
+  },
+  "stages_summary": [
+    {
+      "stage": "\u00c9chauffement",
+      "users": 5,
+      "total_requests": 1320,
+      "rps": 42.38,
+      "avg_ms": 74.15,
+      "p50_ms": 58.73,
+      "p95_ms": 106.93,
+      "p99_ms": 335.81,
+      "real_error_rate": 0.91,
+      "expected_errors": 0,
+      "app_errors": 0,
+      "infra_errors": 12,
+      "timeouts": 12
+    },
+    {
+      "stage": "L\u00e9ger",
+      "users": 10,
+      "total_requests": 2420,
+      "rps": 41.17,
+      "avg_ms": 194.82,
+      "p50_ms": 67.23,
+      "p95_ms": 108.37,
+      "p99_ms": 372.59,
+      "real_error_rate": 15.33,
+      "expected_errors": 1,
+      "app_errors": 253,
+      "infra_errors": 118,
+      "timeouts": 118
+    },
+    {
+      "stage": "Mod\u00e9r\u00e9",
+      "users": 25,
+      "total_requests": 3062,
+      "rps": 72.05,
+      "avg_ms": 272.27,
+      "p50_ms": 87.0,
+      "p95_ms": 417.84,
+      "p99_ms": 5516.76,
+      "real_error_rate": 18.03,
+      "expected_errors": 0,
+      "app_errors": 318,
+      "infra_errors": 234,
+      "timeouts": 234
+    },
+    {
+      "stage": "\u00c9lev\u00e9",
+      "users": 50,
+      "total_requests": 3708,
+      "rps": 67.81,
+      "avg_ms": 467.67,
+      "p50_ms": 89.69,
+      "p95_ms": 379.11,
+      "p99_ms": 19710.16,
+      "real_error_rate": 30.64,
+      "expected_errors": 1,
+      "app_errors": 617,
+      "infra_errors": 519,
+      "timeouts": 519
+    },
+    {
+      "stage": "Stress",
+      "users": 100,
+      "total_requests": 4910,
+      "rps": 91.92,
+      "avg_ms": 796.93,
+      "p50_ms": 204.5,
+      "p95_ms": 1440.56,
+      "p99_ms": 19788.97,
+      "real_error_rate": 43.75,
+      "expected_errors": 1,
+      "app_errors": 1268,
+      "infra_errors": 880,
+      "timeouts": 880
+    },
+    {
+      "stage": "Surcharge",
+      "users": 150,
+      "total_requests": 6376,
+      "rps": 237.06,
+      "avg_ms": 547.23,
+      "p50_ms": 282.1,
+      "p95_ms": 1124.56,
+      "p99_ms": 7621.84,
+      "real_error_rate": 57.4,
+      "expected_errors": 5,
+      "app_errors": 2581,
+      "infra_errors": 1079,
+      "timeouts": 1079
+    }
+  ]
+}
