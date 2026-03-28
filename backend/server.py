@@ -2552,9 +2552,9 @@ async def update_my_profile(request: Request):
             # Save file
             import os
             filename = f"profile_{user.user_id}_{uuid.uuid4().hex[:8]}.jpg"
-            upload_dir = "/app/uploads/profiles"
-            os.makedirs(upload_dir, exist_ok=True)
-            file_path = os.path.join(upload_dir, filename)
+            upload_dir = Path(__file__).resolve().parent / "uploads" / "profiles"
+            upload_dir.mkdir(parents=True, exist_ok=True)
+            file_path = upload_dir / filename
             
             content = await picture.read()
             with open(file_path, "wb") as f:
@@ -3420,13 +3420,16 @@ async def delete_account(request: Request):
     
     # Delete all user's media files
     user_media = await db.media_files.find({"user_id": user.user_id}).to_list(10000)
+    base_dir = Path(__file__).resolve().parent
     for media in user_media:
-        file_path = media.get("file_path", "").replace("/uploads/", "/app/uploads/")
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except:
-                pass
+        file_path = media.get("file_path", "")
+        if file_path.startswith("/uploads/"):
+            full_path = base_dir / file_path.lstrip("/")
+            if full_path.exists():
+                try:
+                    full_path.unlink()
+                except:
+                    pass
     
     # Delete user's posts
     await db.posts.delete_many({"user_id": user.user_id})
@@ -3480,8 +3483,12 @@ app.add_middleware(
 
 # Mount uploads directory for serving uploaded files
 import os
-os.makedirs("/app/uploads/profiles", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="/app/uploads"), name="uploads")
+# Use relative path for Render compatibility
+BASE_DIR = Path(__file__).resolve().parent
+UPLOADS_DIR = BASE_DIR / "uploads"
+UPLOADS_DIR.mkdir(exist_ok=True)
+(UPLOADS_DIR / "profiles").mkdir(exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
@@ -3878,9 +3885,12 @@ async def admin_delete_media(media_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Media non trouvé")
     
     # Delete file from disk
-    file_path = media.get("file_path", "").replace("/uploads/", "/app/uploads/")
-    if os.path.exists(file_path):
-        os.remove(file_path)
+    base_dir = Path(__file__).resolve().parent
+    file_path = media.get("file_path", "")
+    if file_path.startswith("/uploads/"):
+        full_path = base_dir / file_path.lstrip("/")
+        if full_path.exists():
+            full_path.unlink()
     
     # Delete from database
     await db.media_files.delete_one({"media_id": media_id})
