@@ -1,0 +1,159 @@
+{
+  "test_info": {
+    "date": "2026-03-28T18:51:07.743307",
+    "url": "https://fenua-connect.preview.emergentagent.com",
+    "stages_count": 6,
+    "total_duration_minutes": 5.247
+  },
+  "overall_metrics": {
+    "total_requests": 18447,
+    "total_errors": 10155,
+    "overall_error_rate": 55.05,
+    "max_rps_achieved": 90.59,
+    "best_avg_response_ms": 83.84,
+    "worst_p99_ms": 30000.0
+  },
+  "thresholds": {
+    "degradation_starts_at_users": 5,
+    "breaking_point_at_users": 10,
+    "safe_concurrent_users": 0
+  },
+  "stages_summary": [
+    {
+      "stage": "\u00c9chauffement",
+      "users": 5,
+      "total_requests": 740,
+      "rps": 22.4,
+      "avg_ms": 83.84,
+      "p50_ms": 57.87,
+      "p95_ms": 295.66,
+      "p99_ms": 374.87,
+      "error_rate": 13.38,
+      "timeouts": 22
+    },
+    {
+      "stage": "Charge l\u00e9g\u00e8re",
+      "users": 10,
+      "total_requests": 2280,
+      "rps": 34.24,
+      "avg_ms": 129.77,
+      "p50_ms": 59.05,
+      "p95_ms": 143.67,
+      "p99_ms": 410.74,
+      "error_rate": 35.31,
+      "timeouts": 96
+    },
+    {
+      "stage": "Charge mod\u00e9r\u00e9e",
+      "users": 25,
+      "total_requests": 1907,
+      "rps": 38.23,
+      "avg_ms": 479.35,
+      "p50_ms": 83.14,
+      "p95_ms": 381.91,
+      "p99_ms": 20003.79,
+      "error_rate": 37.18,
+      "timeouts": 169
+    },
+    {
+      "stage": "Charge \u00e9lev\u00e9e",
+      "users": 50,
+      "total_requests": 3880,
+      "rps": 68.98,
+      "avg_ms": 532.28,
+      "p50_ms": 94.63,
+      "p95_ms": 878.8,
+      "p99_ms": 19971.29,
+      "error_rate": 47.47,
+      "timeouts": 522
+    },
+    {
+      "stage": "Stress test",
+      "users": 100,
+      "total_requests": 5260,
+      "rps": 90.59,
+      "avg_ms": 789.36,
+      "p50_ms": 94.28,
+      "p95_ms": 1243.29,
+      "p99_ms": 20116.66,
+      "error_rate": 60.72,
+      "timeouts": 952
+    },
+    {
+      "stage": "Surcharge",
+      "users": 150,
+      "total_requests": 4380,
+      "rps": 85.88,
+      "avg_ms": 1280.58,
+      "p50_ms": 308.54,
+      "p95_ms": 3866.02,
+      "p99_ms": 30000.0,
+      "error_rate": 80.05,
+      "timeouts": 1287
+    }
+  ],
+  "errors_summary": {
+    "by_status": {
+      "405": 477,
+      "404": 444,
+      "429": 456,
+      "401": 1008,
+      "403": 4722
+    },
+    "by_endpoint": {
+      "/translate?text=bonjour&direction=fr_to_th": 921,
+      "/rss/posts?limit=10": 919,
+      "/posts/post_demo1/like": 714,
+      "/notifications": 705,
+      "/conversations": 705,
+      "/auth/me": 659,
+      "/auth/login": 645,
+      "/auth/logout": 471,
+      "/posts?limit=20&skip=20": 459,
+      "/search/users?q=test": 444
+    }
+  },
+  "sample_errors": [
+    "/translate?text=bonjour&direction=fr_to_th: {\"detail\":\"Method Not Allowed\"}",
+    "/translate?text=bonjour&direction=fr_to_th: {\"detail\":\"Method Not Allowed\"}",
+    "/translate?text=bonjour&direction=fr_to_th: {\"detail\":\"Method Not Allowed\"}",
+    "/translate?text=bonjour&direction=fr_to_th: {\"detail\":\"Method Not Allowed\"}",
+    "/translate?text=bonjour&direction=fr_to_th: {\"detail\":\"Method Not Allowed\"}",
+    "/rss/posts?limit=10: {\"detail\":\"Not Found\"}",
+    "/rss/posts?limit=10: {\"detail\":\"Not Found\"}",
+    "/rss/posts?limit=10: {\"detail\":\"Not Found\"}",
+    "/rss/posts?limit=10: {\"detail\":\"Not Found\"}",
+    "/rss/posts?limit=10: {\"detail\":\"Not Found\"}",
+    "/translate?text=bonjour&direction=fr_to_th: {\"detail\":\"Method Not Allowed\"}",
+    "/rss/posts?limit=10: {\"detail\":\"Not Found\"}",
+    "/translate?text=bonjour&direction=fr_to_th: {\"detail\":\"Method Not Allowed\"}",
+    "/translate?text=bonjour&direction=fr_to_th: {\"detail\":\"Method Not Allowed\"}",
+    "/rss/posts?limit=10: {\"detail\":\"Not Found\"}",
+    "/rss/posts?limit=10: {\"detail\":\"Not Found\"}",
+    "/translate?text=bonjour&direction=fr_to_th: {\"detail\":\"Method Not Allowed\"}",
+    "/translate?text=bonjour&direction=fr_to_th: {\"detail\":\"Method Not Allowed\"}",
+    "/rss/posts?limit=10: {\"detail\":\"Not Found\"}",
+    "/rss/posts?limit=10: {\"detail\":\"Not Found\"}",
+    "/auth/login: {\"detail\":\"Trop de tentatives. R\u00e9essayez dans une minute.\"}",
+    "/auth/login: {\"detail\":\"Trop de tentatives. R\u00e9essayez dans une minute.\"}",
+    "/auth/login: {\"detail\":\"Trop de tentatives. R\u00e9essayez dans une minute.\"}",
+    "/auth/login: {\"detail\":\"Trop de tentatives. R\u00e9essayez dans une minute.\"}",
+    "/auth/login: {\"detail\":\"Trop de tentatives. R\u00e9essayez dans une minute.\"}",
+    "/auth/login: {\"detail\":\"Trop de tentatives. R\u00e9essayez dans une minute.\"}",
+    "/auth/me: {\"detail\":\"Non authentifi\u00e9\"}",
+    "/auth/me: {\"detail\":\"Non authentifi\u00e9\"}",
+    "/auth/me: {\"detail\":\"Non authentifi\u00e9\"}",
+    "/auth/me: {\"detail\":\"Non authentifi\u00e9\"}"
+  ],
+  "recommendations": [
+    "\ud83d\udd34 CRITIQUE: L'application commence \u00e0 se d\u00e9grader \u00e0 seulement 5 utilisateurs. Optimisation urgente requise.",
+    "\ud83d\udd27 Endpoint le plus fragile: /translate?text=bonjour&direction=fr_to_th (921 erreurs). Investiguer en priorit\u00e9.",
+    "\u26a1 Temps de r\u00e9ponse P95 \u00e9lev\u00e9. Consid\u00e9rer: mise en cache, optimisation des requ\u00eates DB, CDN.",
+    "\u23f1\ufe0f Timeouts d\u00e9tect\u00e9s. V\u00e9rifier: connection pooling, timeouts serveur, capacit\u00e9 DB.",
+    "\ud83e\udde0 M\u00e9moire \u00e9lev\u00e9e. Investiguer: fuites m\u00e9moire, cache trop grand, garbage collection.",
+    "\ud83d\udcca Ajouter un syst\u00e8me de cache Redis pour les donn\u00e9es fr\u00e9quemment acc\u00e9d\u00e9es",
+    "\ud83d\udd04 Impl\u00e9menter du rate limiting par IP pour \u00e9viter les abus",
+    "\ud83d\udcc8 Configurer un load balancer pour distribution de charge",
+    "\ud83d\uddc4\ufe0f Optimiser les index MongoDB pour les requ\u00eates lentes"
+  ]
+}
