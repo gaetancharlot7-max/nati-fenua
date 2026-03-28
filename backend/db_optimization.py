@@ -10,19 +10,20 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# Configuration optimisée pour 5000+ utilisateurs
+# Configuration optimisée pour 10000+ utilisateurs simultanés
 MONGO_POOL_CONFIG = {
-    "maxPoolSize": 100,          # Connexions max dans le pool
-    "minPoolSize": 10,           # Connexions min maintenues
-    "maxIdleTimeMS": 30000,      # Ferme connexions inactives après 30s
-    "waitQueueTimeoutMS": 10000, # Timeout pour obtenir une connexion
-    "connectTimeoutMS": 5000,    # Timeout de connexion
-    "socketTimeoutMS": 30000,    # Timeout socket
-    "serverSelectionTimeoutMS": 10000,
+    "maxPoolSize": 200,           # Connexions max dans le pool (augmenté)
+    "minPoolSize": 20,            # Connexions min maintenues (augmenté)
+    "maxIdleTimeMS": 60000,       # Ferme connexions inactives après 60s
+    "waitQueueTimeoutMS": 15000,  # Timeout pour obtenir une connexion (augmenté)
+    "connectTimeoutMS": 10000,    # Timeout de connexion (augmenté)
+    "socketTimeoutMS": 45000,     # Timeout socket (augmenté)
+    "serverSelectionTimeoutMS": 15000,
     "retryWrites": True,
     "retryReads": True,
-    "w": 1,                      # Write concern
-    "journal": False,            # Désactive journal pour perf (risque perte données)
+    "w": 1,                       # Write concern
+    "journal": False,             # Désactive journal pour perf
+    "compressors": ["zstd", "snappy", "zlib"],  # Compression des données
 }
 
 

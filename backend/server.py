@@ -112,8 +112,8 @@ app = FastAPI(title="Nati Fenua API", docs_url="/api/docs", redoc_url="/api/redo
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
-# Initialize Rate Limiter
-limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
+# Initialize Rate Limiter (generous limits for production)
+limiter = Limiter(key_func=get_remote_address, default_limits=["500/minute"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -516,7 +516,7 @@ async def require_auth(request: Request) -> UserBase:
 # ==================== AUTH ROUTES ====================
 
 @api_router.post("/auth/register")
-@limiter.limit("5/minute")  # Rate limit: 5 registrations per minute per IP
+@limiter.limit("30/minute")  # Rate limit: 30 registrations per minute per IP
 async def register(request: Request, response: Response):
     user_data_raw = await request.json()
     user_data = UserCreate(**user_data_raw)
@@ -620,7 +620,7 @@ async def register(request: Request, response: Response):
     return {"user": user, "session_token": session_token}
 
 @api_router.post("/auth/login")
-@limiter.limit("10/minute")  # Rate limit: 10 login attempts per minute per IP
+@limiter.limit("60/minute")  # Rate limit: 60 login attempts per minute per IP
 async def login(request: Request, response: Response):
     user_data_raw = await request.json()
     user_data = UserLogin(**user_data_raw)
@@ -817,7 +817,7 @@ async def logout_all_devices(request: Request, response: Response):
     }
 
 @api_router.post("/auth/request-password-reset")
-@limiter.limit("3/minute")  # Limite stricte pour éviter les abus
+@limiter.limit("10/minute")  # Limite pour éviter les abus
 async def request_password_reset(request: Request):
     """Request a password reset link - sends email via Resend"""
     body = await request.json()
@@ -974,7 +974,7 @@ async def reset_password(request: Request):
 # ==================== EMAIL VERIFICATION ====================
 
 @api_router.post("/auth/send-verification")
-@limiter.limit("3/minute")
+@limiter.limit("10/minute")
 async def send_email_verification(request: Request):
     """Send email verification code to current user"""
     user = await require_auth(request)
@@ -1605,18 +1605,39 @@ async def create_comment(post_id: str, comment_data: CommentCreate, request: Req
 
 # ==================== TRANSLATION ROUTES ====================
 
-@api_router.post("/translate")
-async def translate_content(request: Request):
+@api_router.api_route("/translate", methods=["GET", "POST"])
+async def translate_content(request: Request, text: str = None, direction: str = "fr_to_tah"):
     """
     Traduit du texte entre français et tahitien.
+    Supporte GET (query params) et POST (body JSON).
     Utilise un dictionnaire intégré de mots et expressions courants.
     """
-    body = await request.json()
-    text = body.get("text", "")
-    direction = body.get("direction", "fr_to_tah")  # "fr_to_tah" ou "tah_to_fr"
+    # Support GET avec query params
+    if request.method == "GET":
+        if not text:
+            raise HTTPException(status_code=400, detail="Paramètre 'text' requis")
+        # Normaliser les directions
+        if direction in ["fr_to_th", "fr_to_tah"]:
+            direction = "fr_to_tah"
+        elif direction in ["th_to_fr", "tah_to_fr"]:
+            direction = "tah_to_fr"
+    else:
+        # POST avec body JSON
+        try:
+            body = await request.json()
+            text = body.get("text", text)
+            direction = body.get("direction", direction)
+        except:
+            pass
     
     if not text:
         raise HTTPException(status_code=400, detail="Texte requis")
+    
+    # Normaliser les directions
+    if direction in ["fr_to_th", "fr_to_tah"]:
+        direction = "fr_to_tah"
+    elif direction in ["th_to_fr", "tah_to_fr"]:
+        direction = "tah_to_fr"
     
     if direction not in ["fr_to_tah", "tah_to_fr"]:
         raise HTTPException(status_code=400, detail="Direction invalide. Utilisez 'fr_to_tah' ou 'tah_to_fr'")
@@ -4539,6 +4560,74 @@ async def get_rss_stats():
     stats = await rss_service.get_rss_stats()
     await rss_service.close()
     return stats
+
+# ==================== RSS PUBLIC ENDPOINTS ====================
+
+@api_router.get("/rss/posts")
+async def get_rss_posts(limit: int = 20, skip: int = 0, source: Optional[str] = None):
+    """
+    Get posts from RSS feeds (public endpoint).
+    Returns articles published from RSS sources.
+    """
+    query = {"is_rss_article": True, "moderation_status": {"$ne": "rejected"}}
+    
+    if source:
+        query["rss_source"] = {"$regex": source, "$options": "i"}
+    
+    pipeline = [
+        {"$match": query},
+        {"$sort": {"created_at": -1}},
+        {"$skip": skip},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "user_id",
+            "as": "user_data"
+        }},
+        {"$unwind": {"path": "$user_data", "preserveNullAndEmptyArrays": True}},
+        {"$addFields": {
+            "user": {
+                "user_id": "$user_data.user_id",
+                "name": "$user_data.name",
+                "picture": "$user_data.picture"
+            }
+        }},
+        {"$project": {"_id": 0, "user_data": 0}}
+    ]
+    
+    posts = await db.posts.aggregate(pipeline).to_list(limit)
+    
+    # Fallback to demo posts if no RSS posts
+    if not posts:
+        posts = [
+            {
+                "post_id": "rss_demo_1",
+                "caption": "Les dernières actualités de Polynésie française",
+                "media_url": "https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=800",
+                "media_type": "image",
+                "is_rss_article": True,
+                "rss_source": "Tahiti Infos",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "likes_count": 0,
+                "comments_count": 0,
+                "user": {"user_id": "system", "name": "Nati Fenua News", "picture": None}
+            }
+        ]
+    
+    return posts
+
+@api_router.get("/rss/sources")
+async def get_rss_sources():
+    """Get list of RSS feed sources"""
+    return {
+        "sources": [
+            {"id": "tahiti-infos", "name": "Tahiti Infos", "url": "https://www.tahiti-infos.com"},
+            {"id": "polynesie1ere", "name": "Polynésie 1ère", "url": "https://la1ere.francetvinfo.fr/polynesie"},
+            {"id": "tntv", "name": "TNTV", "url": "https://www.tntv.pf"},
+            {"id": "radio1", "name": "Radio 1", "url": "https://www.radio1.pf"}
+        ]
+    }
 
 @api_router.post("/admin/cleanup/youtube")
 async def cleanup_youtube(request: Request):

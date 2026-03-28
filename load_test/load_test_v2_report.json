@@ -1,0 +1,116 @@
+{
+  "test_info": {
+    "date": "2026-03-28T19:41:02.559385",
+    "url": "https://fenua-connect.preview.emergentagent.com",
+    "stages_count": 6,
+    "total_duration_minutes": 6.444
+  },
+  "overall_metrics": {
+    "total_requests": 20863,
+    "total_errors": 6160,
+    "overall_error_rate": 29.53,
+    "max_rps_achieved": 83.75,
+    "best_avg_response_ms": 101.14,
+    "worst_p99_ms": 20708.63
+  },
+  "thresholds": {
+    "degradation_starts_at_users": 10,
+    "breaking_point_at_users": 100,
+    "safe_concurrent_users": 5
+  },
+  "stages_summary": [
+    {
+      "stage": "\u00c9chauffement",
+      "users": 5,
+      "total_requests": 1088,
+      "rps": 17.67,
+      "avg_ms": 101.14,
+      "p50_ms": 59.45,
+      "p95_ms": 110.0,
+      "p99_ms": 354.11,
+      "error_rate": 2.11,
+      "timeouts": 23
+    },
+    {
+      "stage": "L\u00e9ger",
+      "users": 10,
+      "total_requests": 2132,
+      "rps": 31.81,
+      "avg_ms": 190.59,
+      "p50_ms": 63.98,
+      "p95_ms": 140.18,
+      "p99_ms": 512.45,
+      "error_rate": 14.96,
+      "timeouts": 77
+    },
+    {
+      "stage": "Mod\u00e9r\u00e9",
+      "users": 25,
+      "total_requests": 3191,
+      "rps": 45.95,
+      "avg_ms": 304.32,
+      "p50_ms": 75.71,
+      "p95_ms": 352.0,
+      "p99_ms": 7222.41,
+      "error_rate": 19.21,
+      "timeouts": 242
+    },
+    {
+      "stage": "\u00c9lev\u00e9",
+      "users": 50,
+      "total_requests": 3742,
+      "rps": 67.15,
+      "avg_ms": 601.42,
+      "p50_ms": 164.65,
+      "p95_ms": 1075.07,
+      "p99_ms": 20708.63,
+      "error_rate": 28.17,
+      "timeouts": 414
+    },
+    {
+      "stage": "Stress",
+      "users": 100,
+      "total_requests": 5570,
+      "rps": 77.91,
+      "avg_ms": 730.69,
+      "p50_ms": 192.51,
+      "p95_ms": 1368.85,
+      "p99_ms": 19677.71,
+      "error_rate": 39.3,
+      "timeouts": 647
+    },
+    {
+      "stage": "Surcharge",
+      "users": 150,
+      "total_requests": 5140,
+      "rps": 83.75,
+      "avg_ms": 875.63,
+      "p50_ms": 374.09,
+      "p95_ms": 2916.84,
+      "p99_ms": 16903.32,
+      "error_rate": 38.17,
+      "timeouts": 1021
+    }
+  ],
+  "errors_summary": {
+    "by_status": {
+      "403": 3707,
+      "429": 29
+    },
+    "by_endpoint": {
+      "/reels": 412,
+      "/news/latest?limit=10": 405,
+      "/lives": 401,
+      "/translate?text=bonjour&direction=fr_to_tah": 354,
+      "/rss/sources": 346,
+      "/rss/posts?limit=10": 341,
+      "/search/products?q=artisanat": 333,
+      "/pulse/islands": 304,
+      "/pulse/markers?island=tahiti": 284,
+      "/pulse/status": 284
+    }
+  },
+  "recommendations": [
+    "\u26a0\ufe0f D\u00e9gradation d\u00e9tect\u00e9e \u00e0 10 utilisateurs - optimisation recommand\u00e9e"
+  ]
+}
