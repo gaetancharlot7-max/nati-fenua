@@ -1,0 +1,487 @@
+{
+  "date": "2026-03-28T20:33:32.962310",
+  "url": "https://fenua-connect.preview.emergentagent.com",
+  "total_requests": 15775,
+  "overall_real_error_rate": 25.2,
+  "degradation_threshold": 5,
+  "breaking_threshold": 5,
+  "stages": [
+    {
+      "users": 5,
+      "duration": 25.48,
+      "requests": 1189,
+      "success": 1105,
+      "rps": 46.7,
+      "real_errors": 67,
+      "expected_errors": 0,
+      "infra_errors": 17,
+      "real_error_rate": 5.63,
+      "total_error_rate": 7.06,
+      "avg_ms": 75490.7,
+      "p50_ms": 57635.8,
+      "p95_ms": 125702.0,
+      "p99_ms": 329273.6,
+      "errors_detail": {
+        "/translate?text=bonjour&direction=fr_to_tah": {
+          "403": 5
+        },
+        "/marketplace/products?limit=10": {
+          "403": 4
+        },
+        "/rss/posts?limit=5": {
+          "403": 6
+        },
+        "/marketplace/categories": {
+          "403": 4
+        },
+        "/pulse/islands": {
+          "403": 5
+        },
+        "/pulse/markers?island=tahiti": {
+          "403": 5
+        },
+        "/ping": {
+          "403": 5
+        },
+        "/pulse/status": {
+          "403": 5
+        },
+        "/auth/login": {
+          "403": 1
+        },
+        "/posts?limit=10": {
+          "403": 5
+        },
+        "/reels": {
+          "403": 5
+        },
+        "/stories": {
+          "403": 5
+        },
+        "/lives": {
+          "403": 4
+        },
+        "/news/latest?limit=5": {
+          "403": 4
+        },
+        "/search/products?q=artisanat": {
+          "403": 4
+        }
+      },
+      "cpu": 7.8,
+      "memory": 83.0
+    },
+    {
+      "users": 10,
+      "duration": 44.2,
+      "requests": 1132,
+      "success": 979,
+      "rps": 25.6,
+      "real_errors": 52,
+      "expected_errors": 0,
+      "infra_errors": 101,
+      "real_error_rate": 4.59,
+      "total_error_rate": 13.52,
+      "avg_ms": 278906.9,
+      "p50_ms": 71043.7,
+      "p95_ms": 243881.3,
+      "p99_ms": 11470709.8,
+      "errors_detail": {
+        "/lives": {
+          "403": 4
+        },
+        "/marketplace/products?limit=10": {
+          "403": 4
+        },
+        "/auth/login": {
+          "403": 2
+        },
+        "/pulse/islands": {
+          "403": 2
+        },
+        "/feed?limit=10": {
+          "403": 1
+        },
+        "/ping": {
+          "403": 3
+        },
+        "/marketplace/categories": {
+          "403": 3
+        },
+        "/search/products?q=artisanat": {
+          "403": 2
+        },
+        "/notifications": {
+          "403": 1
+        },
+        "/pulse/markers?island=tahiti": {
+          "403": 2
+        },
+        "/pulse/mana": {
+          "403": 2
+        },
+        "/posts?limit=10": {
+          "403": 4
+        },
+        "/translate?text=bonjour&direction=fr_to_tah": {
+          "403": 2
+        },
+        "/pulse/status": {
+          "403": 2
+        },
+        "/news/latest?limit=5": {
+          "403": 3
+        },
+        "/search/users?q=test": {
+          "403": 2
+        },
+        "/stories": {
+          "403": 4
+        },
+        "/conversations": {
+          "403": 1
+        },
+        "/rss/posts?limit=5": {
+          "403": 4
+        },
+        "/auth/logout": {
+          "403": 2
+        },
+        "/reels": {
+          "403": 1
+        },
+        "/auth/me": {
+          "403": 1
+        }
+      },
+      "cpu": 6.6,
+      "memory": 83.0
+    },
+    {
+      "users": 25,
+      "duration": 42.11,
+      "requests": 2068,
+      "success": 1782,
+      "rps": 49.1,
+      "real_errors": 66,
+      "expected_errors": 0,
+      "infra_errors": 220,
+      "real_error_rate": 3.19,
+      "total_error_rate": 13.83,
+      "avg_ms": 366545.0,
+      "p50_ms": 87777.6,
+      "p95_ms": 416213.7,
+      "p99_ms": 15000000.0,
+      "errors_detail": {
+        "/auth/login": {
+          "403": 2
+        },
+        "/marketplace/products?limit=10": {
+          "403": 7
+        },
+        "/rss/posts?limit=5": {
+          "403": 7
+        },
+        "/stories": {
+          "403": 8
+        },
+        "/ping": {
+          "403": 7
+        },
+        "/news/latest?limit=5": {
+          "403": 2
+        },
+        "/search/products?q=artisanat": {
+          "403": 5
+        },
+        "/posts?limit=10": {
+          "403": 8
+        },
+        "/marketplace/categories": {
+          "403": 8
+        },
+        "/translate?text=bonjour&direction=fr_to_tah": {
+          "403": 3
+        },
+        "/pulse/islands": {
+          "403": 2
+        },
+        "/pulse/status": {
+          "403": 2
+        },
+        "/lives": {
+          "403": 1
+        },
+        "/pulse/mana": {
+          "403": 1
+        },
+        "/search/users?q=test": {
+          "403": 1
+        },
+        "/auth/me": {
+          "403": 2
+        }
+      },
+      "cpu": 19.7,
+      "memory": 84.5
+    },
+    {
+      "users": 50,
+      "duration": 45.9,
+      "requests": 2915,
+      "success": 1871,
+      "rps": 63.5,
+      "real_errors": 655,
+      "expected_errors": 0,
+      "infra_errors": 389,
+      "real_error_rate": 22.47,
+      "total_error_rate": 35.81,
+      "avg_ms": 560076.5,
+      "p50_ms": 120307.7,
+      "p95_ms": 2302333.0,
+      "p99_ms": 15000000.0,
+      "errors_detail": {
+        "/news/latest?limit=5": {
+          "403": 53
+        },
+        "/pulse/markers?island=tahiti": {
+          "403": 44
+        },
+        "/stories": {
+          "403": 39
+        },
+        "/pulse/status": {
+          "403": 41
+        },
+        "/translate?text=bonjour&direction=fr_to_tah": {
+          "403": 49
+        },
+        "/search/users?q=test": {
+          "403": 5
+        },
+        "/lives": {
+          "403": 53
+        },
+        "/ping": {
+          "403": 49
+        },
+        "/rss/posts?limit=5": {
+          "403": 40
+        },
+        "/auth/logout": {
+          "403": 5
+        },
+        "/marketplace/products?limit=10": {
+          "403": 40
+        },
+        "/pulse/islands": {
+          "403": 29
+        },
+        "/search/products?q=artisanat": {
+          "403": 54
+        },
+        "/pulse/mana": {
+          "403": 4
+        },
+        "/marketplace/categories": {
+          "403": 35
+        },
+        "/posts?limit=10": {
+          "403": 50
+        },
+        "/reels": {
+          "403": 53
+        },
+        "/auth/login": {
+          "403": 4
+        },
+        "/conversations": {
+          "403": 2
+        },
+        "/auth/me": {
+          "403": 3
+        },
+        "/feed?limit=10": {
+          "403": 2
+        },
+        "/notifications": {
+          "403": 1
+        }
+      },
+      "cpu": 27.2,
+      "memory": 85.4
+    },
+    {
+      "users": 100,
+      "duration": 46.2,
+      "requests": 3817,
+      "success": 1916,
+      "rps": 82.6,
+      "real_errors": 1143,
+      "expected_errors": 1,
+      "infra_errors": 757,
+      "real_error_rate": 29.94,
+      "total_error_rate": 49.78,
+      "avg_ms": 888231.6,
+      "p50_ms": 187821.4,
+      "p95_ms": 4516773.3,
+      "p99_ms": 15000000.0,
+      "errors_detail": {
+        "/news/latest?limit=5": {
+          "403": 65
+        },
+        "/pulse/markers?island=tahiti": {
+          "403": 80
+        },
+        "/search/products?q=artisanat": {
+          "403": 79
+        },
+        "/pulse/status": {
+          "403": 76
+        },
+        "/pulse/islands": {
+          "403": 100
+        },
+        "/stories": {
+          "403": 112
+        },
+        "/lives": {
+          "403": 55
+        },
+        "/conversations": {
+          "403": 12
+        },
+        "/pulse/mana": {
+          "403": 14
+        },
+        "/translate?text=bonjour&direction=fr_to_tah": {
+          "403": 59
+        },
+        "/reels": {
+          "403": 55
+        },
+        "/marketplace/products?limit=10": {
+          "403": 119
+        },
+        "/search/users?q=test": {
+          "403": 10
+        },
+        "/rss/posts?limit=5": {
+          "403": 53
+        },
+        "/auth/me": {
+          "403": 12
+        },
+        "/marketplace/categories": {
+          "403": 74
+        },
+        "/feed?limit=10": {
+          "403": 8
+        },
+        "/auth/logout": {
+          "403": 9
+        },
+        "/ping": {
+          "403": 68
+        },
+        "/posts?limit=10": {
+          "403": 64
+        },
+        "/notifications": {
+          "403": 10
+        },
+        "/auth/login": {
+          "403": 9
+        }
+      },
+      "cpu": 24.8,
+      "memory": 86.9
+    },
+    {
+      "users": 150,
+      "duration": 41.0,
+      "requests": 4654,
+      "success": 1630,
+      "rps": 113.5,
+      "real_errors": 1992,
+      "expected_errors": 9,
+      "infra_errors": 1023,
+      "real_error_rate": 42.8,
+      "total_error_rate": 64.78,
+      "avg_ms": 1116086.8,
+      "p50_ms": 644359.1,
+      "p95_ms": 2033937.6,
+      "p99_ms": 15000000.0,
+      "errors_detail": {
+        "/marketplace/categories": {
+          "403": 136
+        },
+        "/stories": {
+          "403": 117
+        },
+        "/marketplace/products?limit=10": {
+          "403": 131
+        },
+        "/pulse/markers?island=tahiti": {
+          "403": 172
+        },
+        "/posts?limit=10": {
+          "403": 86
+        },
+        "/pulse/islands": {
+          "403": 169
+        },
+        "/pulse/status": {
+          "403": 166
+        },
+        "/feed?limit=10": {
+          "403": 13
+        },
+        "/notifications": {
+          "403": 16
+        },
+        "/reels": {
+          "403": 160
+        },
+        "/lives": {
+          "403": 154
+        },
+        "/conversations": {
+          "403": 17
+        },
+        "/auth/me": {
+          "403": 11
+        },
+        "/pulse/mana": {
+          "403": 16
+        },
+        "/news/latest?limit=5": {
+          "403": 149
+        },
+        "/search/users?q=test": {
+          "403": 16
+        },
+        "/search/products?q=artisanat": {
+          "403": 113
+        },
+        "/auth/logout": {
+          "403": 14
+        },
+        "/translate?text=bonjour&direction=fr_to_tah": {
+          "403": 114
+        },
+        "/ping": {
+          "403": 99
+        },
+        "/rss/posts?limit=5": {
+          "403": 106
+        },
+        "/auth/login": {
+          "403": 17
+        }
+      },
+      "cpu": 27.5,
+      "memory": 87.4
+    }
+  ]
+}

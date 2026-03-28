@@ -1,0 +1,13 @@
+{
+  "date": "2026-03-28T20:35:29.475842",
+  "url": "http://localhost:8001",
+  "total_requests": 8064,
+  "success": 8064,
+  "error_rate": 0.0,
+  "rps": 537.6,
+  "avg_ms": 41.0,
+  "p50_ms": 17.2,
+  "p95_ms": 94.3,
+  "p99_ms": 173.5,
+  "errors": {}
+}
