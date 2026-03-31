@@ -158,3 +158,5 @@ frontend/node_modules/.cache/default-development/5.pack
 # Environment files
 *.env
 *.env.*
+frontend/public/final-frontend.zip
+frontend/public/final-backend.zip

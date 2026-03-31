@@ -2,13 +2,13 @@
 
 ## Project Overview
 **Application** : Réseau social polynésien "Nati Fenua"  
-**Stack** : React (Frontend) + FastAPI (Backend) + MongoDB Atlas (Database)  
-**Status** : Validé techniquement, prêt pour déploiement Render
+**Stack** : React 18.2.0 (Frontend) + FastAPI (Backend) + MongoDB Atlas (Database)  
+**Status** : Déployé sur Render, corrections RSS validées
 
 ---
 
 ## Original Problem Statement
-L'utilisateur souhaite finaliser et déployer son application de réseau social "Nati Fenua". La priorité était de valider la stabilité du backend via des tests de charge exhaustifs avant d'autoriser la mise en production.
+L'utilisateur souhaitait déployer son application Nati Fenua sur Render et ensuite enrichir le fil d'actualité avec de vrais flux RSS polynésiens, renommer "Pulse" en "Mana", et améliorer l'affichage des médias.
 
 ---
 
@@ -17,79 +17,72 @@ L'utilisateur souhaite finaliser et déployer son application de réseau social 
 ### Authentication
 - [x] Login/Logout avec sessions sécurisées
 - [x] Inscription complète (nom, adresse, localisation)
-- [ ] Social Login Google/Facebook (configuration Render nécessaire)
+- [ ] Social Login Google/Facebook (nécessite OAuth natif pour Render)
 - [ ] Mot de passe oublié (clé Resend nécessaire)
 
 ### Social Features
 - [x] Posts, Stories, Reels, Lives
-- [x] Feed personnalisé
+- [x] Feed personnalisé avec flux RSS locaux
 - [x] Notifications
 - [x] Conversations/Chat (UI complète avec emojis et images)
-- [x] Profils utilisateurs avec bouton Message
+- [x] Profils utilisateurs avec liens cliquables
+
+### Flux RSS (35 sources)
+- [x] Tahiti Infos, Polynésie 1ère, TNTV, La Dépêche
+- [x] Médias surf (Surf Report, Magic Seaweed, Surfline)
+- [x] Culture (Heiva, Musée de Tahiti, FIFO)
+- [x] Emploi (SEFI, Indeed, LinkedIn)
+- [x] Météo (Météo France Polynésie)
+
+### Mana (ex-Pulse)
+- [x] Carte Leaflet interactive
+- [x] Îles : Tahiti, Moorea, Bora Bora, Raiatea, Tahaa, Huahine, Maupiti, Tuamotu, Marquises, Gambier, Australes
+- [x] Webcams publiques intégrées
 
 ### Marketplace
 - [x] Produits avec catégories
-- [x] Recherche produits
-- [x] Filtres et pagination
-
-### Pulse (Cartographie)
-- [x] Carte Leaflet interactive
-- [x] Marqueurs par île
-- [x] Système de badges et mana
-- [x] Carte fixe (ne cache plus la navigation)
-
-### Content
-- [x] News/Actualités
-- [x] Traduction FR/Tahitien (mockée)
-- [x] Flux RSS
-
-### UI/UX
-- [x] Cookie Banner repositionné
-- [x] Navigation fluide
-- [x] Design responsive
+- [x] Recherche et filtres
 
 ---
 
-## Technical Validation (28 Mars 2026)
+## Bug Fixes (31 Mars 2026)
 
-### Test de Charge - Résultats
+### Correction des miniatures RSS (RÉSOLU)
+**Problème** : Les articles partagés via RSS affichaient un carré gris au lieu d'une miniature.
 
-**Test via Reverse Proxy Emergent :**
-| Palier | RPS | Erreur 403 | Erreurs App |
-|--------|-----|------------|-------------|
-| 5 users | 46.7 | 5.63% | 0 |
-| 10 users | 25.6 | 4.59% | 0 |
-| 25 users | 49.1 | 3.19% | 0 |
+**Solution appliquée** :
+1. **Backend** (`rss_feeds.py`) : Amélioration de `extract_image_from_content()` avec fallbacks multiples :
+   - og:image, twitter:image
+   - media:content, enclosures
+   - Logo de la source comme fallback
+   - Images placeholder thématiques (surf, météo, culture)
 
-**Test Direct (localhost) :**
-- 8,064 requêtes
-- 0% erreur
-- 537.6 RPS
-- P99: 173ms
+2. **Frontend** (`FeedPage.js`) : Refonte de `ArticleLinkPreview` :
+   - Affichage de l'image en grand (aspect-video)
+   - Badge source sur l'image
+   - Titre de l'article sous l'image
+   - Gestion des erreurs d'image avec fallback
 
-**Verdict : APPLICATION STABLE**
+**Tests** : 100% passés (backend et frontend)
 
 ---
 
-## Pending Tasks (P0/P1)
+## Pending Tasks
 
-### P0 - Immédiat
-- [x] ~~Test de charge final~~
-- [ ] Déploiement Render (backend + frontend)
+### P0 - Bloquant
+- [ ] Déployer les corrections RSS sur Render (ZIPs prêts)
 
 ### P1 - Court terme
-- [ ] Configuration Social Login sur URL Render
-- [ ] Test de charge post-déploiement
+- [ ] OAuth Google natif pour Render (bloqué - nécessite clés Google Cloud)
+- [ ] Fonction "Mot de passe oublié" (nécessite clé API Resend)
 
 ### P2 - Moyen terme
-- [ ] Fonctionnalité "Mot de passe oublié" (clé Resend)
-- [ ] Logique de traduction complète (actuellement mockée)
-- [ ] Refactoring server.py (5000+ lignes → modules)
+- [ ] Système de traduction FR/Tahitien complet (actuellement mocké)
+- [ ] Refactoring server.py (5000+ lignes)
 
 ---
 
 ## Backlog (Future)
-
 - [ ] Application mobile Expo
 - [ ] WebSocket pour chat temps réel
 - [ ] Notifications push
@@ -102,26 +95,16 @@ L'utilisateur souhaite finaliser et déployer son application de réseau social 
 ```
 /app/
 ├── backend/
-│   ├── server.py             # API monolithique (5000+ lignes)
-│   ├── db_optimization.py    # Connexion/index MongoDB
-│   ├── cache.py              # Cache mémoire
-│   └── redis_cache.py        # Connecteur Redis
+│   ├── server.py             # API monolithique
+│   ├── rss_feeds.py          # Parseur RSS amélioré
+│   ├── fenua_pulse.py        # Carte Mana (îles, webcams)
 ├── frontend/
 │   └── src/
-│       ├── components/
-│       └── pages/
-└── load_test/
-    ├── load_test_final.py
-    ├── test_direct.py
-    └── RAPPORT_VALIDATION_FINALE.md
+│       ├── pages/
+│       │   ├── FeedPage.js   # ArticleLinkPreview amélioré
+│       │   └── ManaPage.js
+│       └── components/
 ```
-
----
-
-## Key Integrations
-- MongoDB Atlas (Database)
-- Leaflet (Maps)
-- Emergent-managed Google Auth (à configurer sur Render)
 
 ---
 
@@ -131,11 +114,16 @@ L'utilisateur souhaite finaliser et déployer son application de réseau social 
 
 ---
 
-## Reports
-- `/app/load_test/RAPPORT_VALIDATION_FINALE.md`
-- `/app/load_test/load_test_final_report.json`
-- `/app/load_test/direct_test_report.json`
+## Download URLs (pour déploiement Render)
+- Backend: `https://fenua-connect.preview.emergentagent.com/final-backend.zip`
+- Frontend: `https://fenua-connect.preview.emergentagent.com/final-frontend.zip`
 
 ---
 
-*Dernière mise à jour : 28 Mars 2026*
+## Known Issues
+- Social Login (Google/Facebook) : Ne fonctionne pas sur Render car Emergent Auth rejette les domaines externes
+- Traduction : Système mocké (dictionnaire statique)
+
+---
+
+*Dernière mise à jour : 31 Mars 2026*
