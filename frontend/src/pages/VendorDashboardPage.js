@@ -113,7 +113,7 @@ const VendorDashboardPage = () => {
             marker_id: response.data.marker_id
           });
           
-          toast.success('🚚 Votre roulotte est maintenant visible sur Fenua Pulse !');
+          toast.success('🚚 Votre roulotte est maintenant visible sur Fenua Mana !');
         } catch (error) {
           toast.error(error.response?.data?.detail || 'Erreur lors de l\'ouverture');
         } finally {
@@ -165,7 +165,7 @@ const VendorDashboardPage = () => {
           </div>
           <h1 className="text-2xl font-bold text-[#1A1A2E] mb-2">Devenir vendeur</h1>
           <p className="text-gray-500">
-            Créez votre profil vendeur et apparaissez sur Fenua Pulse !
+            Créez votre profil vendeur et apparaissez sur Fenua Mana !
           </p>
         </div>
 

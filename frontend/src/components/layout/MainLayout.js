@@ -55,7 +55,7 @@ const MainLayout = ({ children, hideNav = false }) => {
 
   const navItems = [
     { icon: Home, label: 'Accueil', path: '/feed' },
-    { icon: MapPin, label: 'Pulse', path: '/pulse', highlight: true },
+    { icon: MapPin, label: 'Mana', path: '/mana', highlight: true },
     // { icon: Radio, label: 'Live', path: '/live' }, // Temporairement désactivé
     { icon: Plus, label: 'Créer', path: '/create', isCreate: true },
     { icon: ShoppingBag, label: 'Marché', path: '/marketplace' },

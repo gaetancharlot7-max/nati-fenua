@@ -47,7 +47,7 @@ const AdminAnalyticsPage = lazy(() => import('./pages/AdminAnalyticsPage'));
 const AdminMonitoringPage = lazy(() => import('./pages/AdminMonitoringPage'));
 const AdminModerationPage = lazy(() => import('./pages/AdminModerationPage'));
 const AdminAutoPublishPage = lazy(() => import('./pages/AdminAutoPublishPage'));
-const PulsePage = lazy(() => import('./pages/PulsePage'));
+const ManaPage = lazy(() => import('./pages/ManaPage'));
 const VendorDashboardPage = lazy(() => import('./pages/VendorDashboardPage'));
 const LiveViewPage = lazy(() => import('./pages/LiveViewPage'));
 
@@ -132,7 +132,8 @@ function AppContent() {
         <Route path="/settings/security" element={<ProtectedRoute><MainLayout><SecuritySettingsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/settings/notifications" element={<ProtectedRoute><MainLayout><NotificationSettingsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/settings/privacy" element={<ProtectedRoute><MainLayout><GDPRSettingsPage /></MainLayout></ProtectedRoute>} />
-        <Route path="/pulse" element={<ProtectedRoute><MainLayout><PulsePage /></MainLayout></ProtectedRoute>} />
+        <Route path="/mana" element={<ProtectedRoute><MainLayout><ManaPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/pulse" element={<Navigate to="/mana" replace />} />
         <Route path="/vendor/dashboard" element={<ProtectedRoute><MainLayout><VendorDashboardPage /></MainLayout></ProtectedRoute>} />
         
         {/* Fallback */}
