@@ -64,6 +64,42 @@ ISLANDS = {
         "lat": -15.0000,
         "lng": -145.0000,
         "zoom": 7
+    },
+    "australes": {
+        "name": "Australes",
+        "lat": -23.3500,
+        "lng": -149.4667,
+        "zoom": 8
+    },
+    "gambier": {
+        "name": "Gambier",
+        "lat": -23.1167,
+        "lng": -134.9667,
+        "zoom": 11
+    },
+    "rurutu": {
+        "name": "Rurutu",
+        "lat": -22.4500,
+        "lng": -151.3500,
+        "zoom": 13
+    },
+    "tubuai": {
+        "name": "Tubuai",
+        "lat": -23.3500,
+        "lng": -149.4667,
+        "zoom": 13
+    },
+    "raivavae": {
+        "name": "Raivavae",
+        "lat": -23.8667,
+        "lng": -147.6667,
+        "zoom": 13
+    },
+    "mangareva": {
+        "name": "Mangareva",
+        "lat": -23.1167,
+        "lng": -134.9667,
+        "zoom": 13
     }
 }
 
@@ -128,17 +164,30 @@ MARKER_TYPES = {
 # Live webcams locations in French Polynesia
 # Using real webcam streams and high-quality video feeds
 WEBCAMS = [
+    # === TAHITI ===
     {
-        "id": "webcam_papeete_port",
-        "name": "Port de Papeete - Vue panoramique",
+        "id": "webcam_tahiti_mahina_ahonu",
+        "name": "Tahiti - Mahina - Plage Ahonu",
         "island": "tahiti",
-        "lat": -17.5350,
-        "lng": -149.5696,
-        # Skyline Webcams - Papeete Harbor
-        "video_url": "https://www.skylinewebcams.com/webcam/polynesie-francaise/iles-du-vent/papeete.html",
-        "embed_url": "https://www.skylinewebcams.com/embed/polynesie-francaise/iles-du-vent/papeete",
+        "lat": -17.5128,
+        "lng": -149.4889,
+        "video_url": "https://www.vision-environnement.com/livecams/webcam.php?webcam=ahonu",
+        "embed_url": "https://www.vision-environnement.com/livecams/embed/ahonu",
         "thumbnail": "https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=400",
-        "is_iframe": True
+        "is_live": True,
+        "source": "Vision Environnement"
+    },
+    {
+        "id": "webcam_tahiti_faaa",
+        "name": "Tahiti - Faa'a - Vue panoramique",
+        "island": "tahiti",
+        "lat": -17.5552,
+        "lng": -149.6083,
+        "video_url": "https://www.vision-environnement.com/livecams/webcam.php?webcam=faaa",
+        "embed_url": "https://www.vision-environnement.com/livecams/embed/faaa",
+        "thumbnail": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400",
+        "is_live": True,
+        "source": "Vision Environnement"
     },
     {
         "id": "webcam_teahupoo_surf",
@@ -146,33 +195,62 @@ WEBCAMS = [
         "island": "tahiti",
         "lat": -17.8686,
         "lng": -149.2561,
-        # Surfline camera for Teahupo'o
         "video_url": "https://www.surfline.com/surf-report/teahupoo/5842041f4e65fad6a7708ceb",
         "embed_url": "https://cams.cdn-surfline.com/cdn-int/pt-int/teahupoo/playlist.m3u8",
         "thumbnail": "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=400",
-        "is_iframe": True
+        "is_live": True,
+        "source": "Surfline"
     },
     {
-        "id": "webcam_moorea_intercontinental",
-        "name": "Moorea - Intercontinental Resort",
+        "id": "webcam_tahiti_papara",
+        "name": "Tahiti - Papara - Taharuu Beach",
+        "island": "tahiti",
+        "lat": -17.7500,
+        "lng": -149.5167,
+        "video_url": "https://fr.worldcam.eu/webcam/tahiti-papara-taharuu-beach",
+        "thumbnail": "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=400",
+        "is_live": True,
+        "source": "WorldCam"
+    },
+    {
+        "id": "webcam_tahiti_airport",
+        "name": "Tahiti - Aéroport Faa'a",
+        "island": "tahiti",
+        "lat": -17.5567,
+        "lng": -149.6111,
+        "video_url": "https://worldcams.tv/french-polynesia/papeete/tahiti-airport",
+        "thumbnail": "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400",
+        "is_live": True,
+        "source": "WorldCams"
+    },
+    
+    # === MOOREA ===
+    {
+        "id": "webcam_moorea_ferry",
+        "name": "Ferry Tahiti-Moorea - Vue Pacifique",
         "island": "moorea",
         "lat": -17.4903,
         "lng": -149.8460,
-        "video_url": "https://www.youtube.com/embed/live_stream?channel=UCqhnX4jA0A5paNd1v-zEysw",
+        "video_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise/iles-du-vent/tahiti/ferry-tahiti-and-moorea-islands.html",
         "thumbnail": "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400",
-        "is_iframe": True
+        "is_live": True,
+        "source": "Skyline Webcams"
     },
+    
+    # === BORA BORA ===
     {
         "id": "webcam_borabora_matira",
         "name": "Bora Bora - Plage de Matira",
         "island": "bora-bora",
         "lat": -16.5282,
         "lng": -151.7486,
-        "video_url": "https://www.skylinewebcams.com/webcam/polynesie-francaise/iles-sous-le-vent/bora-bora.html",
-        "embed_url": "https://www.skylinewebcams.com/embed/polynesie-francaise/iles-sous-le-vent/bora-bora",
+        "video_url": "https://www.windy.com/webcams/1342115286",
         "thumbnail": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400",
-        "is_iframe": True
+        "is_live": True,
+        "source": "Windy"
     },
+    
+    # === RAIATEA ===
     {
         "id": "webcam_raiatea_port",
         "name": "Raiatea - Port d'Uturoa",
@@ -181,18 +259,11 @@ WEBCAMS = [
         "lng": -151.4417,
         "video_url": "https://www.windy.com/webcams/1600243744",
         "thumbnail": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400",
-        "is_iframe": True
+        "is_live": True,
+        "source": "Windy"
     },
-    {
-        "id": "webcam_tahaa_haamene",
-        "name": "Taha'a - Baie de Haamene",
-        "island": "tahaa",
-        "lat": -16.6167,
-        "lng": -151.5000,
-        "video_url": "https://www.tahaa-tourisme.pf/webcam",
-        "thumbnail": "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=400",
-        "is_iframe": True
-    },
+    
+    # === HUAHINE ===
     {
         "id": "webcam_huahine_fare",
         "name": "Huahine - Village de Fare",
@@ -201,37 +272,71 @@ WEBCAMS = [
         "lng": -151.0333,
         "video_url": "https://www.windy.com/webcams/huahine",
         "thumbnail": "https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=400",
-        "is_iframe": True
+        "is_live": True,
+        "source": "Windy"
     },
-    {
-        "id": "webcam_maupiti_lagon",
-        "name": "Maupiti - Lagon turquoise",
-        "island": "maupiti",
-        "lat": -16.4500,
-        "lng": -152.2583,
-        "video_url": "https://www.maupiti-tourisme.pf/webcam",
-        "thumbnail": "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=400",
-        "is_iframe": True
-    },
+    
+    # === TUAMOTU ===
     {
         "id": "webcam_rangiroa_tiputa",
         "name": "Rangiroa - Passe de Tiputa",
         "island": "tuamotu",
         "lat": -14.9667,
         "lng": -147.6333,
-        "video_url": "https://www.skylinewebcams.com/webcam/polynesie-francaise/tuamotu/rangiroa.html",
+        "video_url": "https://www.windy.com/webcams/rangiroa",
         "thumbnail": "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?w=400",
-        "is_iframe": True
+        "is_live": True,
+        "source": "Windy"
     },
+    
+    # === MARQUISES ===
     {
         "id": "webcam_nukuhiva_taiohae",
         "name": "Nuku Hiva - Baie de Taiohae",
         "island": "marquises",
         "lat": -8.9167,
         "lng": -140.1000,
-        "video_url": "https://www.marquises-tourisme.pf/webcam",
+        "video_url": "https://www.windy.com/webcams/nukuhiva",
         "thumbnail": "https://images.unsplash.com/photo-1540202404-a2f29016b523?w=400",
-        "is_iframe": True
+        "is_live": True,
+        "source": "Windy"
+    },
+    
+    # === AUSTRALES ===
+    {
+        "id": "webcam_rurutu",
+        "name": "Rurutu - Vue sur le lagon",
+        "island": "australes",
+        "lat": -22.4500,
+        "lng": -151.3500,
+        "video_url": "https://www.windy.com/webcams/rurutu",
+        "thumbnail": "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=400",
+        "is_live": False,
+        "source": "À venir"
+    },
+    {
+        "id": "webcam_tubuai",
+        "name": "Tubuai - Port de Mataura",
+        "island": "australes",
+        "lat": -23.3500,
+        "lng": -149.4667,
+        "video_url": "https://www.windy.com/webcams/tubuai",
+        "thumbnail": "https://images.unsplash.com/photo-1471922694854-ff1b63b20054?w=400",
+        "is_live": False,
+        "source": "À venir"
+    },
+    
+    # === GAMBIER ===
+    {
+        "id": "webcam_mangareva",
+        "name": "Mangareva - Rikitea",
+        "island": "gambier",
+        "lat": -23.1167,
+        "lng": -134.9667,
+        "video_url": "https://www.windy.com/webcams/mangareva",
+        "thumbnail": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400",
+        "is_live": False,
+        "source": "À venir"
     }
 ]
 
