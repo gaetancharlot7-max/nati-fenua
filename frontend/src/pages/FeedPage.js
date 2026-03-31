@@ -37,25 +37,64 @@ const YouTubeEmbed = ({ videoId, onClick }) => {
   );
 };
 
-// Article Link Preview Component
-const ArticleLinkPreview = ({ url, onClick }) => {
+// Article Link Preview Component with Image
+const ArticleLinkPreview = ({ url, imageUrl, title, source, onClick }) => {
   const domain = url ? new URL(url).hostname.replace('www.', '') : '';
+  const hasImage = imageUrl && imageUrl.startsWith('http');
   
   return (
     <div 
-      className="relative rounded-xl overflow-hidden border border-gray-200 bg-gradient-to-br from-blue-50 to-purple-50 p-4 cursor-pointer hover:shadow-md transition-shadow"
+      className="relative rounded-xl overflow-hidden border border-gray-200 bg-white cursor-pointer hover:shadow-lg transition-all group"
       onClick={onClick}
     >
-      <div className="flex items-start gap-3">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-          <Link2 size={24} className="text-white" />
+      {/* Image Section */}
+      {hasImage ? (
+        <div className="relative aspect-video overflow-hidden bg-gray-100">
+          <img 
+            src={imageUrl} 
+            alt={title || 'Article'}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = 'https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=800&q=80';
+            }}
+          />
+          {/* Overlay gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          
+          {/* Source badge */}
+          <div className="absolute bottom-3 left-3 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm text-sm font-medium text-gray-800">
+            <Link2 size={14} className="text-[#FF6B35]" />
+            {source || domain}
+          </div>
+          
+          {/* External link indicator */}
+          <div className="absolute top-3 right-3 p-2 rounded-full bg-white/90 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+            <ExternalLink size={16} className="text-gray-700" />
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-[#1A1A2E] text-sm">Article partagé</p>
-          <p className="text-xs text-gray-500 truncate">{domain}</p>
+      ) : (
+        /* Fallback without image */
+        <div className="p-4 bg-gradient-to-br from-[#FF6B35]/10 to-[#00CED1]/10">
+          <div className="flex items-start gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#FF1493] flex items-center justify-center flex-shrink-0">
+              <Link2 size={24} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-[#1A1A2E] text-sm line-clamp-2">{title || 'Article partagé'}</p>
+              <p className="text-xs text-gray-500 truncate mt-1">{source || domain}</p>
+            </div>
+            <ExternalLink size={18} className="text-gray-400 flex-shrink-0" />
+          </div>
         </div>
-        <ExternalLink size={18} className="text-gray-400 flex-shrink-0" />
-      </div>
+      )}
+      
+      {/* Title under image if there's an image */}
+      {hasImage && title && (
+        <div className="p-3 border-t">
+          <p className="text-sm font-medium text-[#1A1A2E] line-clamp-2">{title}</p>
+        </div>
+      )}
     </div>
   );
 };
@@ -489,7 +528,7 @@ const FeedPage = () => {
             </div>
 
             {/* Post Media */}
-            <div className="relative bg-gray-100">
+            <div className="relative">
               {/* YouTube Video */}
               {post.link_type === 'youtube' && post.external_link ? (
                 <YouTubeEmbed 
@@ -497,20 +536,38 @@ const FeedPage = () => {
                   onClick={() => window.open(post.external_link, '_blank')}
                 />
               ) : post.link_type === 'article' && post.external_link ? (
-                /* Article Link */
+                /* Article Link with thumbnail */
                 <div className="p-4">
                   <ArticleLinkPreview 
                     url={post.external_link}
+                    imageUrl={post.media_url || post.thumbnail_url}
+                    title={post.link_title}
+                    source={post.link_source}
                     onClick={() => window.open(post.external_link, '_blank')}
                   />
                 </div>
-              ) : (
+              ) : post.content_type === 'link' && post.external_link ? (
+                /* Generic link post (RSS articles) */
+                <div className="p-4">
+                  <ArticleLinkPreview 
+                    url={post.external_link}
+                    imageUrl={post.media_url || post.thumbnail_url}
+                    title={post.link_title}
+                    source={post.link_source}
+                    onClick={() => window.open(post.external_link, '_blank')}
+                  />
+                </div>
+              ) : post.media_url ? (
                 /* Regular Image/Video */
-                <div className="aspect-square">
+                <div className="aspect-square bg-gray-100">
                   <img 
                     src={post.media_url} 
                     alt={post.caption}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=800&q=80';
+                    }}
                   />
                   {post.content_type === 'video' && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/20">
@@ -520,7 +577,7 @@ const FeedPage = () => {
                     </div>
                   )}
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* Post Actions */}

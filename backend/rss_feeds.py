@@ -447,35 +447,95 @@ def clean_html(html_content: str) -> str:
     return text[:500]  # Limit to 500 chars
 
 
-def extract_image_from_content(content: str, entry: dict) -> Optional[str]:
-    """Extract first image URL from RSS content"""
+def extract_image_from_content(content: str, entry: dict, feed_config: dict = None) -> Optional[str]:
+    """Extract first image URL from RSS content with multiple fallback strategies"""
     
     # Try media:content first
     if hasattr(entry, 'media_content') and entry.media_content:
         for media in entry.media_content:
-            if media.get('medium') == 'image' or media.get('url', '').endswith(('.jpg', '.jpeg', '.png', '.webp')):
-                return media.get('url')
+            url = media.get('url', '')
+            if media.get('medium') == 'image' or url.lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.gif')):
+                if url.startswith('http'):
+                    return url
     
-    # Try enclosures
+    # Try enclosures (common in podcasts and media RSS)
     if hasattr(entry, 'enclosures') and entry.enclosures:
         for enc in entry.enclosures:
-            if enc.get('type', '').startswith('image/'):
-                return enc.get('href') or enc.get('url')
+            enc_type = enc.get('type', '')
+            enc_url = enc.get('href') or enc.get('url', '')
+            if enc_type.startswith('image/') and enc_url.startswith('http'):
+                return enc_url
     
     # Try media:thumbnail
     if hasattr(entry, 'media_thumbnail') and entry.media_thumbnail:
-        return entry.media_thumbnail[0].get('url')
+        thumb_url = entry.media_thumbnail[0].get('url', '')
+        if thumb_url.startswith('http'):
+            return thumb_url
+    
+    # Try image element (common in atom feeds)
+    if hasattr(entry, 'image') and entry.image:
+        if isinstance(entry.image, dict):
+            img_url = entry.image.get('href') or entry.image.get('url', '')
+            if img_url.startswith('http'):
+                return img_url
+        elif isinstance(entry.image, str) and entry.image.startswith('http'):
+            return entry.image
     
     # Parse HTML content for images
     if content:
         soup = BeautifulSoup(content, 'html.parser')
-        img = soup.find('img')
-        if img and img.get('src'):
-            src = img.get('src')
-            if src.startswith('http'):
-                return src
+        
+        # Look for og:image meta tag first (highest quality)
+        og_image = soup.find('meta', property='og:image')
+        if og_image and og_image.get('content', '').startswith('http'):
+            return og_image['content']
+        
+        # Look for twitter:image
+        twitter_image = soup.find('meta', attrs={'name': 'twitter:image'})
+        if twitter_image and twitter_image.get('content', '').startswith('http'):
+            return twitter_image['content']
+        
+        # Find all images and pick the best one (skip tiny icons)
+        images = soup.find_all('img')
+        for img in images:
+            src = img.get('src', '')
+            # Skip data URIs, tracking pixels, and tiny images
+            if not src.startswith('http'):
+                continue
+            if 'pixel' in src.lower() or 'tracking' in src.lower() or 'spacer' in src.lower():
+                continue
+            if '1x1' in src or 'blank' in src.lower():
+                continue
+            # Prefer larger images based on attributes
+            width = img.get('width', '')
+            height = img.get('height', '')
+            if width and height:
+                try:
+                    if int(width) < 100 or int(height) < 100:
+                        continue
+                except (ValueError, TypeError):
+                    pass
+            return src
     
-    return None
+    # Fallback: Use the feed's logo as placeholder if available
+    if feed_config and feed_config.get('logo'):
+        return feed_config.get('logo')
+    
+    # Generate a themed placeholder based on category
+    categories = feed_config.get('categories', []) if feed_config else []
+    if 'surf' in categories or 'sport' in categories:
+        return 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=80'
+    elif 'météo' in categories or 'meteo' in categories:
+        return 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=800&q=80'
+    elif 'culture' in categories or 'danse' in categories:
+        return 'https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7f?w=800&q=80'
+    elif 'emploi' in categories:
+        return 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=80'
+    elif 'tourisme' in categories or 'voyage' in categories:
+        return 'https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=800&q=80'
+    else:
+        # Default Polynesian themed placeholder
+        return 'https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=800&q=80'
 
 
 class RSSFeedService:
@@ -571,8 +631,8 @@ class RSSFeedService:
                     # Clean content
                     clean_content = clean_html(content)
                     
-                    # Extract image
-                    image_url = extract_image_from_content(content, entry)
+                    # Extract image with feed config for fallbacks
+                    image_url = extract_image_from_content(content, entry, feed_config)
                     
                     # Detect island from title and content
                     full_text = f"{entry.title} {clean_content}"
