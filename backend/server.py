@@ -5084,6 +5084,47 @@ async def delete_custom_rss_feed(feed_id: str, request: Request):
     return {"success": True, "message": "Flux RSS supprimé"}
 
 
+@api_router.post("/admin/cleanup/auto-posts")
+async def cleanup_auto_posts(request: Request):
+    """Remove all auto-generated posts (admin only)"""
+    user = await require_auth(request)
+    
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    # Delete auto-generated posts
+    result = await db.posts.delete_many({
+        "$or": [
+            {"is_auto_published": True},
+            {"post_id": {"$regex": "^auto_"}},
+            {"user_id": {"$regex": "_daily$|_tourisme$|_culture$|_nature$|_paradise$|_luxury$|_authentic$|_island$|_dive$|_heritage$|_sacree$|_vanille$|_perles$|_manta$"}}
+        ]
+    })
+    
+    # Clear feed cache
+    await feed_cache.clear()
+    
+    return {
+        "success": True,
+        "message": f"Supprimé {result.deleted_count} posts auto-générés"
+    }
+
+
+@api_router.post("/rss/refresh")
+async def refresh_rss_feeds():
+    """Fetch and publish new RSS articles (public endpoint)"""
+    from rss_feeds import RSSFeedService
+    
+    rss_service = RSSFeedService(db)
+    result = await rss_service.publish_articles_as_posts(max_posts=50)
+    await rss_service.close()
+    
+    # Clear feed cache to show new content
+    await feed_cache.clear()
+    
+    return result
+
+
 # ==================== ROULOTTE PUSH NOTIFICATIONS ====================
 
 @api_router.post("/roulotte/{vendor_id}/subscribe/push")
@@ -5323,40 +5364,72 @@ async def contact_vendor_from_pulse(request: Request):
 
 @app.on_event("startup")
 async def start_auto_publisher():
-    """Start the auto publisher background task"""
+    """Start the RSS feed publisher background task"""
     import asyncio
     
-    async def daily_publish_task():
-        """Background task that runs daily auto-publish"""
+    async def initial_cleanup_and_rss():
+        """Clean up old AI posts and fetch real RSS articles on startup"""
+        try:
+            await asyncio.sleep(10)  # Wait for DB to be ready
+            
+            # Count existing posts
+            total_posts = await db.posts.count_documents({})
+            rss_posts = await db.posts.count_documents({"is_rss_article": True})
+            
+            logger.info(f"📊 Posts actuels: {total_posts} total, {rss_posts} RSS")
+            
+            # If there are many non-RSS posts, clean them up
+            if total_posts > 0 and rss_posts < total_posts * 0.5:
+                # Delete auto-generated posts (keep real user posts and RSS)
+                result = await db.posts.delete_many({
+                    "$and": [
+                        {"is_rss_article": {"$ne": True}},
+                        {"$or": [
+                            {"is_auto_published": True},
+                            {"post_id": {"$regex": "^auto_"}},
+                            {"user_id": {"$regex": "_daily$|_tourisme$|_culture$|_nature$|_paradise$"}}
+                        ]}
+                    ]
+                })
+                logger.info(f"🧹 Nettoyé {result.deleted_count} posts auto-générés")
+            
+            # Fetch fresh RSS articles
+            from rss_feeds import RSSFeedService
+            rss_service = RSSFeedService(db)
+            result = await rss_service.publish_articles_as_posts(max_posts=30)
+            await rss_service.close()
+            logger.info(f"📰 RSS refresh: {result}")
+            
+            # Clear cache
+            await feed_cache.clear()
+            
+        except Exception as e:
+            logger.error(f"Error in initial cleanup: {e}")
+    
+    async def rss_publish_task():
+        """Background task that fetches and publishes RSS articles periodically"""
         while True:
             try:
-                # Wait a bit for app to fully start
-                await asyncio.sleep(60)
+                # Wait 2 hours between refreshes
+                await asyncio.sleep(2 * 3600)
                 
-                # Check if we already published today
-                today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+                from rss_feeds import RSSFeedService
+                rss_service = RSSFeedService(db)
+                result = await rss_service.publish_articles_as_posts(max_posts=30)
+                await rss_service.close()
+                logger.info(f"RSS feed publish completed: {result}")
                 
-                existing = await db.publication_logs.find_one({
-                    "type": "daily_auto_publish",
-                    "created_at": {"$gte": today_start.isoformat()}
-                })
-                
-                if not existing:
-                    # Publish new content
-                    from auto_publisher import AutoPublisherService
-                    import random
-                    publisher = AutoPublisherService(db)
-                    result = await publisher.publish_daily_content(posts_count=random.randint(20, 30))
-                    logger.info(f"Daily auto-publish completed: {result}")
+                # Clear feed cache
+                await feed_cache.clear()
                 
             except Exception as e:
-                logger.error(f"Error in daily publisher: {e}")
-            
-            # Check every 6 hours
-            await asyncio.sleep(6 * 3600)
+                logger.error(f"Error in RSS publisher: {e}")
     
-    # Start background task
-    asyncio.create_task(daily_publish_task())
+    # Run initial cleanup
+    asyncio.create_task(initial_cleanup_and_rss())
+    
+    # Start periodic RSS task
+    asyncio.create_task(rss_publish_task())
     logger.info("Auto-publisher background task started")
 
 
