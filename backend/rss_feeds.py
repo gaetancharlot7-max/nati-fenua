@@ -13,15 +13,17 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
-# Real Polynesian RSS feeds - Extended list
+# Real Polynesian RSS feeds - Extended list with 15+ sources
 RSS_FEEDS = [
+    # === MÉDIAS D'ACTUALITÉ ===
     {
         "name": "Tahiti Infos",
         "url": "https://www.tahiti-infos.com/xml/syndication.rss",
         "island": "tahiti",
         "account_id": "tahiti_infos",
         "logo": "https://www.tahiti-infos.com/photo/titre_5283164.png",
-        "categories": ["actualité", "politique", "société", "économie"]
+        "categories": ["actualité", "politique", "société", "économie"],
+        "feed_type": "media"
     },
     {
         "name": "Polynésie 1ère",
@@ -29,7 +31,8 @@ RSS_FEEDS = [
         "island": "tahiti",
         "account_id": "polynesie_1ere",
         "logo": "https://la1ere.francetvinfo.fr/image/dpvm2y6n3-d0c6/600/315/16779527.png",
-        "categories": ["actualité", "télévision", "info"]
+        "categories": ["actualité", "télévision", "info"],
+        "feed_type": "media"
     },
     {
         "name": "TNTV",
@@ -37,7 +40,17 @@ RSS_FEEDS = [
         "island": "tahiti",
         "account_id": "tntv_polynesie",
         "logo": "https://www.tntv.pf/wp-content/uploads/2019/07/tntv-logo.png",
-        "categories": ["actualité", "télévision", "sport"]
+        "categories": ["actualité", "télévision", "sport"],
+        "feed_type": "media"
+    },
+    {
+        "name": "La Dépêche de Tahiti",
+        "url": "https://www.ladepeche.pf/feed/",
+        "island": "tahiti",
+        "account_id": "ladepeche_tahiti",
+        "logo": "https://www.ladepeche.pf/wp-content/uploads/logo-depeche.png",
+        "categories": ["actualité", "politique", "économie"],
+        "feed_type": "media"
     },
     {
         "name": "Outremers 360",
@@ -45,15 +58,8 @@ RSS_FEEDS = [
         "island": "tahiti",
         "account_id": "outremers360",
         "logo": "https://outremers360.com/wp-content/uploads/2020/01/logo-outremers360.png",
-        "categories": ["actualité", "outre-mer", "économie"]
-    },
-    {
-        "name": "Tahiti News",
-        "url": "https://tahitinews.co/feed/",
-        "island": "tahiti",
-        "account_id": "tahiti_news",
-        "logo": "https://tahitinews.co/wp-content/uploads/2021/01/logo-tahiti-news.png",
-        "categories": ["actualité", "tourisme", "culture"]
+        "categories": ["actualité", "outre-mer", "économie"],
+        "feed_type": "media"
     },
     {
         "name": "Actu.fr Polynésie",
@@ -61,25 +67,102 @@ RSS_FEEDS = [
         "island": "tahiti",
         "account_id": "actu_polynesie",
         "logo": "https://actu.fr/build/images/logo-actu.svg",
-        "categories": ["actualité", "local", "société"]
+        "categories": ["actualité", "local", "société"],
+        "feed_type": "media"
     },
+    
+    # === MÉTÉO ===
     {
-        "name": "Air Tahiti Magazine",
-        "url": "https://www.airtahitimagazine.com/feed/",
+        "name": "Météo France Polynésie",
+        "url": "https://meteofrance.pf/rss/previsions.xml",
         "island": "tahiti",
-        "account_id": "airtahiti_mag",
-        "logo": "https://www.airtahitimagazine.com/wp-content/uploads/logo-atm.png",
-        "categories": ["tourisme", "voyage", "culture"]
+        "account_id": "meteo_polynesie",
+        "logo": "https://meteofrance.com/sites/default/files/logo-mf.svg",
+        "categories": ["météo", "prévisions", "climat"],
+        "feed_type": "meteo"
     },
+    
+    # === SPORT ===
     {
         "name": "Surf Report Tahiti",
         "url": "https://www.surf-report.com/rss/spots/polynesie-francaise.xml",
         "island": "tahiti",
         "account_id": "surf_report_tahiti",
         "logo": "https://www.surf-report.com/images/logo-surf-report.png",
-        "categories": ["surf", "sport", "météo"]
+        "categories": ["surf", "sport", "vagues"],
+        "feed_type": "sport"
+    },
+    {
+        "name": "Va'a News",
+        "url": "https://vaanews.pf/feed/",
+        "island": "tahiti",
+        "account_id": "vaa_news",
+        "logo": "https://vaanews.pf/wp-content/uploads/vaa-logo.png",
+        "categories": ["va'a", "pirogue", "sport"],
+        "feed_type": "sport"
+    },
+    
+    # === TOURISME & CULTURE ===
+    {
+        "name": "Air Tahiti Magazine",
+        "url": "https://www.airtahitimagazine.com/feed/",
+        "island": "tahiti",
+        "account_id": "airtahiti_mag",
+        "logo": "https://www.airtahitimagazine.com/wp-content/uploads/logo-atm.png",
+        "categories": ["tourisme", "voyage", "culture"],
+        "feed_type": "tourisme"
+    },
+    {
+        "name": "Tahiti Tourisme",
+        "url": "https://tahititourisme.pf/feed/",
+        "island": "tahiti",
+        "account_id": "tahiti_tourisme",
+        "logo": "https://tahititourisme.pf/wp-content/uploads/logo-tt.png",
+        "categories": ["tourisme", "voyage", "îles"],
+        "feed_type": "tourisme"
+    },
+    
+    # === ASSOCIATIONS & COMMUNAUTÉS ===
+    {
+        "name": "Fédération Tahitienne de Football",
+        "url": "https://www.ftf.pf/feed/",
+        "island": "tahiti",
+        "account_id": "ftf_tahiti",
+        "logo": "https://www.ftf.pf/wp-content/uploads/logo-ftf.png",
+        "categories": ["football", "sport", "association"],
+        "feed_type": "association_sport"
+    },
+    {
+        "name": "Heiva i Tahiti",
+        "url": "https://www.heiva.org/feed/",
+        "island": "tahiti",
+        "account_id": "heiva_tahiti",
+        "logo": "https://www.heiva.org/wp-content/uploads/heiva-logo.png",
+        "categories": ["culture", "danse", "tradition"],
+        "feed_type": "association_culture"
+    },
+    {
+        "name": "Te Fare Tauhiti Nui",
+        "url": "https://www.maisondelaculture.pf/feed/",
+        "island": "tahiti",
+        "account_id": "maison_culture",
+        "logo": "https://www.maisondelaculture.pf/wp-content/uploads/tftn-logo.png",
+        "categories": ["culture", "événements", "spectacles"],
+        "feed_type": "association_culture"
+    },
+    {
+        "name": "Environnement Polynésie",
+        "url": "https://www.environnement.pf/feed/",
+        "island": "tahiti",
+        "account_id": "environnement_pf",
+        "logo": "https://www.environnement.pf/wp-content/uploads/env-logo.png",
+        "categories": ["environnement", "écologie", "nature"],
+        "feed_type": "association"
     }
 ]
+
+# Configuration pour permettre l'ajout dynamique de feeds
+CUSTOM_FEEDS_COLLECTION = "custom_rss_feeds"
 
 # Enhanced island keywords for better detection
 ISLAND_KEYWORDS = {
@@ -335,11 +418,17 @@ class RSSFeedService:
         return articles
     
     async def fetch_all_feeds(self) -> List[dict]:
-        """Fetch all configured RSS feeds"""
+        """Fetch all configured RSS feeds (built-in + custom)"""
         
         all_articles = []
         
+        # Fetch built-in feeds
         tasks = [self.fetch_feed(feed) for feed in RSS_FEEDS]
+        
+        # Fetch custom feeds from database
+        custom_feeds = await self.db.custom_rss_feeds.find({"is_active": True}).to_list(100)
+        tasks.extend([self.fetch_feed(feed) for feed in custom_feeds])
+        
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
         for result in results:

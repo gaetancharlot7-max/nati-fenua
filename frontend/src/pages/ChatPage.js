@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Image, Smile, MoreVertical, ArrowLeft, Search, X } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
@@ -18,39 +18,11 @@ const EMOJI_LIST = [
   '🌈', '⭐', '🌙', '🌟', '💫', '🔆', '🎵', '🎶', '📸', '🎬'
 ];
 
-// Demo conversations
-const demoConversations = [
-  {
-    conversation_id: 'conv1',
-    other_user: { user_id: '1', name: 'Hinano', picture: 'https://images.unsplash.com/photo-1612708437841-085ba65e370b?w=100', phone: '+68987123456' },
-    last_message: 'Ia ora na ! Comment ça va ?',
-    last_message_at: new Date(Date.now() - 300000).toISOString(),
-    unread: 2
-  },
-  {
-    conversation_id: 'conv2',
-    other_user: { user_id: '2', name: 'Maeva Shop', picture: 'https://ui-avatars.com/api/?name=MS&background=FF6B35&color=fff&bold=true', phone: '+68940567890' },
-    last_message: 'Votre commande est prête 📦',
-    last_message_at: new Date(Date.now() - 3600000).toISOString(),
-    unread: 0
-  },
-  {
-    conversation_id: 'conv3',
-    other_user: { user_id: '3', name: 'Teva Explorer', picture: 'https://ui-avatars.com/api/?name=TE&background=00CED1&color=fff&bold=true' },
-    last_message: 'Magnifique ta dernière photo !',
-    last_message_at: new Date(Date.now() - 7200000).toISOString(),
-    unread: 0
-  }
-];
+// Conversations vides par défaut (chargées depuis l'API)
+const demoConversations = [];
 
-// Demo messages
-const demoMessages = [
-  { message_id: 'm1', sender_id: '1', content: 'Ia ora na ! 👋', created_at: new Date(Date.now() - 600000).toISOString() },
-  { message_id: 'm2', sender_id: 'me', content: 'Ia ora na ! Ça va bien et toi ?', created_at: new Date(Date.now() - 500000).toISOString() },
-  { message_id: 'm3', sender_id: '1', content: 'Super ! Tu viens au Heiva ce weekend ?', created_at: new Date(Date.now() - 400000).toISOString() },
-  { message_id: 'm4', sender_id: 'me', content: 'Oui bien sûr ! 🎉', created_at: new Date(Date.now() - 300000).toISOString() },
-  { message_id: 'm5', sender_id: '1', content: 'Parfait on se retrouve là-bas alors !', created_at: new Date(Date.now() - 200000).toISOString() }
-];
+// Messages vides par défaut
+const demoMessages = [];
 
 const ChatPage = () => {
   const { user } = useAuth();
@@ -250,17 +222,21 @@ const ChatPage = () => {
         {/* Conversations */}
         <div className="flex-1 overflow-y-auto">
           {conversations.map((conv) => (
-            <motion.button
+            <motion.div
               key={conv.conversation_id}
-              onClick={() => setSelectedConversation(conv)}
               data-testid={`conversation-${conv.conversation_id}`}
-              className={`w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-all ${
+              className={`w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-all cursor-pointer ${
                 selectedConversation?.conversation_id === conv.conversation_id ? 'bg-gradient-to-r from-[#FF6B35]/10 to-transparent' : ''
               }`}
               whileTap={{ scale: 0.98 }}
+              onClick={() => setSelectedConversation(conv)}
             >
-              <div className="relative">
-                <Avatar className="w-14 h-14">
+              <Link 
+                to={`/profile/${conv.other_user?.user_id}`} 
+                className="relative"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Avatar className="w-14 h-14 hover:ring-2 hover:ring-[#FF6B35] transition-all">
                   <AvatarImage src={conv.other_user?.picture} />
                   <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white font-bold">
                     {conv.other_user?.name?.[0]}
@@ -268,11 +244,17 @@ const ChatPage = () => {
                 </Avatar>
                 {/* Online indicator */}
                 <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
-              </div>
+              </Link>
               
               <div className="flex-1 text-left min-w-0">
                 <div className="flex items-center justify-between">
-                  <p className="font-semibold text-[#1A1A2E] truncate">{conv.other_user?.name}</p>
+                  <Link 
+                    to={`/profile/${conv.other_user?.user_id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-semibold text-[#1A1A2E] truncate hover:text-[#FF6B35] transition-colors"
+                  >
+                    {conv.other_user?.name}
+                  </Link>
                   <span className="text-xs text-gray-400">{formatDate(conv.last_message_at)}</span>
                 </div>
                 <p className={`text-sm truncate ${conv.unread > 0 ? 'text-[#1A1A2E] font-medium' : 'text-gray-500'}`}>
@@ -285,7 +267,7 @@ const ChatPage = () => {
                   {conv.unread}
                 </div>
               )}
-            </motion.button>
+            </motion.div>
           ))}
         </div>
       </div>
@@ -302,16 +284,18 @@ const ChatPage = () => {
               >
                 <ArrowLeft size={24} />
               </button>
-              <Avatar className="w-10 h-10">
-                <AvatarImage src={selectedConversation.other_user?.picture} />
-                <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white font-bold">
-                  {selectedConversation.other_user?.name?.[0]}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-semibold text-[#1A1A2E]">{selectedConversation.other_user?.name}</p>
-                <p className="text-xs text-green-500">En ligne</p>
-              </div>
+              <Link to={`/profile/${selectedConversation.other_user?.user_id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={selectedConversation.other_user?.picture} />
+                  <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white font-bold">
+                    {selectedConversation.other_user?.name?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold text-[#1A1A2E]">{selectedConversation.other_user?.name}</p>
+                  <p className="text-xs text-green-500">En ligne</p>
+                </div>
+              </Link>
             </div>
             
             <div className="flex items-center gap-2">

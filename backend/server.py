@@ -4909,6 +4909,181 @@ async def get_latest_news(limit: int = 20, island: Optional[str] = None):
     return news
 
 
+# ==================== ADMIN CLEANUP & CUSTOM FEEDS ====================
+
+@api_router.post("/admin/cleanup/demo-data")
+async def cleanup_demo_data(request: Request):
+    """Remove all demo/seeded data from the database (admin only)"""
+    user = await require_auth(request)
+    
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    results = {
+        "posts_deleted": 0,
+        "messages_deleted": 0,
+        "conversations_deleted": 0,
+        "users_deleted": 0
+    }
+    
+    # Delete demo posts (auto-published, seeded, or with fake user_ids)
+    demo_post_query = {
+        "$or": [
+            {"is_auto_published": True},
+            {"is_seeded": True},
+            {"post_id": {"$regex": "^auto_"}},
+            {"post_id": {"$regex": "^seed_"}},
+            {"user_id": {"$regex": "_luxury$|_biosphere$|_explorer$|_fishing$|_vanilla$"}}
+        ]
+    }
+    post_result = await db.posts.delete_many(demo_post_query)
+    results["posts_deleted"] = post_result.deleted_count
+    
+    # Delete demo messages and conversations
+    demo_msg_query = {
+        "$or": [
+            {"is_demo": True},
+            {"is_seeded": True},
+            {"conversation_id": {"$regex": "^demo_|^seed_"}}
+        ]
+    }
+    msg_result = await db.messages.delete_many(demo_msg_query)
+    results["messages_deleted"] = msg_result.deleted_count
+    
+    # Delete demo conversations
+    demo_conv_query = {
+        "$or": [
+            {"is_demo": True},
+            {"is_seeded": True},
+            {"conversation_id": {"$regex": "^demo_|^seed_"}}
+        ]
+    }
+    conv_result = await db.conversations.delete_many(demo_conv_query)
+    results["conversations_deleted"] = conv_result.deleted_count
+    
+    # Delete demo/bot users (keep real media accounts)
+    demo_user_query = {
+        "$and": [
+            {"is_bot": True},
+            {"is_media": {"$ne": True}},  # Keep media accounts
+            {"$or": [
+                {"user_id": {"$regex": "_luxury$|_biosphere$|_explorer$|_fishing$|_vanilla$"}},
+                {"is_seeded": True}
+            ]}
+        ]
+    }
+    user_result = await db.users.delete_many(demo_user_query)
+    results["users_deleted"] = user_result.deleted_count
+    
+    # Clear caches
+    await feed_cache.clear()
+    await cache.delete("stories_feed")
+    
+    logger.info(f"Demo data cleanup: {results}")
+    
+    return {
+        "success": True,
+        "message": "Données de démonstration supprimées",
+        "results": results
+    }
+
+@api_router.post("/admin/rss/add-feed")
+async def add_custom_rss_feed(request: Request):
+    """Add a custom RSS feed (admin only)"""
+    user = await require_auth(request)
+    
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    body = await request.json()
+    
+    required_fields = ["name", "url", "account_id"]
+    for field in required_fields:
+        if not body.get(field):
+            raise HTTPException(status_code=400, detail=f"Champ requis: {field}")
+    
+    # Create feed config
+    feed_config = {
+        "feed_id": f"custom_{uuid.uuid4().hex[:8]}",
+        "name": body["name"],
+        "url": body["url"],
+        "account_id": body["account_id"],
+        "island": body.get("island", "tahiti"),
+        "logo": body.get("logo"),
+        "categories": body.get("categories", ["communauté"]),
+        "feed_type": body.get("feed_type", "association"),
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Check if feed URL already exists
+    existing = await db.custom_rss_feeds.find_one({"url": body["url"]})
+    if existing:
+        raise HTTPException(status_code=400, detail="Ce flux RSS existe déjà")
+    
+    # Create the media account for this feed
+    account = {
+        "user_id": body["account_id"],
+        "name": body["name"],
+        "email": f"{body['account_id']}@nati-fenua.local",
+        "picture": body.get("logo") or f"https://ui-avatars.com/api/?name={body['name'][:2]}&background=FF6B35&color=fff&bold=true&size=200",
+        "bio": body.get("bio", f"Compte officiel - {body['name']}"),
+        "location": "Polynésie française",
+        "island": body.get("island", "tahiti"),
+        "website": body.get("website", body["url"]),
+        "is_verified": True,
+        "is_media": True,
+        "is_bot": True,
+        "followers_count": 0,
+        "following_count": 0,
+        "posts_count": 0,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Insert if not exists
+    existing_account = await db.users.find_one({"user_id": body["account_id"]})
+    if not existing_account:
+        await db.users.insert_one(account)
+    
+    # Save feed config
+    await db.custom_rss_feeds.insert_one(feed_config)
+    
+    return {
+        "success": True,
+        "message": f"Flux RSS '{body['name']}' ajouté",
+        "feed": {k: v for k, v in feed_config.items() if k != "_id"}
+    }
+
+@api_router.get("/admin/rss/feeds")
+async def get_all_rss_feeds(request: Request):
+    """Get all RSS feeds (built-in + custom)"""
+    from rss_feeds import RSS_FEEDS
+    
+    # Get custom feeds
+    custom_feeds = await db.custom_rss_feeds.find({"is_active": True}).to_list(100)
+    
+    return {
+        "builtin_feeds": RSS_FEEDS,
+        "custom_feeds": [{k: v for k, v in f.items() if k != "_id"} for f in custom_feeds],
+        "total": len(RSS_FEEDS) + len(custom_feeds)
+    }
+
+@api_router.delete("/admin/rss/feed/{feed_id}")
+async def delete_custom_rss_feed(feed_id: str, request: Request):
+    """Delete a custom RSS feed (admin only)"""
+    user = await require_auth(request)
+    
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    result = await db.custom_rss_feeds.delete_one({"feed_id": feed_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Flux RSS non trouvé")
+    
+    return {"success": True, "message": "Flux RSS supprimé"}
+
+
 # ==================== ROULOTTE PUSH NOTIFICATIONS ====================
 
 @api_router.post("/roulotte/{vendor_id}/subscribe/push")

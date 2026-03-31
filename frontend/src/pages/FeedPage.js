@@ -215,55 +215,11 @@ const CommentsSection = ({ post }) => {
   );
 };
 
-// Demo data for initial display
-const demoStories = [
-  { user: { user_id: '1', name: 'Hinano', picture: 'https://images.unsplash.com/photo-1612708437841-085ba65e370b?w=100' }, stories: [{ story_id: '1' }], hasLive: true },
-  { user: { user_id: '2', name: 'Maeva', picture: 'https://images.unsplash.com/photo-1746511299666-5ba663a2a5df?w=100' }, stories: [{ story_id: '2' }] },
-  { user: { user_id: '3', name: 'Teva', picture: 'https://ui-avatars.com/api/?name=Teva&background=00CED1&color=fff&bold=true' }, stories: [{ story_id: '3' }] },
-  { user: { user_id: '4', name: 'Moana', picture: 'https://ui-avatars.com/api/?name=Moana&background=FF6B35&color=fff&bold=true' }, stories: [{ story_id: '4' }] },
-  { user: { user_id: '5', name: 'Vaianu', picture: 'https://ui-avatars.com/api/?name=Vaianu&background=9400D3&color=fff&bold=true' }, stories: [{ story_id: '5' }] }
-];
+// Demo stories (sera remplacé par les vraies données)
+const demoStories = [];
 
-const demoPosts = [
-  {
-    post_id: 'demo1',
-    user: { user_id: '1', name: 'Hinano Tahiti', picture: 'https://images.unsplash.com/photo-1612708437841-085ba65e370b?w=100', is_verified: true },
-    content_type: 'photo',
-    media_url: 'https://images.unsplash.com/photo-1723958286930-b32795ed2bbd?w=800',
-    caption: 'Magnifique coucher de soleil à Moorea 🌅✨ #FenuaSocial #Polynésie #Moorea',
-    location: 'Moorea, Polynésie Française',
-    likes_count: 234,
-    comments_count: 18,
-    reactions: { like: 150, love: 60, fire: 24 },
-    created_at: new Date().toISOString()
-  },
-  {
-    post_id: 'demo2',
-    user: { user_id: '2', name: 'Perles de Tahiti', picture: 'https://ui-avatars.com/api/?name=PT&background=00CED1&color=fff&bold=true', is_verified: true },
-    content_type: 'photo',
-    media_url: 'https://images.unsplash.com/photo-1760969485983-c7b370a1532f?w=800',
-    caption: 'Nouvelle collection de perles noires de Tahiti disponible 💎 #PerlesdeTahiti #Luxe',
-    location: 'Papeete, Tahiti',
-    likes_count: 567,
-    comments_count: 42,
-    reactions: { like: 300, love: 200, wow: 67 },
-    created_at: new Date(Date.now() - 3600000).toISOString(),
-    is_ad: true
-  },
-  {
-    post_id: 'demo3',
-    user: { user_id: '3', name: 'Teva Explorer', picture: 'https://ui-avatars.com/api/?name=TE&background=FF6B35&color=fff&bold=true' },
-    content_type: 'video',
-    media_url: 'https://images.unsplash.com/photo-1703549068359-49d854524ddd?w=800',
-    thumbnail_url: 'https://images.unsplash.com/photo-1703549068359-49d854524ddd?w=800',
-    caption: 'Excursion en pirogue dans le lagon de Bora Bora 🚣‍♂️🌴',
-    location: 'Bora Bora',
-    likes_count: 892,
-    comments_count: 67,
-    reactions: { like: 500, love: 300, fire: 92 },
-    created_at: new Date(Date.now() - 7200000).toISOString()
-  }
-];
+// Posts vides par défaut (chargés depuis l'API)
+const demoPosts = [];
 
 const reactions = [
   { type: 'like', icon: ThumbsUp, color: '#00CED1', label: 'J\'aime' },
@@ -433,7 +389,16 @@ const FeedPage = () => {
 
       {/* Posts Feed */}
       <div className="space-y-6">
-        {posts.map((post, index) => (
+        {posts.length === 0 && !loading ? (
+          <div className="bg-white rounded-3xl p-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-[#FF6B35]/20 to-[#FF1493]/20 rounded-full flex items-center justify-center">
+              <span className="text-3xl">📰</span>
+            </div>
+            <h3 className="text-lg font-bold text-[#1A1A2E] mb-2">Aucune publication</h3>
+            <p className="text-gray-500 text-sm">Les actualités des médias locaux apparaîtront ici</p>
+          </div>
+        ) : (
+        posts.map((post, index) => (
           <motion.article
             key={post.post_id}
             initial={{ opacity: 0, y: 20 }}
@@ -742,7 +707,8 @@ const FeedPage = () => {
               </p>
             </div>
           </motion.article>
-        ))}
+        ))
+        )}
       </div>
 
       {/* Loading State */}
