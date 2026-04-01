@@ -864,23 +864,33 @@ const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, contac
           </div>
 
           <div className="p-4 space-y-4">
-            {/* Webcam Video - Full width video player for webcams */}
-            {marker.is_webcam && marker.video_url && (
+            {/* Webcam Video - Full width iframe player for webcams */}
+            {marker.is_webcam && (marker.iframe_url || marker.embed_url || marker.video_url) && (
               <div className="relative rounded-xl overflow-hidden bg-black">
-                <video 
-                  src={marker.video_url}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="w-full h-48 object-cover"
-                />
-                <div className="absolute top-2 left-2 px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-lg flex items-center gap-1">
+                {marker.type === 'youtube' || (marker.iframe_url || marker.embed_url || '').includes('youtube') ? (
+                  <iframe
+                    src={marker.iframe_url || marker.embed_url}
+                    className="w-full h-56"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title={marker.title}
+                  />
+                ) : (
+                  <iframe
+                    src={marker.iframe_url || marker.embed_url || marker.video_url}
+                    className="w-full h-56"
+                    frameBorder="0"
+                    allowFullScreen
+                    title={marker.title}
+                  />
+                )}
+                <div className="absolute top-2 left-2 px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-lg flex items-center gap-1 pointer-events-none">
                   <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
                   LIVE
                 </div>
-                <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/50 text-white text-xs rounded">
-                  {marker.title}
+                <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/50 text-white text-xs rounded pointer-events-none">
+                  {marker.source || 'Webcam'}
                 </div>
               </div>
             )}
