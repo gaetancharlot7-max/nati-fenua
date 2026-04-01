@@ -3,12 +3,12 @@
 ## Project Overview
 **Application** : Réseau social polynésien "Nati Fenua"  
 **Stack** : React 18.2.0 (Frontend) + FastAPI (Backend) + MongoDB Atlas (Database)  
-**Status** : Déployé sur Render, corrections RSS validées
+**Status** : Déployé sur Render, Google OAuth natif configuré
 
 ---
 
 ## Original Problem Statement
-L'utilisateur souhaitait déployer son application Nati Fenua sur Render et ensuite enrichir le fil d'actualité avec de vrais flux RSS polynésiens, renommer "Pulse" en "Mana", et améliorer l'affichage des médias.
+L'utilisateur souhaitait déployer son application Nati Fenua sur Render, enrichir le fil d'actualité avec de vrais flux RSS polynésiens, configurer la connexion Google OAuth native (sans Emergent Auth).
 
 ---
 
@@ -16,27 +16,21 @@ L'utilisateur souhaitait déployer son application Nati Fenua sur Render et ensu
 
 ### Authentication
 - [x] Login/Logout avec sessions sécurisées
-- [x] Inscription complète (nom, adresse, localisation)
-- [ ] Social Login Google/Facebook (nécessite OAuth natif pour Render)
-- [ ] Mot de passe oublié (clé Resend nécessaire)
+- [x] Inscription email/mot de passe
+- [x] **Connexion Google OAuth 2.0 native** (configuré pour Render)
+- [ ] Connexion Facebook (désactivée volontairement)
+- [ ] Mot de passe oublié (nécessite clé API Resend)
 
 ### Social Features
 - [x] Posts, Stories, Reels, Lives
-- [x] Feed personnalisé avec flux RSS locaux
+- [x] Feed personnalisé avec flux RSS locaux (35 sources)
 - [x] Notifications
-- [x] Conversations/Chat (UI complète avec emojis et images)
+- [x] Conversations/Chat
 - [x] Profils utilisateurs avec liens cliquables
 
-### Flux RSS (35 sources)
-- [x] Tahiti Infos, Polynésie 1ère, TNTV, La Dépêche
-- [x] Médias surf (Surf Report, Magic Seaweed, Surfline)
-- [x] Culture (Heiva, Musée de Tahiti, FIFO)
-- [x] Emploi (SEFI, Indeed, LinkedIn)
-- [x] Météo (Météo France Polynésie)
-
-### Mana (ex-Pulse)
+### Carte Mana (ex-Pulse)
 - [x] Carte Leaflet interactive
-- [x] Îles : Tahiti, Moorea, Bora Bora, Raiatea, Tahaa, Huahine, Maupiti, Tuamotu, Marquises, Gambier, Australes
+- [x] Îles : Tahiti, Moorea, Bora Bora, Raiatea, etc.
 - [x] Webcams publiques intégrées
 
 ### Marketplace
@@ -45,39 +39,48 @@ L'utilisateur souhaitait déployer son application Nati Fenua sur Render et ensu
 
 ---
 
-## Bug Fixes (31 Mars 2026)
+## Configuration Google OAuth (31 Mars 2026)
 
-### Correction des miniatures RSS (RÉSOLU)
-**Problème** : Les articles partagés via RSS affichaient un carré gris au lieu d'une miniature.
+### Identifiants Google Cloud
+```
+Client ID    : 795265896237-vbtdva4ubl9r203j79dj7jcctd7s3d2g.apps.googleusercontent.com
+Client Secret: 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
+```
 
-**Solution appliquée** :
-1. **Backend** (`rss_feeds.py`) : Amélioration de `extract_image_from_content()` avec fallbacks multiples :
-   - og:image, twitter:image
-   - media:content, enclosures
-   - Logo de la source comme fallback
-   - Images placeholder thématiques (surf, météo, culture)
+### URLs configurées
+- Origine JS autorisée : `https://nati-fenua-frontend.onrender.com`
+- URI de redirection : `https://nati-fenua-backend.onrender.com/api/auth/google/callback`
 
-2. **Frontend** (`FeedPage.js`) : Refonte de `ArticleLinkPreview` :
-   - Affichage de l'image en grand (aspect-video)
-   - Badge source sur l'image
-   - Titre de l'article sous l'image
-   - Gestion des erreurs d'image avec fallback
+---
 
-**Tests** : 100% passés (backend et frontend)
+## Déploiement Render
+
+### URLs de Production
+- **Frontend** : `https://nati-fenua-frontend.onrender.com`
+- **Backend** : `https://nati-fenua-backend.onrender.com`
+
+### Variables d'environnement Backend
+```
+GOOGLE_CLIENT_ID=795265896237-vbtdva4ubl9r203j79dj7jcctd7s3d2g.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=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
+GOOGLE_REDIRECT_URI=https://nati-fenua-backend.onrender.com/api/auth/google/callback
+FRONTEND_URL=https://nati-fenua-frontend.onrender.com
+```
 
 ---
 
 ## Pending Tasks
 
-### P0 - Bloquant
-- [ ] Déployer les corrections RSS sur Render (ZIPs prêts)
+### P0 - Immédiat
+- [x] ~~Retirer Facebook, garder Google~~
+- [x] ~~Configurer Google OAuth natif~~
+- [ ] Déployer sur Render (ZIPs prêts)
 
 ### P1 - Court terme
-- [ ] OAuth Google natif pour Render (bloqué - nécessite clés Google Cloud)
-- [ ] Fonction "Mot de passe oublié" (nécessite clé API Resend)
+- [ ] Fonction "Mot de passe oublié" (clé API Resend)
+- [ ] Système de traduction FR/Tahitien complet
 
 ### P2 - Moyen terme
-- [ ] Système de traduction FR/Tahitien complet (actuellement mocké)
 - [ ] Refactoring server.py (5000+ lignes)
 
 ---
@@ -86,25 +89,6 @@ L'utilisateur souhaitait déployer son application Nati Fenua sur Render et ensu
 - [ ] Application mobile Expo
 - [ ] WebSocket pour chat temps réel
 - [ ] Notifications push
-- [ ] Système de paiement Marketplace
-
----
-
-## Architecture
-
-```
-/app/
-├── backend/
-│   ├── server.py             # API monolithique
-│   ├── rss_feeds.py          # Parseur RSS amélioré
-│   ├── fenua_pulse.py        # Carte Mana (îles, webcams)
-├── frontend/
-│   └── src/
-│       ├── pages/
-│       │   ├── FeedPage.js   # ArticleLinkPreview amélioré
-│       │   └── ManaPage.js
-│       └── components/
-```
 
 ---
 
@@ -114,15 +98,8 @@ L'utilisateur souhaitait déployer son application Nati Fenua sur Render et ensu
 
 ---
 
-## Download URLs (pour déploiement Render)
-- Backend: `https://fenua-connect.preview.emergentagent.com/final-backend.zip`
-- Frontend: `https://fenua-connect.preview.emergentagent.com/final-frontend.zip`
-
----
-
-## Known Issues
-- Social Login (Google/Facebook) : Ne fonctionne pas sur Render car Emergent Auth rejette les domaines externes
-- Traduction : Système mocké (dictionnaire statique)
+## Documentation
+- `/app/CONFIGURATION_NATI_FENUA.md` - Guide complet de configuration
 
 ---
 

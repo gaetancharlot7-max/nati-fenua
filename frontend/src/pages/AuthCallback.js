@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 const AuthCallback = () => {
   const hasProcessed = useRef(false);
   const navigate = useNavigate();
-  const { exchangeSession } = useAuth();
+  const { exchangeSession, checkAuth } = useAuth();
 
   useEffect(() => {
     // Prevent double processing in StrictMode
@@ -15,25 +15,34 @@ const AuthCallback = () => {
 
     const processSession = async () => {
       try {
-        // Extract session_id from URL fragment
+        // Extract session_token from URL fragment (native Google OAuth)
         const hash = window.location.hash;
         const params = new URLSearchParams(hash.replace('#', ''));
+        const sessionToken = params.get('session_token');
         const sessionId = params.get('session_id');
 
-        if (!sessionId) {
-          toast.error('Session invalide');
-          navigate('/auth');
+        if (sessionToken) {
+          // Native Google OAuth - session already created, just verify
+          toast.success('Ia ora na ! Connexion réussie');
+          window.history.replaceState(null, '', window.location.pathname);
+          // Re-check auth to load user data (cookie is already set)
+          if (checkAuth) await checkAuth();
+          navigate('/feed', { replace: true });
           return;
         }
 
-        // Exchange session_id for user data
-        await exchangeSession(sessionId);
-        
-        toast.success('Ia ora na ! Connexion réussie');
-        
-        // Clear the hash and navigate
-        window.history.replaceState(null, '', window.location.pathname);
-        navigate('/feed', { replace: true });
+        if (sessionId) {
+          // Legacy Emergent Auth flow
+          await exchangeSession(sessionId);
+          toast.success('Ia ora na ! Connexion réussie');
+          window.history.replaceState(null, '', window.location.pathname);
+          navigate('/feed', { replace: true });
+          return;
+        }
+
+        // No session found
+        toast.error('Session invalide');
+        navigate('/auth');
       } catch (error) {
         console.error('Auth callback error:', error);
         toast.error('Erreur de connexion');
@@ -42,7 +51,7 @@ const AuthCallback = () => {
     };
 
     processSession();
-  }, [exchangeSession, navigate]);
+  }, [exchangeSession, checkAuth, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FFF4E6]">

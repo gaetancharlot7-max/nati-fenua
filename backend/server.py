@@ -795,6 +795,147 @@ async def exchange_session(request: Request, response: Response):
     
     return {"user": user_doc, "session_token": session_token}
 
+# ==================== NATIVE GOOGLE OAUTH ====================
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI", "")
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://nati-fenua-frontend.onrender.com")
+
+@api_router.get("/auth/google")
+async def google_login(request: Request):
+    """Redirect to Google OAuth"""
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+    
+    # Build Google OAuth URL
+    google_auth_url = (
+        "https://accounts.google.com/o/oauth2/v2/auth?"
+        f"client_id={GOOGLE_CLIENT_ID}&"
+        f"redirect_uri={GOOGLE_REDIRECT_URI}&"
+        "response_type=code&"
+        "scope=openid%20email%20profile&"
+        "access_type=offline&"
+        "prompt=consent"
+    )
+    
+    from starlette.responses import RedirectResponse
+    return RedirectResponse(url=google_auth_url)
+
+@api_router.get("/auth/google/callback")
+async def google_callback(request: Request, response: Response, code: str = None, error: str = None):
+    """Handle Google OAuth callback"""
+    from starlette.responses import RedirectResponse
+    
+    if error:
+        logger.error(f"Google OAuth error: {error}")
+        return RedirectResponse(url=f"{FRONTEND_URL}/auth?error=google_oauth_error")
+    
+    if not code:
+        return RedirectResponse(url=f"{FRONTEND_URL}/auth?error=no_code")
+    
+    try:
+        # Exchange code for tokens
+        async with httpx.AsyncClient() as client:
+            token_response = await client.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "code": code,
+                    "grant_type": "authorization_code",
+                    "redirect_uri": GOOGLE_REDIRECT_URI
+                }
+            )
+            
+            if token_response.status_code != 200:
+                logger.error(f"Token exchange failed: {token_response.text}")
+                return RedirectResponse(url=f"{FRONTEND_URL}/auth?error=token_exchange_failed")
+            
+            tokens = token_response.json()
+            access_token = tokens.get("access_token")
+            
+            # Get user info from Google
+            user_info_response = await client.get(
+                "https://www.googleapis.com/oauth2/v2/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"}
+            )
+            
+            if user_info_response.status_code != 200:
+                logger.error(f"User info fetch failed: {user_info_response.text}")
+                return RedirectResponse(url=f"{FRONTEND_URL}/auth?error=userinfo_failed")
+            
+            google_user = user_info_response.json()
+        
+        email = google_user.get("email")
+        name = google_user.get("name")
+        picture = google_user.get("picture")
+        
+        # Find or create user
+        existing_user = await db.users.find_one({"email": email}, {"_id": 0})
+        
+        if existing_user:
+            user_id = existing_user["user_id"]
+            # Update user info
+            await db.users.update_one(
+                {"email": email},
+                {"$set": {
+                    "name": name or existing_user.get("name"),
+                    "picture": picture or existing_user.get("picture"),
+                    "last_login": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        else:
+            # Create new user
+            user_id = f"user_{uuid.uuid4().hex[:12]}"
+            user = {
+                "user_id": user_id,
+                "email": email,
+                "name": name,
+                "picture": picture,
+                "bio": None,
+                "location": "Polynésie Française",
+                "island": "tahiti",
+                "is_business": False,
+                "is_verified": False,
+                "auth_provider": "google",
+                "followers_count": 0,
+                "following_count": 0,
+                "posts_count": 0,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.users.insert_one(user)
+            logger.info(f"New user created via Google OAuth: {email}")
+        
+        # Create session
+        session_token, expiry = create_session_token()
+        session = {
+            "user_id": user_id,
+            "session_token": session_token,
+            "expires_at": expiry.isoformat(),
+            "auth_provider": "google",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.user_sessions.insert_one(session)
+        
+        # Redirect to frontend with session token
+        redirect_response = RedirectResponse(url=f"{FRONTEND_URL}/auth/callback#session_token={session_token}")
+        redirect_response.set_cookie(
+            key="session_token",
+            value=session_token,
+            httponly=True,
+            secure=True,
+            samesite="none",
+            path="/",
+            max_age=7*24*60*60
+        )
+        
+        logger.info(f"Google OAuth successful for {email}")
+        return redirect_response
+        
+    except Exception as e:
+        logger.error(f"Google OAuth error: {str(e)}")
+        return RedirectResponse(url=f"{FRONTEND_URL}/auth?error=oauth_error")
+
 @api_router.get("/auth/me")
 async def get_me(request: Request):
     user = await get_current_user(request)

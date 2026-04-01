@@ -49,9 +49,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const loginWithGoogle = () => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    const redirectUrl = window.location.origin + '/auth/callback';
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+    // Native Google OAuth - redirect to backend which handles Google OAuth
+    window.location.href = `${API}/auth/google`;
   };
 
   const exchangeSession = async (sessionId) => {
