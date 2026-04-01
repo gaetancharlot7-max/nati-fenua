@@ -12,6 +12,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import os
 import logging
+import asyncio
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict
@@ -1404,23 +1405,37 @@ async def facebook_callback(request: Request, response: Response, code: str = No
 # ==================== POSTS ROUTES ====================
 
 @api_router.get("/posts", response_model=List[dict])
-async def get_posts(limit: int = 20, skip: int = 0):
-    """Get posts with caching for better performance"""
+async def get_posts(request: Request, limit: int = 20, skip: int = 0):
+    """Get posts with smart feed algorithm - equitable mix of user posts and RSS"""
+    import random
+    
+    # Get current user for personalization (optional)
+    current_user = await get_current_user(request)
+    user_id = current_user.user_id if current_user else None
     
     # Cache key based on pagination
-    cache_key = f"posts:{limit}:{skip}"
+    cache_key = f"smart_feed:{limit}:{skip}:{user_id or 'anon'}"
     
-    # Try cache first
+    # Try cache first (shorter TTL for fresh content)
     cached = await cache.get(cache_key)
     if cached:
         return cached
     
-    # Optimized: Use aggregation with $lookup to avoid N+1 queries
-    pipeline = [
-        {"$match": {"moderation_status": {"$ne": "rejected"}}},
+    # Calculate how many of each type to fetch
+    # Goal: ~60% user posts, ~40% RSS posts (adjustable)
+    user_posts_limit = int(limit * 0.6) + 5  # Fetch extra for mixing
+    rss_posts_limit = int(limit * 0.4) + 5
+    
+    # Fetch user posts (non-RSS, non-auto-published)
+    user_posts_pipeline = [
+        {"$match": {
+            "moderation_status": {"$ne": "rejected"},
+            "is_rss_article": {"$ne": True},
+            "is_auto_published": {"$ne": True}
+        }},
         {"$sort": {"created_at": -1}},
-        {"$skip": skip},
-        {"$limit": limit},
+        {"$skip": int(skip * 0.6)},
+        {"$limit": user_posts_limit},
         {"$lookup": {
             "from": "users",
             "localField": "user_id",
@@ -1440,32 +1455,244 @@ async def get_posts(limit: int = 20, skip: int = 0):
                 "name": "$user_data.name",
                 "picture": "$user_data.picture",
                 "is_verified": "$user_data.is_verified"
-            }
+            },
+            "feed_type": "user"
         }},
         {"$project": {"user_data": 0}}
     ]
     
-    posts = await db.posts.aggregate(pipeline).to_list(limit)
+    # Fetch RSS posts
+    rss_posts_pipeline = [
+        {"$match": {
+            "moderation_status": {"$ne": "rejected"},
+            "is_rss_article": True
+        }},
+        {"$sort": {"created_at": -1}},
+        {"$skip": int(skip * 0.4)},
+        {"$limit": rss_posts_limit},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "user_id",
+            "as": "user_data"
+        }},
+        {"$unwind": {"path": "$user_data", "preserveNullAndEmptyArrays": True}},
+        {"$project": {
+            "_id": 0,
+            "user_data._id": 0,
+            "user_data.password_hash": 0,
+            "user_data.email": 0
+        }},
+        {"$addFields": {
+            "user": {
+                "user_id": "$user_data.user_id",
+                "name": "$user_data.name",
+                "picture": "$user_data.picture",
+                "is_verified": "$user_data.is_verified",
+                "is_media": "$user_data.is_media"
+            },
+            "feed_type": "rss"
+        }},
+        {"$project": {"user_data": 0}}
+    ]
+    
+    # Execute both queries in parallel
+    user_posts, rss_posts = await asyncio.gather(
+        db.posts.aggregate(user_posts_pipeline).to_list(user_posts_limit),
+        db.posts.aggregate(rss_posts_pipeline).to_list(rss_posts_limit)
+    )
+    
+    # Smart mixing algorithm: alternate between user and RSS posts
+    mixed_posts = []
+    user_idx = 0
+    rss_idx = 0
+    
+    # Pattern: 2 user posts, 1 RSS, 2 user posts, 1 RSS, etc.
+    # This creates a natural feel while ensuring RSS content is visible
+    while len(mixed_posts) < limit and (user_idx < len(user_posts) or rss_idx < len(rss_posts)):
+        # Add 2 user posts
+        for _ in range(2):
+            if user_idx < len(user_posts) and len(mixed_posts) < limit:
+                mixed_posts.append(user_posts[user_idx])
+                user_idx += 1
+        
+        # Add 1 RSS post
+        if rss_idx < len(rss_posts) and len(mixed_posts) < limit:
+            mixed_posts.append(rss_posts[rss_idx])
+            rss_idx += 1
+    
+    # Fill remaining slots if one type is exhausted
+    while len(mixed_posts) < limit and user_idx < len(user_posts):
+        mixed_posts.append(user_posts[user_idx])
+        user_idx += 1
+    
+    while len(mixed_posts) < limit and rss_idx < len(rss_posts):
+        mixed_posts.append(rss_posts[rss_idx])
+        rss_idx += 1
+    
+    # Add slight randomization within groups to keep feed fresh
+    # Group posts by time windows and shuffle within each window
+    if len(mixed_posts) > 5:
+        # Shuffle posts within same hour to add variety
+        from itertools import groupby
+        def get_hour(post):
+            try:
+                dt = datetime.fromisoformat(post.get('created_at', '').replace('Z', '+00:00'))
+                return dt.strftime('%Y-%m-%d-%H')
+            except:
+                return 'unknown'
+        
+        # Sort by created_at first to group properly
+        sorted_posts = sorted(mixed_posts, key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        # Group by hour and shuffle within groups
+        final_posts = []
+        for _, group in groupby(sorted_posts, key=get_hour):
+            group_list = list(group)
+            if len(group_list) > 2:
+                # Keep first post in place, shuffle the rest
+                first = group_list[0]
+                rest = group_list[1:]
+                random.shuffle(rest)
+                final_posts.append(first)
+                final_posts.extend(rest)
+            else:
+                final_posts.extend(group_list)
+        
+        mixed_posts = final_posts[:limit]
     
     # Fallback demo posts if empty
-    if not posts:
-        posts = [
+    if not mixed_posts:
+        mixed_posts = [
             {
                 "post_id": "demo_post_1",
                 "user_id": "demo_user",
-                "caption": "🌺 Ia ora na ! Bienvenue sur Nati Fenua",
+                "caption": "🌺 Ia ora na ! Bienvenue sur Nati Fenua - Le réseau social polynésien",
                 "media_url": "https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=800",
                 "content_type": "image",
                 "likes_count": 42,
                 "comments_count": 5,
                 "created_at": datetime.now(timezone.utc).isoformat(),
-                "user": {"user_id": "demo_user", "name": "Nati Fenua", "picture": None, "is_verified": True}
+                "user": {"user_id": "demo_user", "name": "Nati Fenua", "picture": None, "is_verified": True},
+                "feed_type": "user"
             }
         ]
     
-    # Cache for 30 seconds
-    await cache.set(cache_key, posts, ttl=30)
-    return posts
+    # Cache for 15 seconds (shorter for fresher content)
+    await cache.set(cache_key, mixed_posts, ttl=15)
+    
+    logger.info(f"Smart feed: {len(user_posts)} user posts + {len(rss_posts)} RSS posts = {len(mixed_posts)} mixed")
+    return mixed_posts
+
+@api_router.get("/posts/fresh")
+async def get_fresh_posts(request: Request, limit: int = 20, seen_ids: str = ""):
+    """Get fresh posts that user hasn't seen yet
+    
+    Args:
+        limit: Number of posts to return
+        seen_ids: Comma-separated list of post IDs user has already seen
+    
+    Returns:
+        Fresh posts mixed equitably between user posts and RSS
+    """
+    import random
+    
+    # Parse seen IDs
+    seen_list = [s.strip() for s in seen_ids.split(",") if s.strip()] if seen_ids else []
+    
+    # Get current user for personalization
+    current_user = await get_current_user(request)
+    user_id = current_user.user_id if current_user else None
+    
+    # Build exclusion filter
+    exclusion_filter = {"moderation_status": {"$ne": "rejected"}}
+    if seen_list:
+        exclusion_filter["post_id"] = {"$nin": seen_list}
+    
+    # Fetch fresh user posts
+    user_posts_pipeline = [
+        {"$match": {
+            **exclusion_filter,
+            "is_rss_article": {"$ne": True},
+            "is_auto_published": {"$ne": True}
+        }},
+        {"$sort": {"created_at": -1}},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "user_id",
+            "as": "user_data"
+        }},
+        {"$unwind": {"path": "$user_data", "preserveNullAndEmptyArrays": True}},
+        {"$project": {"_id": 0, "user_data._id": 0, "user_data.password_hash": 0}},
+        {"$addFields": {
+            "user": {
+                "user_id": "$user_data.user_id",
+                "name": "$user_data.name",
+                "picture": "$user_data.picture",
+                "is_verified": "$user_data.is_verified"
+            },
+            "feed_type": "user"
+        }},
+        {"$project": {"user_data": 0}}
+    ]
+    
+    # Fetch fresh RSS posts
+    rss_posts_pipeline = [
+        {"$match": {
+            **exclusion_filter,
+            "is_rss_article": True
+        }},
+        {"$sort": {"created_at": -1}},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "user_id",
+            "as": "user_data"
+        }},
+        {"$unwind": {"path": "$user_data", "preserveNullAndEmptyArrays": True}},
+        {"$project": {"_id": 0, "user_data._id": 0, "user_data.password_hash": 0}},
+        {"$addFields": {
+            "user": {
+                "user_id": "$user_data.user_id",
+                "name": "$user_data.name",
+                "picture": "$user_data.picture",
+                "is_verified": "$user_data.is_verified",
+                "is_media": "$user_data.is_media"
+            },
+            "feed_type": "rss"
+        }},
+        {"$project": {"user_data": 0}}
+    ]
+    
+    # Execute in parallel
+    user_posts, rss_posts = await asyncio.gather(
+        db.posts.aggregate(user_posts_pipeline).to_list(limit),
+        db.posts.aggregate(rss_posts_pipeline).to_list(limit)
+    )
+    
+    # Smart mix: interleave posts
+    mixed = []
+    u_idx, r_idx = 0, 0
+    
+    while len(mixed) < limit and (u_idx < len(user_posts) or r_idx < len(rss_posts)):
+        # 2:1 ratio - 2 user posts, 1 RSS
+        for _ in range(2):
+            if u_idx < len(user_posts) and len(mixed) < limit:
+                mixed.append(user_posts[u_idx])
+                u_idx += 1
+        if r_idx < len(rss_posts) and len(mixed) < limit:
+            mixed.append(rss_posts[r_idx])
+            r_idx += 1
+    
+    return {
+        "posts": mixed,
+        "has_more": len(user_posts) == limit or len(rss_posts) == limit,
+        "user_posts_count": len(user_posts),
+        "rss_posts_count": len(rss_posts)
+    }
 
 @api_router.get("/posts/nearby")
 async def get_nearby_posts(lat: float, lng: float, radius_km: float = 50, limit: int = 20):
