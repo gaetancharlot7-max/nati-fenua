@@ -4894,7 +4894,7 @@ async def fetch_rss_feeds(request: Request):
     max_posts = body.get("max_posts", 20)
     
     rss_service = RSSFeedService(db)
-    result = await rss_service.publish_articles_as_posts(max_posts=max_posts)
+    result = await rss_service.publish_articles_as_posts(max_total_posts=max_posts)
     await rss_service.close()
     
     return result
@@ -5257,7 +5257,7 @@ async def refresh_rss_feeds():
     from rss_feeds import RSSFeedService
     
     rss_service = RSSFeedService(db)
-    result = await rss_service.publish_articles_as_posts(max_posts=50)
+    result = await rss_service.publish_articles_as_posts(max_total_posts=50)
     await rss_service.close()
     
     # Clear feed cache to show new content
@@ -5537,7 +5537,7 @@ async def start_auto_publisher():
             # Fetch fresh RSS articles
             from rss_feeds import RSSFeedService
             rss_service = RSSFeedService(db)
-            result = await rss_service.publish_articles_as_posts(max_posts=30)
+            result = await rss_service.publish_articles_as_posts(max_total_posts=30)
             await rss_service.close()
             logger.info(f"📰 RSS refresh: {result}")
             
@@ -5556,7 +5556,7 @@ async def start_auto_publisher():
                 
                 from rss_feeds import RSSFeedService
                 rss_service = RSSFeedService(db)
-                result = await rss_service.publish_articles_as_posts(max_posts=30)
+                result = await rss_service.publish_articles_as_posts(max_total_posts=30)
                 await rss_service.close()
                 logger.info(f"RSS feed publish completed: {result}")
                 

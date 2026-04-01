@@ -604,7 +604,7 @@ class RSSFeedService:
             # Parse feed
             feed = feedparser.parse(content)
             
-            for entry in feed.entries[:10]:  # Limit to 10 latest articles per source
+            for entry in feed.entries[:15]:  # Get up to 15 articles per source (will be limited later)
                 try:
                     # Get publication date
                     pub_date = None
@@ -685,28 +685,70 @@ class RSSFeedService:
         
         return all_articles
     
-    async def publish_articles_as_posts(self, max_posts: int = 20) -> dict:
-        """Fetch RSS feeds and publish as posts"""
+    async def publish_articles_as_posts(self, max_posts_per_source: int = 5, max_total_posts: int = 50) -> dict:
+        """Fetch RSS feeds and publish as posts
+        
+        Args:
+            max_posts_per_source: Maximum posts per media source (default: 5)
+            max_total_posts: Maximum total posts to publish (default: 50)
+        
+        Features:
+            - 1 post per article (no duplicates based on URL)
+            - Max 5 posts per source
+            - Random mixing of all sources
+        """
+        import random
         
         # Ensure media accounts exist
         await self.ensure_media_accounts()
         
         # Fetch all articles
-        articles = await self.fetch_all_feeds()
+        all_articles = await self.fetch_all_feeds()
         
-        if not articles:
+        if not all_articles:
             return {"success": False, "message": "No articles found", "posts_created": 0}
         
-        # Sort by date and limit
-        articles.sort(key=lambda x: x["pub_date"], reverse=True)
-        articles = articles[:max_posts]
+        # Step 1: Remove duplicates by URL (keep most recent)
+        seen_urls = set()
+        unique_articles = []
+        for article in sorted(all_articles, key=lambda x: x["pub_date"], reverse=True):
+            if article["link"] not in seen_urls:
+                seen_urls.add(article["link"])
+                unique_articles.append(article)
+        
+        logger.info(f"Removed {len(all_articles) - len(unique_articles)} duplicate articles")
+        
+        # Step 2: Limit to max_posts_per_source per source
+        articles_by_source = {}
+        for article in unique_articles:
+            source = article["source"]
+            if source not in articles_by_source:
+                articles_by_source[source] = []
+            if len(articles_by_source[source]) < max_posts_per_source:
+                articles_by_source[source].append(article)
+        
+        # Step 3: Flatten and shuffle randomly
+        limited_articles = []
+        for source, articles in articles_by_source.items():
+            limited_articles.extend(articles)
+            logger.info(f"Source '{source}': {len(articles)} articles (max {max_posts_per_source})")
+        
+        # Shuffle to mix all sources randomly
+        random.shuffle(limited_articles)
+        
+        # Limit total posts
+        limited_articles = limited_articles[:max_total_posts]
+        
+        logger.info(f"Publishing {len(limited_articles)} articles from {len(articles_by_source)} sources")
         
         posts_created = 0
+        skipped_duplicates = 0
         
-        for article in articles:
-            # Check if article already exists (by link)
+        for article in limited_articles:
+            # Check if article already exists in database (by link)
             existing = await self.db.posts.find_one({"external_link": article["link"]})
             if existing:
+                skipped_duplicates += 1
                 continue
             
             # Create post
@@ -750,18 +792,24 @@ class RSSFeedService:
             "log_id": f"rss_{uuid.uuid4().hex[:12]}",
             "type": "rss_fetch",
             "posts_created": posts_created,
-            "sources": list(set(a["source"] for a in articles[:posts_created] if posts_created > 0)),
+            "skipped_duplicates": skipped_duplicates,
+            "sources_used": list(articles_by_source.keys()),
+            "max_per_source": max_posts_per_source,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await self.db.publication_logs.insert_one(log_entry)
         
-        logger.info(f"Published {posts_created} RSS articles as posts")
+        logger.info(f"Published {posts_created} RSS articles, skipped {skipped_duplicates} duplicates")
         
         return {
             "success": True,
             "posts_created": posts_created,
+            "skipped_duplicates": skipped_duplicates,
             "sources_fetched": len(RSS_FEEDS),
-            "articles_found": len(articles)
+            "sources_with_articles": len(articles_by_source),
+            "articles_found": len(all_articles),
+            "unique_articles": len(unique_articles),
+            "max_per_source": max_posts_per_source
         }
     
     async def get_rss_stats(self) -> dict:
