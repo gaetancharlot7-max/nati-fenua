@@ -685,16 +685,16 @@ class RSSFeedService:
         
         return all_articles
     
-    async def publish_articles_as_posts(self, max_posts_per_source: int = 5, max_total_posts: int = 50) -> dict:
-        """Fetch RSS feeds and publish as posts
+    async def publish_articles_as_posts(self, max_posts_per_source: int = 2, max_total_posts: int = 70) -> dict:
+        """Fetch RSS feeds and publish as posts - STRICT NO DUPLICATES
         
         Args:
-            max_posts_per_source: Maximum posts per media source (default: 5)
-            max_total_posts: Maximum total posts to publish (default: 50)
+            max_posts_per_source: Maximum posts per media source (default: 2)
+            max_total_posts: Maximum total posts to publish (default: 70 for 35 sources x 2)
         
         Features:
-            - 1 post per article (no duplicates based on URL)
-            - Max 5 posts per source
+            - STRICT: 1 post per unique article URL (absolute no duplicates)
+            - Max 2 posts per source
             - Random mixing of all sources
         """
         import random
@@ -708,17 +708,37 @@ class RSSFeedService:
         if not all_articles:
             return {"success": False, "message": "No articles found", "posts_created": 0}
         
-        # Step 1: Remove duplicates by URL (keep most recent)
+        # STEP 1: Get ALL existing article URLs from database to prevent ANY duplicates
+        existing_links = set()
+        existing_posts = await self.db.posts.find(
+            {"external_link": {"$ne": None}},
+            {"external_link": 1, "_id": 0}
+        ).to_list(10000)
+        for p in existing_posts:
+            if p.get("external_link"):
+                existing_links.add(p["external_link"])
+        
+        logger.info(f"Found {len(existing_links)} existing article URLs in database")
+        
+        # STEP 2: Filter out articles that already exist in database
+        new_articles = []
+        for article in all_articles:
+            if article["link"] not in existing_links:
+                new_articles.append(article)
+        
+        logger.info(f"Filtered to {len(new_articles)} NEW articles (removed {len(all_articles) - len(new_articles)} existing)")
+        
+        # STEP 3: Remove duplicates within the new articles (by URL)
         seen_urls = set()
         unique_articles = []
-        for article in sorted(all_articles, key=lambda x: x["pub_date"], reverse=True):
+        for article in sorted(new_articles, key=lambda x: x["pub_date"], reverse=True):
             if article["link"] not in seen_urls:
                 seen_urls.add(article["link"])
                 unique_articles.append(article)
         
-        logger.info(f"Removed {len(all_articles) - len(unique_articles)} duplicate articles")
+        logger.info(f"Deduplicated to {len(unique_articles)} unique new articles")
         
-        # Step 2: Limit to max_posts_per_source per source
+        # STEP 4: Limit to max_posts_per_source per source
         articles_by_source = {}
         for article in unique_articles:
             source = article["source"]
@@ -727,7 +747,7 @@ class RSSFeedService:
             if len(articles_by_source[source]) < max_posts_per_source:
                 articles_by_source[source].append(article)
         
-        # Step 3: Flatten and shuffle randomly
+        # STEP 5: Flatten and shuffle randomly
         limited_articles = []
         for source, articles in articles_by_source.items():
             limited_articles.extend(articles)
@@ -739,21 +759,22 @@ class RSSFeedService:
         # Limit total posts
         limited_articles = limited_articles[:max_total_posts]
         
-        logger.info(f"Publishing {len(limited_articles)} articles from {len(articles_by_source)} sources")
+        logger.info(f"Final: {len(limited_articles)} articles from {len(articles_by_source)} sources to publish")
         
         posts_created = 0
-        skipped_duplicates = 0
         
         for article in limited_articles:
-            # Check if article already exists in database (by link)
+            # Double-check: Skip if already exists (belt and suspenders)
             existing = await self.db.posts.find_one({"external_link": article["link"]})
             if existing:
-                skipped_duplicates += 1
+                logger.warning(f"Skipping duplicate (found in final check): {article['link']}")
                 continue
             
-            # Create post
+            # Create post with unique ID
+            post_id = f"rss_{uuid.uuid4().hex[:12]}"
+            
             post = {
-                "post_id": f"rss_{uuid.uuid4().hex[:12]}",
+                "post_id": post_id,
                 "user_id": article["account_id"],
                 "content_type": "link",
                 "media_url": article.get("image_url"),
@@ -792,22 +813,21 @@ class RSSFeedService:
             "log_id": f"rss_{uuid.uuid4().hex[:12]}",
             "type": "rss_fetch",
             "posts_created": posts_created,
-            "skipped_duplicates": skipped_duplicates,
             "sources_used": list(articles_by_source.keys()),
             "max_per_source": max_posts_per_source,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await self.db.publication_logs.insert_one(log_entry)
         
-        logger.info(f"Published {posts_created} RSS articles, skipped {skipped_duplicates} duplicates")
+        logger.info(f"Published {posts_created} NEW RSS articles (strict no duplicates)")
         
         return {
             "success": True,
             "posts_created": posts_created,
-            "skipped_duplicates": skipped_duplicates,
             "sources_fetched": len(RSS_FEEDS),
             "sources_with_articles": len(articles_by_source),
             "articles_found": len(all_articles),
+            "new_articles": len(new_articles),
             "unique_articles": len(unique_articles),
             "max_per_source": max_posts_per_source
         }

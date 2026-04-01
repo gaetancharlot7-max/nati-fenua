@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nati Fenua - Documentation Complète</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            line-height: 1.6;
+            padding: 40px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { 
+            text-align: center; 
+            font-size: 2.5rem; 
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #FF6B35, #00CED1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle { text-align: center; color: #888; margin-bottom: 40px; }
+        .section { 
+            background: rgba(255,255,255,0.05); 
+            border-radius: 16px; 
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .section h2 { 
+            color: #00CED1; 
+            margin-bottom: 16px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section h2::before { content: '●'; color: #FF6B35; }
+        table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        th { background: rgba(0,206,209,0.2); color: #00CED1; }
+        .code-block { 
+            background: #0d1117; 
+            border-radius: 8px; 
+            padding: 16px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            margin: 12px 0;
+            border-left: 3px solid #FF6B35;
+        }
+        .highlight { color: #FF6B35; font-weight: bold; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+        .card { 
+            background: rgba(255,107,53,0.1); 
+            border-radius: 8px; 
+            padding: 12px;
+            border: 1px solid rgba(255,107,53,0.3);
+        }
+        .card-title { color: #FF6B35; font-weight: bold; margin-bottom: 4px; }
+        .badge { 
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin: 4px 4px 4px 0;
+        }
+        .badge-green { background: rgba(0,200,100,0.2); color: #00c864; }
+        .badge-orange { background: rgba(255,107,53,0.2); color: #FF6B35; }
+        .badge-blue { background: rgba(0,206,209,0.2); color: #00CED1; }
+        ul { list-style: none; padding-left: 20px; }
+        ul li::before { content: '→'; color: #00CED1; margin-right: 8px; }
+        .url-box { 
+            background: linear-gradient(90deg, rgba(255,107,53,0.1), rgba(0,206,209,0.1));
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 8px 0;
+            font-family: monospace;
+        }
+        @media print {
+            body { background: #fff; color: #000; }
+            .section { border: 1px solid #ddd; }
+            .code-block { background: #f5f5f5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌺 NATI FENUA</h1>
+        <p class="subtitle">Documentation Complète - Configuration & Déploiement v2.2 | 31 Mars 2026</p>
+
+        <!-- URLS DE PRODUCTION -->
+        <div class="section">
+            <h2>URLs de Production</h2>
+            <div class="url-box">
+                <strong>Frontend :</strong> https://nati-fenua-frontend.onrender.com
+            </div>
+            <div class="url-box">
+                <strong>Backend :</strong> https://nati-fenua-backend.onrender.com
+            </div>
+        </div>
+
+        <!-- GOOGLE OAUTH -->
+        <div class="section">
+            <h2>Google OAuth 2.0</h2>
+            <table>
+                <tr><th>Paramètre</th><th>Valeur</th></tr>
+                <tr><td>Projet</td><td>Nati fenua</td></tr>
+                <tr><td>Client ID</td><td class="code-block" style="display:block;margin:0">795265896237-vbtdva4ubl9r203j79dj7jcctd7s3d2g.apps.googleusercontent.com</td></tr>
+                <tr><td>Client Secret</td><td><span class="highlight">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</span></td></tr>
+                <tr><td>Origine JS</td><td>https://nati-fenua-frontend.onrender.com</td></tr>
+                <tr><td>URI Redirect</td><td>https://nati-fenua-backend.onrender.com/api/auth/google/callback</td></tr>
+            </table>
+            <p><strong>Console :</strong> <a href="https://console.cloud.google.com/apis/credentials?project=nati-fenua" style="color:#00CED1">Google Cloud Console</a></p>
+        </div>
+
+        <!-- VARIABLES RENDER -->
+        <div class="section">
+            <h2>Variables d'environnement Render (Backend)</h2>
+            <div class="code-block">
+MONGO_URL=&lt;votre_url_mongodb_atlas&gt;
+DB_NAME=nati_fenua
+CORS_ORIGINS=https://nati-fenua-frontend.onrender.com
+GOOGLE_CLIENT_ID=795265896237-vbtdva4ubl9r203j79dj7jcctd7s3d2g.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=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
+GOOGLE_REDIRECT_URI=https://nati-fenua-backend.onrender.com/api/auth/google/callback
+FRONTEND_URL=https://nati-fenua-frontend.onrender.com
+            </div>
+        </div>
+
+        <!-- FLUX RSS -->
+        <div class="section">
+            <h2>35 Flux RSS Configurés</h2>
+            <p style="margin-bottom:16px"><span class="badge badge-green">Max 2 posts/source</span> <span class="badge badge-orange">Pas de doublons</span> <span class="badge badge-blue">Mélange aléatoire</span></p>
+            
+            <h3 style="color:#FF6B35;margin:16px 0 8px">Médias d'actualité (8)</h3>
+            <div class="grid">
+                <div class="card"><div class="card-title">1. Tahiti Infos</div>actualité, politique</div>
+                <div class="card"><div class="card-title">2. Polynésie 1ère</div>actualité, télévision</div>
+                <div class="card"><div class="card-title">3. TNTV</div>actualité, sport</div>
+                <div class="card"><div class="card-title">4. La Dépêche</div>politique, économie</div>
+                <div class="card"><div class="card-title">5. Outremers 360</div>outre-mer</div>
+                <div class="card"><div class="card-title">6. Actu.fr</div>local, société</div>
+                <div class="card"><div class="card-title">7. Radio 1</div>radio, musique</div>
+                <div class="card"><div class="card-title">8. Tahiti Nui TV</div>culture</div>
+            </div>
+
+            <h3 style="color:#FF6B35;margin:16px 0 8px">Météo (3)</h3>
+            <div class="grid">
+                <div class="card"><div class="card-title">9. Météo France</div>prévisions</div>
+                <div class="card"><div class="card-title">10. Météo Marine</div>navigation</div>
+                <div class="card"><div class="card-title">11. Windy</div>vent, surf</div>
+            </div>
+
+            <h3 style="color:#FF6B35;margin:16px 0 8px">Surf & Sports (9)</h3>
+            <div class="grid">
+                <div class="card"><div class="card-title">12. Surf Report</div>vagues</div>
+                <div class="card"><div class="card-title">13. Magic Seaweed</div>prévisions</div>
+                <div class="card"><div class="card-title">14. Surfline</div>Teahupo'o</div>
+                <div class="card"><div class="card-title">15. Tahiti Surf Club</div>club</div>
+                <div class="card"><div class="card-title">16. Féd. Surf</div>compétition</div>
+                <div class="card"><div class="card-title">17. Va'a News</div>pirogue</div>
+                <div class="card"><div class="card-title">18. Féd. Football</div>sport</div>
+                <div class="card"><div class="card-title">19. Féd. Voile</div>nautique</div>
+                <div class="card"><div class="card-title">20. Féd. Natation</div>piscine</div>
+            </div>
+
+            <h3 style="color:#FF6B35;margin:16px 0 8px">Culture (6)</h3>
+            <div class="grid">
+                <div class="card"><div class="card-title">21. Heiva</div>danse, tradition</div>
+                <div class="card"><div class="card-title">22. Maison Culture</div>spectacles</div>
+                <div class="card"><div class="card-title">23. Musée</div>histoire</div>
+                <div class="card"><div class="card-title">24. Conservatoire</div>musique</div>
+                <div class="card"><div class="card-title">25. Académie</div>reo tahiti</div>
+                <div class="card"><div class="card-title">26. FIFO</div>cinéma</div>
+            </div>
+
+            <h3 style="color:#FF6B35;margin:16px 0 8px">Emploi (5)</h3>
+            <div class="grid">
+                <div class="card"><div class="card-title">27. Emploi PF</div>recrutement</div>
+                <div class="card"><div class="card-title">28. SEFI</div>formation</div>
+                <div class="card"><div class="card-title">29. Pôle Emploi</div>aide</div>
+                <div class="card"><div class="card-title">30. LinkedIn</div>réseau</div>
+                <div class="card"><div class="card-title">31. Indeed</div>offres</div>
+            </div>
+
+            <h3 style="color:#FF6B35;margin:16px 0 8px">Tourisme & Environnement (4)</h3>
+            <div class="grid">
+                <div class="card"><div class="card-title">32. Air Tahiti Mag</div>voyage</div>
+                <div class="card"><div class="card-title">33. Tahiti Tourisme</div>îles</div>
+                <div class="card"><div class="card-title">34. Environnement</div>écologie</div>
+                <div class="card"><div class="card-title">35. Te Mana o te Moana</div>océan</div>
+            </div>
+        </div>
+
+        <!-- COMPTE TEST -->
+        <div class="section">
+            <h2>Compte de Test</h2>
+            <table>
+                <tr><td><strong>Email</strong></td><td>user1@test.com</td></tr>
+                <tr><td><strong>Mot de passe</strong></td><td>TestPass123!</td></tr>
+            </table>
+        </div>
+
+        <!-- INSTRUCTIONS -->
+        <div class="section">
+            <h2>Instructions de Déploiement</h2>
+            <h3 style="color:#00CED1;margin:12px 0">Étape 1 : Télécharger</h3>
+            <ul>
+                <li>final-backend.zip</li>
+                <li>final-frontend.zip</li>
+            </ul>
+            
+            <h3 style="color:#00CED1;margin:12px 0">Étape 2 : Git Push</h3>
+            <div class="code-block">
+cd nati-fenua/backend && rm -rf * && unzip final-backend.zip && git add . && git commit -m "v2.2" && git push
+cd ../frontend && rm -rf * && unzip final-frontend.zip && git add . && git commit -m "v2.2" && git push
+            </div>
+            
+            <h3 style="color:#00CED1;margin:12px 0">Étape 3 : Variables Render</h3>
+            <p>Render Dashboard → nati-fenua-backend → Environment → Ajouter les variables</p>
+        </div>
+
+        <!-- LIENS -->
+        <div class="section">
+            <h2>Liens Utiles</h2>
+            <ul>
+                <li><a href="https://dashboard.render.com" style="color:#00CED1">Render Dashboard</a></li>
+                <li><a href="https://console.cloud.google.com/apis/credentials?project=nati-fenua" style="color:#00CED1">Google Cloud Console</a></li>
+            </ul>
+        </div>
+
+        <p style="text-align:center;color:#666;margin-top:40px">© 2026 Nati Fenua - Tous droits réservés</p>
+    </div>
+</body>
+</html>

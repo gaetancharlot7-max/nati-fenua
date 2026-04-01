@@ -1,0 +1,303 @@
+# ══════════════════════════════════════════════════════════════════════════════
+#                    NATI FENUA - DOCUMENTATION COMPLÈTE
+#                     Configuration & Déploiement v2.2
+#                            31 Mars 2026
+# ══════════════════════════════════════════════════════════════════════════════
+
+================================================================================
+                              1. INFORMATIONS GÉNÉRALES
+================================================================================
+
+Application  : Nati Fenua - Réseau Social Polynésien
+Version      : 2.2
+Stack        : React 18.2.0 + FastAPI + MongoDB Atlas
+Créateur     : Gaëtan Charlot
+Date         : 31 Mars 2026
+
+================================================================================
+                              2. URLS DE PRODUCTION
+================================================================================
+
+Frontend : https://nati-fenua-frontend.onrender.com
+Backend  : https://nati-fenua-backend.onrender.com
+
+================================================================================
+                              3. MONGODB ATLAS
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Base de données : nati_fenua                                                │
+│  URL de connexion : Configurée dans les variables Render                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Collections principales :                                                   │
+│  • users           - Comptes utilisateurs                                    │
+│  • posts           - Publications et articles RSS                            │
+│  • user_sessions   - Sessions de connexion                                   │
+│  • messages        - Messages privés                                         │
+│  • products        - Produits marketplace                                    │
+│  • roulotte_vendors - Vendeurs ambulants                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                              4. RENDER - CONFIGURATION
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  SERVICE FRONTEND                                                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Nom      : nati-fenua-frontend                                              │
+│  Type     : Static Site                                                      │
+│  Région   : Global                                                           │
+│                                                                              │
+│  Variables d'environnement :                                                 │
+│  REACT_APP_BACKEND_URL = https://nati-fenua-backend.onrender.com             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  SERVICE BACKEND                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Nom      : nati-fenua-backend                                               │
+│  Type     : Web Service                                                      │
+│  Runtime  : Python 3                                                         │
+│  Région   : Oregon                                                           │
+│                                                                              │
+│  Variables d'environnement :                                                 │
+│  ─────────────────────────────────────────────────────────────────────────  │
+│  MONGO_URL          = <votre_url_mongodb_atlas>                              │
+│  DB_NAME            = nati_fenua                                             │
+│  CORS_ORIGINS       = https://nati-fenua-frontend.onrender.com               │
+│  GOOGLE_CLIENT_ID   = 795265896237-vbtdva4ubl9r203j79dj7jcctd7s3d2g...       │
+│  GOOGLE_CLIENT_SECRET = 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                  │
+│  GOOGLE_REDIRECT_URI = https://nati-fenua-backend.onrender.com/api/auth/...  │
+│  FRONTEND_URL       = https://nati-fenua-frontend.onrender.com               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                              5. GOOGLE OAUTH 2.0
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  IDENTIFIANTS GOOGLE CLOUD                                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Projet        : Nati fenua                                                  │
+│  Console       : https://console.cloud.google.com/apis/credentials           │
+│                                                                              │
+│  Client ID     : 795265896237-vbtdva4ubl9r203j79dj7jcctd7s3d2g              │
+│                  .apps.googleusercontent.com                                 │
+│                                                                              │
+│  Client Secret : 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                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  CONFIGURATION OAUTH                                                         │
+│  ─────────────────────────────────────────────────────────────────────────  │
+│  Type           : Application Web                                            │
+│  Nom            : nati fenua web                                             │
+│                                                                              │
+│  Origine JS     : https://nati-fenua-frontend.onrender.com                   │
+│  URI Redirect   : https://nati-fenua-backend.onrender.com/api/auth/google/   │
+│                   callback                                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                         6. FLUX RSS - 35 SOURCES CONFIGURÉES
+================================================================================
+
+Configuration : Max 2 posts par source | Pas de doublons | Mélange aléatoire
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  MÉDIAS D'ACTUALITÉ (8 sources)                                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│   1. Tahiti Infos        - actualité, politique, société                     │
+│   2. Polynésie 1ère      - actualité, télévision, info                       │
+│   3. TNTV                - actualité, télévision, sport                      │
+│   4. La Dépêche de Tahiti - actualité, politique, économie                   │
+│   5. Outremers 360       - actualité, outre-mer, économie                    │
+│   6. Actu.fr Polynésie   - actualité, local, société                         │
+│   7. Radio 1 Tahiti      - actualité, radio, musique                         │
+│   8. Tahiti Nui TV       - actualité, télévision, culture                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  MÉTÉO (3 sources)                                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│   9. Météo France Polynésie - météo, prévisions, climat                      │
+│  10. Météo Marine Polynésie - météo, marine, navigation                      │
+│  11. Windy Tahiti          - météo, vent, surf                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  SURF & SPORTS NAUTIQUES (5 sources)                                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  12. Surf Report Tahiti      - surf, sport, vagues                           │
+│  13. Magic Seaweed Tahiti    - surf, prévisions, vagues                      │
+│  14. Surfline Teahupo'o      - surf, Teahupo'o, compétition                  │
+│  15. Tahiti Surf Club        - surf, club, événements                        │
+│  16. Fédération Tahitienne Surf - surf, fédération, compétition              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  AUTRES SPORTS (4 sources)                                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  17. Va'a News               - va'a, pirogue, sport                          │
+│  18. Fédération Football     - football, sport, association                  │
+│  19. Fédération Voile        - voile, sport, nautique                        │
+│  20. Fédération Natation     - natation, sport, piscine                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  CULTURE & TRADITIONS (6 sources)                                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  21. Heiva i Tahiti          - culture, danse, tradition                     │
+│  22. Te Fare Tauhiti Nui     - culture, événements, spectacles               │
+│  23. Musée de Tahiti         - culture, musée, histoire                      │
+│  24. Conservatoire Artistique - culture, musique, danse                      │
+│  25. Académie Tahitienne     - culture, langue, reo tahiti                   │
+│  26. Festival Film Océanien  - culture, cinéma, festival                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  EMPLOI (5 sources)                                                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  27. Emploi Polynésie        - emploi, travail, recrutement                  │
+│  28. SEFI Polynésie          - emploi, formation, insertion                  │
+│  29. Pôle Emploi Tahiti      - emploi, chômage, aide                         │
+│  30. LinkedIn Tahiti         - emploi, professionnel, réseau                 │
+│  31. Indeed Polynésie        - emploi, offres, international                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  TOURISME & ENVIRONNEMENT (4 sources)                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  32. Air Tahiti Magazine     - tourisme, voyage, culture                     │
+│  33. Tahiti Tourisme         - tourisme, voyage, îles                        │
+│  34. Environnement Polynésie - environnement, écologie, nature               │
+│  35. Te Mana o te Moana      - environnement, océan, protection              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                           7. FONCTIONNALITÉS ACTIVES
+================================================================================
+
+✅ AUTHENTIFICATION
+   • Inscription email/mot de passe
+   • Connexion email/mot de passe  
+   • Connexion Google OAuth 2.0
+   • Sessions sécurisées (7 jours)
+
+✅ RÉSEAU SOCIAL
+   • Publications (photos, vidéos, liens)
+   • Stories (24h)
+   • Flux RSS polynésiens (35 sources, max 2/source)
+   • Commentaires et réactions
+   • Partage de posts
+   • Messages privés
+   • Notifications
+
+✅ CARTE MANA
+   • Carte interactive Leaflet
+   • 11 îles : Tahiti, Moorea, Bora Bora, Raiatea, Tahaa, 
+              Huahine, Maupiti, Tuamotu, Marquises, Gambier, Australes
+   • Webcams publiques
+   • Système de badges
+
+✅ MARKETPLACE
+   • Produits avec catégories
+   • Recherche et filtres
+   • Contact vendeur
+
+❌ EN ATTENTE
+   • Mot de passe oublié (nécessite clé API Resend)
+   • Traduction FR/Tahitien complète
+
+================================================================================
+                           8. COMPTE DE TEST
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Email    : user1@test.com                                                   │
+│  Password : TestPass123!                                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                           9. API ENDPOINTS PRINCIPAUX
+================================================================================
+
+AUTHENTIFICATION
+────────────────────────────────────────────────────────────────────────────────
+POST   /api/auth/register            Inscription
+POST   /api/auth/login               Connexion email
+GET    /api/auth/google              Connexion Google (redirection)
+GET    /api/auth/google/callback     Callback Google OAuth
+GET    /api/auth/me                  Utilisateur connecté
+POST   /api/auth/logout              Déconnexion
+
+FLUX RSS
+────────────────────────────────────────────────────────────────────────────────
+POST   /api/rss/refresh              Rafraîchir les flux RSS
+POST   /api/rss/cleanup-duplicates   Supprimer les doublons
+GET    /api/rss/all-sources          Liste des 35 sources
+
+POSTS
+────────────────────────────────────────────────────────────────────────────────
+GET    /api/posts                    Liste des posts (feed intelligent)
+GET    /api/posts/fresh              Posts non vus
+POST   /api/posts                    Créer un post
+GET    /api/posts/{id}               Détail d'un post
+
+================================================================================
+                         10. INSTRUCTIONS DE DÉPLOIEMENT
+================================================================================
+
+ÉTAPE 1 : Télécharger les fichiers
+──────────────────────────────────────────────────────────────
+• final-backend.zip
+• final-frontend.zip
+• CONFIGURATION_NATI_FENUA.md
+
+ÉTAPE 2 : Mettre à jour GitHub
+──────────────────────────────────────────────────────────────
+cd nati-fenua/backend
+rm -rf *
+unzip ~/Downloads/final-backend.zip -d .
+git add .
+git commit -m "Update backend v2.2"
+git push
+
+cd ../frontend
+rm -rf *
+unzip ~/Downloads/final-frontend.zip -d .
+git add .
+git commit -m "Update frontend v2.2"
+git push
+
+ÉTAPE 3 : Variables d'environnement Render
+──────────────────────────────────────────────────────────────
+1. Dashboard Render → nati-fenua-backend → Environment
+2. Ajouter/Mettre à jour :
+
+   GOOGLE_CLIENT_ID=795265896237-vbtdva4ubl9r203j79dj7jcctd7s3d2g.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=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
+   GOOGLE_REDIRECT_URI=https://nati-fenua-backend.onrender.com/api/auth/google/callback
+   FRONTEND_URL=https://nati-fenua-frontend.onrender.com
+
+3. Save Changes
+
+ÉTAPE 4 : Vérification
+──────────────────────────────────────────────────────────────
+1. Aller sur https://nati-fenua-frontend.onrender.com
+2. Cliquer sur "Continuer avec Google"
+3. Se connecter avec votre compte Google
+4. Vérifier le fil d'actualité
+
+================================================================================
+                              11. LIENS UTILES
+================================================================================
+
+Frontend Production   : https://nati-fenua-frontend.onrender.com
+Backend Production    : https://nati-fenua-backend.onrender.com
+Render Dashboard      : https://dashboard.render.com
+Google Cloud Console  : https://console.cloud.google.com/apis/credentials?project=nati-fenua
+GitHub Repository     : https://github.com/gaetancharlot7-max/nati-fenua
+
+================================================================================
+                         © 2026 Nati Fenua - Tous droits réservés
+================================================================================

@@ -5484,13 +5484,118 @@ async def refresh_rss_feeds():
     from rss_feeds import RSSFeedService
     
     rss_service = RSSFeedService(db)
-    result = await rss_service.publish_articles_as_posts(max_total_posts=50)
+    result = await rss_service.publish_articles_as_posts(max_posts_per_source=2, max_total_posts=70)
     await rss_service.close()
     
     # Clear feed cache to show new content
     await feed_cache.clear()
     
     return result
+
+
+@api_router.post("/rss/cleanup-duplicates")
+async def cleanup_rss_duplicates():
+    """Remove duplicate RSS posts from database"""
+    
+    # Find all RSS posts
+    rss_posts = await db.posts.find({"is_rss_article": True}).to_list(10000)
+    
+    # Group by external_link
+    by_link = {}
+    for post in rss_posts:
+        link = post.get("external_link")
+        if link:
+            if link not in by_link:
+                by_link[link] = []
+            by_link[link].append(post)
+    
+    # Delete duplicates (keep only the oldest one)
+    deleted_count = 0
+    for link, posts in by_link.items():
+        if len(posts) > 1:
+            # Sort by created_at, keep oldest
+            posts.sort(key=lambda x: x.get("created_at", ""))
+            for duplicate in posts[1:]:
+                await db.posts.delete_one({"post_id": duplicate["post_id"]})
+                deleted_count += 1
+    
+    # Clear cache
+    await feed_cache.clear()
+    
+    return {
+        "success": True,
+        "duplicates_deleted": deleted_count,
+        "unique_articles": len(by_link),
+        "total_rss_posts_before": len(rss_posts),
+        "total_rss_posts_after": len(rss_posts) - deleted_count
+    }
+
+
+@api_router.post("/rss/limit-per-source")
+async def limit_rss_per_source(max_per_source: int = 2):
+    """Keep only max N posts per RSS source"""
+    
+    # Find all RSS posts grouped by source
+    rss_posts = await db.posts.find({"is_rss_article": True}).to_list(10000)
+    
+    # Group by source
+    by_source = {}
+    for post in rss_posts:
+        source = post.get("link_source", "Unknown")
+        if source not in by_source:
+            by_source[source] = []
+        by_source[source].append(post)
+    
+    # Delete excess posts (keep only most recent N per source)
+    deleted_count = 0
+    kept_count = 0
+    
+    for source, posts in by_source.items():
+        # Sort by created_at descending (most recent first)
+        posts.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        
+        # Keep first N, delete rest
+        to_keep = posts[:max_per_source]
+        to_delete = posts[max_per_source:]
+        
+        kept_count += len(to_keep)
+        
+        for post in to_delete:
+            await db.posts.delete_one({"post_id": post["post_id"]})
+            deleted_count += 1
+    
+    # Clear cache
+    await feed_cache.clear()
+    
+    return {
+        "success": True,
+        "max_per_source": max_per_source,
+        "sources_count": len(by_source),
+        "posts_deleted": deleted_count,
+        "posts_kept": kept_count,
+        "sources": {src: min(len(posts), max_per_source) for src, posts in by_source.items()}
+    }
+
+
+@api_router.get("/rss/all-sources")
+async def get_all_rss_sources():
+    """Get list of all 35 RSS sources"""
+    from rss_feeds import RSS_FEEDS
+    
+    sources = []
+    for feed in RSS_FEEDS:
+        sources.append({
+            "name": feed["name"],
+            "url": feed["url"],
+            "island": feed["island"],
+            "categories": feed.get("categories", []),
+            "feed_type": feed.get("feed_type", "media")
+        })
+    
+    return {
+        "total_sources": len(sources),
+        "sources": sources
+    }
 
 
 # ==================== ROULOTTE PUSH NOTIFICATIONS ====================
