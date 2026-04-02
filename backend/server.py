@@ -805,21 +805,25 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://nati-fenua-frontend.onren
 @api_router.get("/auth/google")
 async def google_login(request: Request):
     """Redirect to Google OAuth"""
+    from urllib.parse import urlencode, quote
+    from starlette.responses import RedirectResponse
+    
     if not GOOGLE_CLIENT_ID:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
     
-    # Build Google OAuth URL
-    google_auth_url = (
-        "https://accounts.google.com/o/oauth2/v2/auth?"
-        f"client_id={GOOGLE_CLIENT_ID}&"
-        f"redirect_uri={GOOGLE_REDIRECT_URI}&"
-        "response_type=code&"
-        "scope=openid%20email%20profile&"
-        "access_type=offline&"
-        "prompt=consent"
-    )
+    # Build Google OAuth URL with properly encoded parameters
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "prompt": "consent"
+    }
     
-    from starlette.responses import RedirectResponse
+    google_auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+    
+    logger.info(f"Google OAuth redirect URL: {google_auth_url}")
     return RedirectResponse(url=google_auth_url)
 
 @api_router.get("/auth/google/callback")
