@@ -797,24 +797,30 @@ async def exchange_session(request: Request, response: Response):
     return {"user": user_doc, "session_token": session_token}
 
 # ==================== NATIVE GOOGLE OAUTH ====================
-GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
-GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
-GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI", "")
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://nati-fenua-frontend.onrender.com")
+# Environment variables are read at request time to ensure latest values
 
 @api_router.get("/auth/google")
 async def google_login(request: Request):
     """Redirect to Google OAuth"""
-    from urllib.parse import urlencode, quote
+    from urllib.parse import urlencode
     from starlette.responses import RedirectResponse
     
-    if not GOOGLE_CLIENT_ID:
-        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+    # Read environment variables at request time
+    client_id = os.environ.get("GOOGLE_CLIENT_ID", "")
+    redirect_uri = os.environ.get("GOOGLE_REDIRECT_URI", "")
+    
+    logger.info(f"Google OAuth - Client ID: {client_id[:20]}... Redirect URI: {redirect_uri}")
+    
+    if not client_id:
+        raise HTTPException(status_code=500, detail="Google OAuth not configured - missing GOOGLE_CLIENT_ID")
+    
+    if not redirect_uri:
+        raise HTTPException(status_code=500, detail="Google OAuth not configured - missing GOOGLE_REDIRECT_URI")
     
     # Build Google OAuth URL with properly encoded parameters
     params = {
-        "client_id": GOOGLE_CLIENT_ID,
-        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
         "response_type": "code",
         "scope": "openid email profile",
         "access_type": "offline",
@@ -831,12 +837,18 @@ async def google_callback(request: Request, response: Response, code: str = None
     """Handle Google OAuth callback"""
     from starlette.responses import RedirectResponse
     
+    # Read environment variables at request time
+    client_id = os.environ.get("GOOGLE_CLIENT_ID", "")
+    client_secret = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+    redirect_uri = os.environ.get("GOOGLE_REDIRECT_URI", "")
+    frontend_url = os.environ.get("FRONTEND_URL", "https://nati-fenua-frontend.onrender.com")
+    
     if error:
         logger.error(f"Google OAuth error: {error}")
-        return RedirectResponse(url=f"{FRONTEND_URL}/auth?error=google_oauth_error")
+        return RedirectResponse(url=f"{frontend_url}/auth?error=google_oauth_error")
     
     if not code:
-        return RedirectResponse(url=f"{FRONTEND_URL}/auth?error=no_code")
+        return RedirectResponse(url=f"{frontend_url}/auth?error=no_code")
     
     try:
         # Exchange code for tokens
@@ -844,11 +856,11 @@ async def google_callback(request: Request, response: Response, code: str = None
             token_response = await client.post(
                 "https://oauth2.googleapis.com/token",
                 data={
-                    "client_id": GOOGLE_CLIENT_ID,
-                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "client_id": client_id,
+                    "client_secret": client_secret,
                     "code": code,
                     "grant_type": "authorization_code",
-                    "redirect_uri": GOOGLE_REDIRECT_URI
+                    "redirect_uri": redirect_uri
                 }
             )
             
@@ -867,7 +879,7 @@ async def google_callback(request: Request, response: Response, code: str = None
             
             if user_info_response.status_code != 200:
                 logger.error(f"User info fetch failed: {user_info_response.text}")
-                return RedirectResponse(url=f"{FRONTEND_URL}/auth?error=userinfo_failed")
+                return RedirectResponse(url=f"{frontend_url}/auth?error=userinfo_failed")
             
             google_user = user_info_response.json()
         
@@ -923,7 +935,7 @@ async def google_callback(request: Request, response: Response, code: str = None
         await db.user_sessions.insert_one(session)
         
         # Redirect to frontend with session token
-        redirect_response = RedirectResponse(url=f"{FRONTEND_URL}/auth/callback#session_token={session_token}")
+        redirect_response = RedirectResponse(url=f"{frontend_url}/auth/callback#session_token={session_token}")
         redirect_response.set_cookie(
             key="session_token",
             value=session_token,
@@ -939,7 +951,7 @@ async def google_callback(request: Request, response: Response, code: str = None
         
     except Exception as e:
         logger.error(f"Google OAuth error: {str(e)}")
-        return RedirectResponse(url=f"{FRONTEND_URL}/auth?error=oauth_error")
+        return RedirectResponse(url=f"{frontend_url}/auth?error=oauth_error")
 
 @api_router.get("/auth/me")
 async def get_me(request: Request):
