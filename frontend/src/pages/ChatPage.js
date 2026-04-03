@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Image, Smile, MoreVertical, ArrowLeft, Search, X } from 'lucide-react';
+import { Send, Image, Smile, MoreVertical, ArrowLeft, Search, X, Plus, MessageCircle, User } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
@@ -39,6 +39,14 @@ const ChatPage = () => {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const emojiPickerRef = useRef(null);
+  
+  // New states for user search
+  const [showNewConversation, setShowNewConversation] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userSearchResults, setUserSearchResults] = useState([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const searchInputRef = useRef(null);
+  const searchResultsRef = useRef(null);
 
   // Si on arrive avec un paramètre ?user=, créer ou ouvrir une conversation avec cet utilisateur
   useEffect(() => {
@@ -114,6 +122,79 @@ const ChatPage = () => {
   const addEmoji = (emoji) => {
     setNewMessage(prev => prev + emoji);
     setShowEmojiPicker(false);
+  };
+
+  // Search users with debounce
+  useEffect(() => {
+    const searchUsers = async () => {
+      if (userSearchQuery.length < 2) {
+        setUserSearchResults([]);
+        return;
+      }
+      
+      setSearchingUsers(true);
+      try {
+        const response = await usersApi.searchUsers(userSearchQuery);
+        // Filter out current user and existing conversation users
+        const filteredResults = (response.data || []).filter(u => 
+          u.user_id !== user?.user_id
+        );
+        setUserSearchResults(filteredResults.slice(0, 8)); // Limit to 8 results
+      } catch (error) {
+        console.error('Error searching users:', error);
+        setUserSearchResults([]);
+      } finally {
+        setSearchingUsers(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(searchUsers, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [userSearchQuery, user?.user_id]);
+
+  // Close search results when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchResultsRef.current && !searchResultsRef.current.contains(event.target) &&
+          searchInputRef.current && !searchInputRef.current.contains(event.target)) {
+        setUserSearchResults([]);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Start conversation with selected user
+  const startConversationWithUser = async (selectedUser) => {
+    // Check if conversation already exists
+    const existingConv = conversations.find(
+      conv => conv.other_user?.user_id === selectedUser.user_id
+    );
+    
+    if (existingConv) {
+      setSelectedConversation(existingConv);
+    } else {
+      // Create new conversation
+      const newConv = {
+        conversation_id: `conv_new_${Date.now()}`,
+        other_user: {
+          user_id: selectedUser.user_id,
+          name: selectedUser.name,
+          picture: selectedUser.picture
+        },
+        last_message: '',
+        last_message_at: new Date().toISOString(),
+        unread: 0
+      };
+      setConversations(prev => [newConv, ...prev]);
+      setSelectedConversation(newConv);
+      setMessages([]);
+    }
+    
+    // Reset search
+    setShowNewConversation(false);
+    setUserSearchQuery('');
+    setUserSearchResults([]);
   };
 
   useEffect(() => {
@@ -209,11 +290,108 @@ const ChatPage = () => {
       <div className={`${selectedConversation ? 'hidden md:flex' : 'flex'} w-full md:w-80 lg:w-96 flex-col border-r border-gray-100`}>
         {/* Header */}
         <div className="p-4 border-b border-gray-100">
-          <h1 className="text-2xl font-black text-[#1A1A2E] mb-4">Messages</h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-black text-[#1A1A2E]">Messages</h1>
+            <Button
+              onClick={() => setShowNewConversation(!showNewConversation)}
+              className="w-10 h-10 rounded-full bg-gradient-to-r from-[#FF6B35] to-[#FF8C42] hover:opacity-90 p-0"
+              data-testid="new-conversation-btn"
+            >
+              <Plus size={20} className="text-white" />
+            </Button>
+          </div>
+          
+          {/* New Conversation Search */}
+          <AnimatePresence>
+            {showNewConversation && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="mb-3 overflow-hidden"
+              >
+                <div className="relative" ref={searchInputRef}>
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-[#FF6B35]" size={18} />
+                  <Input 
+                    placeholder="Rechercher un utilisateur..."
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    className="pl-10 pr-10 rounded-xl bg-[#FF6B35]/10 border-[#FF6B35]/30 focus:border-[#FF6B35] text-[#1A1A2E]"
+                    data-testid="user-search-input"
+                    autoFocus
+                  />
+                  {userSearchQuery && (
+                    <button
+                      onClick={() => {
+                        setUserSearchQuery('');
+                        setUserSearchResults([]);
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+                
+                {/* Search Results Dropdown */}
+                {(userSearchResults.length > 0 || searchingUsers) && (
+                  <div 
+                    ref={searchResultsRef}
+                    className="mt-2 bg-white rounded-xl shadow-lg border border-gray-100 max-h-64 overflow-y-auto"
+                    data-testid="user-search-results"
+                  >
+                    {searchingUsers ? (
+                      <div className="p-4 text-center text-gray-500">
+                        <div className="animate-spin w-5 h-5 border-2 border-[#FF6B35] border-t-transparent rounded-full mx-auto mb-2"></div>
+                        Recherche en cours...
+                      </div>
+                    ) : (
+                      userSearchResults.map((searchUser) => (
+                        <motion.button
+                          key={searchUser.user_id}
+                          onClick={() => startConversationWithUser(searchUser)}
+                          className="w-full flex items-center gap-3 p-3 hover:bg-[#FF6B35]/10 transition-colors text-left"
+                          whileHover={{ x: 4 }}
+                          data-testid={`user-result-${searchUser.user_id}`}
+                        >
+                          <Avatar className="w-10 h-10">
+                            <AvatarImage src={searchUser.picture} />
+                            <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white text-sm">
+                              {searchUser.name?.[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-[#1A1A2E] truncate">{searchUser.name}</p>
+                            <p className="text-xs text-gray-500 truncate">@{searchUser.username || searchUser.name?.toLowerCase().replace(/\s/g, '')}</p>
+                          </div>
+                          <MessageCircle size={18} className="text-[#FF6B35]" />
+                        </motion.button>
+                      ))
+                    )}
+                    
+                    {!searchingUsers && userSearchResults.length === 0 && userSearchQuery.length >= 2 && (
+                      <div className="p-4 text-center text-gray-500">
+                        <User size={24} className="mx-auto mb-2 opacity-50" />
+                        Aucun utilisateur trouvé
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {userSearchQuery.length > 0 && userSearchQuery.length < 2 && (
+                  <p className="text-xs text-gray-400 mt-2 text-center">
+                    Tapez au moins 2 caractères pour rechercher
+                  </p>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* Conversation Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <Input 
-              placeholder="Rechercher une conversation..."
+              placeholder="Filtrer les conversations..."
               className="pl-10 rounded-xl bg-gray-100 border-0"
             />
           </div>
@@ -221,7 +399,14 @@ const ChatPage = () => {
 
         {/* Conversations */}
         <div className="flex-1 overflow-y-auto">
-          {conversations.map((conv) => (
+          {conversations.length === 0 && !loading ? (
+            <div className="p-8 text-center text-gray-500">
+              <MessageCircle size={48} className="mx-auto mb-4 opacity-30" />
+              <p className="font-medium">Aucune conversation</p>
+              <p className="text-sm mt-1">Cliquez sur + pour démarrer une conversation</p>
+            </div>
+          ) : (
+            conversations.map((conv) => (
             <motion.div
               key={conv.conversation_id}
               data-testid={`conversation-${conv.conversation_id}`}
@@ -268,7 +453,8 @@ const ChatPage = () => {
                 </div>
               )}
             </motion.div>
-          ))}
+          ))
+          )}
         </div>
       </div>
 

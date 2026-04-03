@@ -2858,6 +2858,26 @@ async def get_ad_pricing():
 
 # ==================== USER ROUTES ====================
 
+@api_router.get("/users/search")
+async def search_users_for_chat(q: str = "", limit: int = 10):
+    """Search users by name or username for chat/messaging"""
+    if len(q) < 2:
+        return []
+    
+    # Search by name (case-insensitive)
+    users = await db.users.find(
+        {
+            "$or": [
+                {"name": {"$regex": q, "$options": "i"}},
+                {"username": {"$regex": q, "$options": "i"}},
+                {"email": {"$regex": f"^{q}", "$options": "i"}}
+            ]
+        },
+        {"_id": 0, "password_hash": 0, "email": 0}
+    ).limit(limit).to_list(limit)
+    
+    return users
+
 @api_router.get("/users/{user_id}")
 async def get_user_profile(user_id: str):
     user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
