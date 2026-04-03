@@ -163,6 +163,7 @@ MARKER_TYPES = {
 
 # Live webcams locations in French Polynesia
 # Using embeddable iframe URLs that work properly
+# external_url = direct link to webcam page (opens in new tab when iframe is blocked)
 WEBCAMS = [
     # === TAHITI ===
     {
@@ -174,6 +175,7 @@ WEBCAMS = [
         "video_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise/iles-du-vent/tahiti/papeete.html",
         "embed_url": "https://www.skylinewebcams.com/webcam/polynesie-francaise/iles-du-vent/tahiti/papeete.html?embed=1",
         "iframe_url": "https://www.skylinewebcams.com/fr/embed/webcam/polynesie-francaise/iles-du-vent/tahiti/papeete.html",
+        "external_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise/iles-du-vent/tahiti/papeete.html",
         "thumbnail": "https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=400",
         "is_live": True,
         "source": "Skyline Webcams",
@@ -188,6 +190,7 @@ WEBCAMS = [
         "video_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise/iles-du-vent/tahiti/ferry-tahiti-and-moorea-islands.html",
         "embed_url": "https://www.skylinewebcams.com/webcam/polynesie-francaise/iles-du-vent/tahiti/ferry-tahiti-and-moorea-islands.html?embed=1",
         "iframe_url": "https://www.skylinewebcams.com/fr/embed/webcam/polynesie-francaise/iles-du-vent/tahiti/ferry-tahiti-and-moorea-islands.html",
+        "external_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise/iles-du-vent/tahiti/ferry-tahiti-and-moorea-islands.html",
         "thumbnail": "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400",
         "is_live": True,
         "source": "Skyline Webcams",
@@ -202,6 +205,7 @@ WEBCAMS = [
         "video_url": "https://www.youtube.com/watch?v=xWjWRwH8okw",
         "embed_url": "https://www.youtube.com/embed/xWjWRwH8okw?autoplay=1&mute=1",
         "iframe_url": "https://www.youtube.com/embed/xWjWRwH8okw?autoplay=1&mute=1",
+        "external_url": "https://www.youtube.com/watch?v=xWjWRwH8okw",
         "thumbnail": "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=400",
         "is_live": True,
         "source": "YouTube Live",
@@ -216,6 +220,7 @@ WEBCAMS = [
         "video_url": "https://www.windy.com/-Webcams/French-Polynesia/Tahiti/Mahina/webcams/1600243744",
         "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1600243744/day",
         "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1600243744/day",
+        "external_url": "https://www.windy.com/-Webcams/French-Polynesia/Tahiti/Mahina/webcams/1600243744",
         "thumbnail": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400",
         "is_live": True,
         "source": "Windy",
@@ -232,6 +237,7 @@ WEBCAMS = [
         "video_url": "https://www.youtube.com/watch?v=Tahiti_Moorea_Live",
         "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1342115286/day",
         "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1342115286/day",
+        "external_url": "https://www.windy.com/-Webcams/French-Polynesia/Moorea/webcams/1342115286",
         "thumbnail": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400",
         "is_live": True,
         "source": "Windy",
@@ -248,6 +254,7 @@ WEBCAMS = [
         "video_url": "https://www.youtube.com/watch?v=BoraBora_Live",
         "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1342115287/day",
         "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1342115287/day",
+        "external_url": "https://www.windy.com/-Webcams/French-Polynesia/Bora-Bora/webcams/1342115287",
         "thumbnail": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400",
         "is_live": True,
         "source": "Windy",
@@ -262,6 +269,7 @@ WEBCAMS = [
         "video_url": "https://www.earthcam.com/world/frenchpolynesia/borabora/",
         "embed_url": "https://www.youtube.com/embed/gLMaJ0LI-1c?autoplay=1&mute=1",
         "iframe_url": "https://www.youtube.com/embed/gLMaJ0LI-1c?autoplay=1&mute=1",
+        "external_url": "https://www.youtube.com/watch?v=gLMaJ0LI-1c",
         "thumbnail": "https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=400",
         "is_live": True,
         "source": "YouTube",
@@ -278,6 +286,7 @@ WEBCAMS = [
         "video_url": "https://www.windy.com/webcams/raiatea",
         "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1600243744/day",
         "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1600243744/day",
+        "external_url": "https://www.windy.com/-Webcams/French-Polynesia/Raiatea/webcams/1600243744",
         "thumbnail": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400",
         "is_live": True,
         "source": "Windy",
@@ -294,6 +303,7 @@ WEBCAMS = [
         "video_url": "https://www.youtube.com/watch?v=Huahine_Fare",
         "embed_url": "https://www.youtube.com/embed/xO2xFoJgJvY?autoplay=1&mute=1",
         "iframe_url": "https://www.youtube.com/embed/xO2xFoJgJvY?autoplay=1&mute=1",
+        "external_url": "https://www.youtube.com/watch?v=xO2xFoJgJvY",
         "thumbnail": "https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=400",
         "is_live": True,
         "source": "YouTube",
@@ -310,6 +320,7 @@ WEBCAMS = [
         "video_url": "https://www.youtube.com/watch?v=Rangiroa_Dolphins",
         "embed_url": "https://www.youtube.com/embed/JhOaR3CPpQc?autoplay=1&mute=1",
         "iframe_url": "https://www.youtube.com/embed/JhOaR3CPpQc?autoplay=1&mute=1",
+        "external_url": "https://www.youtube.com/watch?v=JhOaR3CPpQc",
         "thumbnail": "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?w=400",
         "is_live": True,
         "source": "YouTube",

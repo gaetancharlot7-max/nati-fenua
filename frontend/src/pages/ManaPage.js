@@ -911,6 +911,19 @@ const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, contac
               </div>
             )}
 
+            {/* Button to open webcam in new tab if iframe is blocked */}
+            {marker.is_webcam && (marker.external_url || marker.iframe_url || marker.embed_url || marker.video_url) && (
+              <a 
+                href={marker.external_url || marker.iframe_url || marker.embed_url || marker.video_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full p-3 bg-gradient-to-r from-[#FF6B35] to-[#FF8C42] text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
+              >
+                <Video size={20} />
+                <span>Ouvrir la webcam dans un nouvel onglet</span>
+              </a>
+            )}
+
             {/* Description */}
             {marker.description && !marker.is_webcam && (
               <p className="text-gray-700">{marker.description}</p>
