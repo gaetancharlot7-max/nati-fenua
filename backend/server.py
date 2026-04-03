@@ -4101,6 +4101,146 @@ async def update_moderation_settings(request: Request):
     logger.info(f"Moderation settings updated: {updates}")
     return {"success": True, "updated": updates}
 
+# ==================== ADMIN POST MANAGEMENT ====================
+
+@api_router.delete("/admin/posts/{post_id}")
+async def admin_delete_post(post_id: str, request: Request):
+    """Delete a post (admin only)"""
+    await verify_admin_token(request)
+    
+    result = await db.posts.delete_one({"post_id": post_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Post non trouvé")
+    
+    logger.info(f"Admin deleted post: {post_id}")
+    return {"success": True, "message": "Post supprimé"}
+
+@api_router.post("/admin/posts")
+async def admin_create_post(request: Request):
+    """Create a post as admin"""
+    await verify_admin_token(request)
+    body = await request.json()
+    
+    post = {
+        "post_id": f"post_{uuid.uuid4().hex[:12]}",
+        "user_id": "admin",
+        "user_name": "Nati Fenua",
+        "user_picture": "https://ui-avatars.com/api/?name=Nati+Fenua&background=FF6B35&color=fff",
+        "content": body.get("content", ""),
+        "media_url": body.get("media_url"),
+        "media_type": body.get("media_type", "image"),
+        "location": body.get("location"),
+        "island": body.get("island"),
+        "hashtags": body.get("hashtags", []),
+        "likes": 0,
+        "comments_count": 0,
+        "shares": 0,
+        "is_admin_post": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.posts.insert_one(post)
+    logger.info(f"Admin created post: {post['post_id']}")
+    
+    # Clear feed cache
+    await feed_cache.clear()
+    
+    return {"success": True, "post": {k: v for k, v in post.items() if k != "_id"}}
+
+@api_router.get("/admin/posts")
+async def admin_get_posts(request: Request, limit: int = 50, skip: int = 0):
+    """Get all posts for admin"""
+    await verify_admin_token(request)
+    
+    posts = await db.posts.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.posts.count_documents({})
+    
+    return {"posts": posts, "total": total}
+
+# ==================== ADMIN MANA/MARKERS MANAGEMENT ====================
+
+@api_router.get("/admin/mana/markers")
+async def admin_get_markers(request: Request):
+    """Get all Mana markers for admin"""
+    await verify_admin_token(request)
+    
+    markers = await db.markers.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return {"markers": markers, "total": len(markers)}
+
+@api_router.post("/admin/mana/markers")
+async def admin_create_marker(request: Request):
+    """Create a Mana marker (webcam, POI, etc.)"""
+    await verify_admin_token(request)
+    body = await request.json()
+    
+    marker = {
+        "marker_id": f"marker_{uuid.uuid4().hex[:12]}",
+        "name": body.get("name"),
+        "description": body.get("description", ""),
+        "type": body.get("type", "poi"),  # webcam, poi, event, alert
+        "island": body.get("island", "tahiti"),
+        "lat": body.get("lat"),
+        "lng": body.get("lng"),
+        "is_webcam": body.get("is_webcam", False),
+        "iframe_url": body.get("iframe_url"),
+        "embed_url": body.get("embed_url"),
+        "external_url": body.get("external_url"),
+        "video_url": body.get("video_url"),
+        "thumbnail": body.get("thumbnail"),
+        "source": body.get("source", "Admin"),
+        "is_live": body.get("is_live", True),
+        "is_admin_created": True,
+        "created_by": "admin",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.markers.insert_one(marker)
+    await markers_cache.clear()
+    
+    logger.info(f"Admin created marker: {marker['marker_id']}")
+    return {"success": True, "marker": {k: v for k, v in marker.items() if k != "_id"}}
+
+@api_router.put("/admin/mana/markers/{marker_id}")
+async def admin_update_marker(marker_id: str, request: Request):
+    """Update a Mana marker"""
+    await verify_admin_token(request)
+    body = await request.json()
+    
+    allowed_fields = ["name", "description", "type", "island", "lat", "lng", "is_webcam", 
+                      "iframe_url", "embed_url", "external_url", "video_url", "thumbnail", 
+                      "source", "is_live"]
+    updates = {k: v for k, v in body.items() if k in allowed_fields}
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.markers.update_one({"marker_id": marker_id}, {"$set": updates})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Marqueur non trouvé")
+    
+    await markers_cache.clear()
+    logger.info(f"Admin updated marker: {marker_id}")
+    return {"success": True}
+
+@api_router.delete("/admin/mana/markers/{marker_id}")
+async def admin_delete_marker(marker_id: str, request: Request):
+    """Delete a Mana marker"""
+    await verify_admin_token(request)
+    
+    result = await db.markers.delete_one({"marker_id": marker_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Marqueur non trouvé")
+    
+    await markers_cache.clear()
+    logger.info(f"Admin deleted marker: {marker_id}")
+    return {"success": True}
+
+@api_router.get("/admin/mana/webcams")
+async def admin_get_webcams(request: Request):
+    """Get webcam configuration from fenua_pulse"""
+    await verify_admin_token(request)
+    
+    from fenua_pulse import WEBCAMS
+    return {"webcams": WEBCAMS, "total": len(WEBCAMS)}
+
 # ==================== CACHE & PERFORMANCE ADMIN ====================
 
 @api_router.get("/admin/cache/stats")
@@ -4191,19 +4331,6 @@ async def ban_user(user_id: str, request: Request):
     await db.user_sessions.delete_many({"user_id": user_id})
     
     logger.info(f"User banned: {user_id}")
-    return {"success": True}
-
-@api_router.delete("/admin/posts/{post_id}")
-async def admin_delete_post(post_id: str, request: Request):
-    """Delete a post as admin"""
-    await verify_admin_token(request)
-    
-    result = await db.posts.delete_one({"post_id": post_id})
-    
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Post non trouvé")
-    
-    logger.info(f"Post deleted by admin: {post_id}")
     return {"success": True}
 
 @api_router.post("/admin/lives/{live_id}/end")

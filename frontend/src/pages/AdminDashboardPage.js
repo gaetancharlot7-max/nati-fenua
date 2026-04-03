@@ -5,7 +5,8 @@ import {
   Shield, Users, FileText, Radio, ShoppingBag, Flag, Settings, 
   LogOut, Eye, Ban, CheckCircle, XCircle, AlertTriangle, TrendingUp,
   MessageSquare, ToggleLeft, ToggleRight, Search, Filter, RefreshCw,
-  DollarSign, Megaphone, BarChart3, HardDrive, Newspaper
+  DollarSign, Megaphone, BarChart3, HardDrive, Newspaper, MapPin, 
+  Video, Trash2, Plus, Edit, ExternalLink, Camera
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -23,6 +24,15 @@ const AdminDashboardPage = () => {
   const [reports, setReports] = useState([]);
   const [lives, setLives] = useState([]);
   const [storageStats, setStorageStats] = useState(null);
+  const [manaMarkers, setManaMarkers] = useState([]);
+  const [webcams, setWebcams] = useState([]);
+  const [showNewPostModal, setShowNewPostModal] = useState(false);
+  const [showNewMarkerModal, setShowNewMarkerModal] = useState(false);
+  const [newPost, setNewPost] = useState({ content: '', media_url: '', location: '', island: '' });
+  const [newMarker, setNewMarker] = useState({ 
+    name: '', description: '', type: 'poi', island: 'tahiti', 
+    lat: '', lng: '', is_webcam: false, iframe_url: '', external_url: '' 
+  });
   const [moderationSettings, setModerationSettings] = useState({
     live_moderation_enabled: false,
     bad_words_filter: false,
@@ -83,6 +93,108 @@ const AdminDashboardPage = () => {
     toast.success('Déconnexion réussie');
   };
 
+  // Load Mana markers
+  const loadManaMarkers = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/admin/mana/markers`, getAuthHeaders());
+      setManaMarkers(response.data.markers || []);
+    } catch (error) {
+      console.error('Error loading markers:', error);
+    }
+  };
+
+  // Load webcams config
+  const loadWebcams = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/admin/mana/webcams`, getAuthHeaders());
+      setWebcams(response.data.webcams || []);
+    } catch (error) {
+      console.error('Error loading webcams:', error);
+    }
+  };
+
+  // Load admin posts
+  const loadAdminPosts = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/admin/posts`, getAuthHeaders());
+      setPosts(response.data.posts || []);
+    } catch (error) {
+      console.error('Error loading posts:', error);
+    }
+  };
+
+  // Delete post
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce post ?')) return;
+    try {
+      await axios.delete(`${API_URL}/api/admin/posts/${postId}`, getAuthHeaders());
+      toast.success('Post supprimé');
+      loadAdminPosts();
+    } catch (error) {
+      toast.error('Erreur lors de la suppression');
+    }
+  };
+
+  // Create admin post
+  const handleCreatePost = async () => {
+    if (!newPost.content) {
+      toast.error('Le contenu est requis');
+      return;
+    }
+    try {
+      await axios.post(`${API_URL}/api/admin/posts`, newPost, getAuthHeaders());
+      toast.success('Post créé avec succès');
+      setShowNewPostModal(false);
+      setNewPost({ content: '', media_url: '', location: '', island: '' });
+      loadAdminPosts();
+    } catch (error) {
+      toast.error('Erreur lors de la création');
+    }
+  };
+
+  // Create Mana marker
+  const handleCreateMarker = async () => {
+    if (!newMarker.name || !newMarker.lat || !newMarker.lng) {
+      toast.error('Nom, latitude et longitude sont requis');
+      return;
+    }
+    try {
+      await axios.post(`${API_URL}/api/admin/mana/markers`, {
+        ...newMarker,
+        lat: parseFloat(newMarker.lat),
+        lng: parseFloat(newMarker.lng)
+      }, getAuthHeaders());
+      toast.success('Marqueur créé avec succès');
+      setShowNewMarkerModal(false);
+      setNewMarker({ name: '', description: '', type: 'poi', island: 'tahiti', lat: '', lng: '', is_webcam: false, iframe_url: '', external_url: '' });
+      loadManaMarkers();
+    } catch (error) {
+      toast.error('Erreur lors de la création');
+    }
+  };
+
+  // Delete Mana marker
+  const handleDeleteMarker = async (markerId) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce marqueur ?')) return;
+    try {
+      await axios.delete(`${API_URL}/api/admin/mana/markers/${markerId}`, getAuthHeaders());
+      toast.success('Marqueur supprimé');
+      loadManaMarkers();
+    } catch (error) {
+      toast.error('Erreur lors de la suppression');
+    }
+  };
+
+  // Load data when tab changes
+  useEffect(() => {
+    if (activeTab === 'mana') {
+      loadManaMarkers();
+      loadWebcams();
+    } else if (activeTab === 'posts') {
+      loadAdminPosts();
+    }
+  }, [activeTab]);
+
   const toggleAdsSetting = async (setting) => {
     try {
       const newValue = !adsSettings[setting];
@@ -124,17 +236,6 @@ const AdminDashboardPage = () => {
     }
   };
 
-  const handleDeletePost = async (postId) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce post ?')) return;
-    try {
-      await axios.delete(`${API_URL}/api/admin/posts/${postId}`, getAuthHeaders());
-      toast.success('Post supprimé');
-      loadDashboardData();
-    } catch (error) {
-      toast.error('Erreur lors de la suppression');
-    }
-  };
-
   const handleResolveReport = async (reportId, action) => {
     try {
       await axios.post(
@@ -164,6 +265,7 @@ const AdminDashboardPage = () => {
     { id: 'overview', label: 'Vue d\'ensemble', icon: TrendingUp },
     { id: 'users', label: 'Utilisateurs', icon: Users },
     { id: 'posts', label: 'Publications', icon: FileText },
+    { id: 'mana', label: 'Carte Mana', icon: MapPin },
     { id: 'lives', label: 'Lives', icon: Radio },
     { id: 'reports', label: 'Signalements', icon: Flag },
     { id: 'moderation', label: 'Modération', icon: Shield },
@@ -837,6 +939,419 @@ const AdminDashboardPage = () => {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Mana Tab - Carte et Marqueurs */}
+        {activeTab === 'mana' && (
+          <div className="space-y-6">
+            {/* Actions Header */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <MapPin className="text-[#FF6B35]" />
+                Gestion de la Carte Mana
+              </h2>
+              <Button
+                onClick={() => setShowNewMarkerModal(true)}
+                className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493]"
+              >
+                <Plus size={18} className="mr-2" />
+                Nouveau Marqueur
+              </Button>
+            </div>
+
+            {/* Webcams préconfigurées */}
+            <div className="bg-[#16213E] rounded-2xl p-6 border border-white/10">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Camera className="text-purple-400" />
+                Webcams Préconfigurées ({webcams.length})
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {webcams.slice(0, 6).map((webcam) => (
+                  <div key={webcam.id} className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="font-medium text-sm">{webcam.name}</h4>
+                      <span className={`px-2 py-0.5 rounded text-xs ${webcam.is_live ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {webcam.is_live ? 'Live' : 'Hors ligne'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-white/50 mb-2">{webcam.island}</p>
+                    <a 
+                      href={webcam.external_url || webcam.video_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-xs text-[#FF6B35] hover:underline flex items-center gap-1"
+                    >
+                      <ExternalLink size={12} />
+                      Ouvrir
+                    </a>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-white/40 mt-4">
+                Les webcams sont configurées dans le fichier backend. Pour les modifier, mettez à jour fenua_pulse.py
+              </p>
+            </div>
+
+            {/* Marqueurs personnalisés */}
+            <div className="bg-[#16213E] rounded-2xl p-6 border border-white/10">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <MapPin className="text-green-400" />
+                Marqueurs Personnalisés ({manaMarkers.length})
+              </h3>
+              {manaMarkers.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-white/5">
+                      <tr>
+                        <th className="text-left p-3 text-white/60 text-sm">Nom</th>
+                        <th className="text-left p-3 text-white/60 text-sm">Type</th>
+                        <th className="text-left p-3 text-white/60 text-sm">Île</th>
+                        <th className="text-left p-3 text-white/60 text-sm">Coordonnées</th>
+                        <th className="text-left p-3 text-white/60 text-sm">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {manaMarkers.map((marker) => (
+                        <tr key={marker.marker_id} className="border-t border-white/5 hover:bg-white/5">
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              {marker.is_webcam && <Video size={16} className="text-purple-400" />}
+                              <span className="font-medium">{marker.name}</span>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <span className="px-2 py-1 rounded-lg bg-blue-500/20 text-blue-400 text-xs">
+                              {marker.type}
+                            </span>
+                          </td>
+                          <td className="p-3 text-white/60">{marker.island}</td>
+                          <td className="p-3 text-white/60 text-sm">{marker.lat?.toFixed(4)}, {marker.lng?.toFixed(4)}</td>
+                          <td className="p-3">
+                            <button
+                              onClick={() => handleDeleteMarker(marker.marker_id)}
+                              className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-white/50">
+                  <MapPin size={48} className="mx-auto mb-4 opacity-30" />
+                  <p>Aucun marqueur personnalisé</p>
+                  <p className="text-sm">Cliquez sur "Nouveau Marqueur" pour en créer un</p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Nouveau Marqueur */}
+            {showNewMarkerModal && (
+              <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-[#16213E] rounded-2xl p-6 w-full max-w-lg border border-white/20"
+                >
+                  <h3 className="text-xl font-bold mb-4">Nouveau Marqueur Mana</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm text-white/60 mb-1 block">Nom *</label>
+                      <Input
+                        value={newMarker.name}
+                        onChange={(e) => setNewMarker({...newMarker, name: e.target.value})}
+                        placeholder="Ex: Plage de Matira"
+                        className="bg-white/10 border-white/20 text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm text-white/60 mb-1 block">Description</label>
+                      <Input
+                        value={newMarker.description}
+                        onChange={(e) => setNewMarker({...newMarker, description: e.target.value})}
+                        placeholder="Description du lieu..."
+                        className="bg-white/10 border-white/20 text-white"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-white/60 mb-1 block">Type</label>
+                        <select
+                          value={newMarker.type}
+                          onChange={(e) => setNewMarker({...newMarker, type: e.target.value})}
+                          className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
+                        >
+                          <option value="poi">Point d'intérêt</option>
+                          <option value="webcam">Webcam</option>
+                          <option value="event">Événement</option>
+                          <option value="alert">Alerte</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm text-white/60 mb-1 block">Île</label>
+                        <select
+                          value={newMarker.island}
+                          onChange={(e) => setNewMarker({...newMarker, island: e.target.value})}
+                          className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
+                        >
+                          <option value="tahiti">Tahiti</option>
+                          <option value="moorea">Moorea</option>
+                          <option value="bora-bora">Bora Bora</option>
+                          <option value="raiatea">Raiatea</option>
+                          <option value="huahine">Huahine</option>
+                          <option value="tuamotu">Tuamotu</option>
+                          <option value="marquises">Marquises</option>
+                          <option value="australes">Australes</option>
+                          <option value="gambier">Gambier</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-white/60 mb-1 block">Latitude *</label>
+                        <Input
+                          value={newMarker.lat}
+                          onChange={(e) => setNewMarker({...newMarker, lat: e.target.value})}
+                          placeholder="-17.5350"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-white/60 mb-1 block">Longitude *</label>
+                        <Input
+                          value={newMarker.lng}
+                          onChange={(e) => setNewMarker({...newMarker, lng: e.target.value})}
+                          placeholder="-149.5696"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={newMarker.is_webcam}
+                        onChange={(e) => setNewMarker({...newMarker, is_webcam: e.target.checked})}
+                        className="rounded"
+                      />
+                      <label className="text-sm text-white/80">C'est une webcam</label>
+                    </div>
+                    {newMarker.is_webcam && (
+                      <>
+                        <div>
+                          <label className="text-sm text-white/60 mb-1 block">URL iframe (embed)</label>
+                          <Input
+                            value={newMarker.iframe_url}
+                            onChange={(e) => setNewMarker({...newMarker, iframe_url: e.target.value})}
+                            placeholder="https://..."
+                            className="bg-white/10 border-white/20 text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm text-white/60 mb-1 block">URL externe (lien direct)</label>
+                          <Input
+                            value={newMarker.external_url}
+                            onChange={(e) => setNewMarker({...newMarker, external_url: e.target.value})}
+                            placeholder="https://..."
+                            className="bg-white/10 border-white/20 text-white"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex gap-3 mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowNewMarkerModal(false)}
+                      className="flex-1 border-white/20 text-white hover:bg-white/10"
+                    >
+                      Annuler
+                    </Button>
+                    <Button
+                      onClick={handleCreateMarker}
+                      className="flex-1 bg-gradient-to-r from-[#FF6B35] to-[#FF1493]"
+                    >
+                      Créer
+                    </Button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Posts Tab - Amélioration avec ajout/suppression */}
+        {activeTab === 'posts' && (
+          <div className="space-y-6">
+            {/* Actions Header */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <FileText className="text-[#FF6B35]" />
+                Gestion des Publications ({posts.length})
+              </h2>
+              <Button
+                onClick={() => setShowNewPostModal(true)}
+                className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493]"
+              >
+                <Plus size={18} className="mr-2" />
+                Nouveau Post Admin
+              </Button>
+            </div>
+
+            {/* Posts Table */}
+            <div className="bg-[#16213E] rounded-2xl border border-white/10 overflow-hidden">
+              <div className="p-4 border-b border-white/10 flex items-center gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                  <Input
+                    placeholder="Rechercher un post..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 bg-white/5 border-white/10 text-white"
+                  />
+                </div>
+                <Button variant="outline" onClick={loadAdminPosts} className="border-white/20 text-white hover:bg-white/10">
+                  <RefreshCw size={18} />
+                </Button>
+              </div>
+              <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+                <table className="w-full">
+                  <thead className="bg-white/5 sticky top-0">
+                    <tr>
+                      <th className="text-left p-4 text-white/60 font-medium">Auteur</th>
+                      <th className="text-left p-4 text-white/60 font-medium">Contenu</th>
+                      <th className="text-left p-4 text-white/60 font-medium">Type</th>
+                      <th className="text-left p-4 text-white/60 font-medium">Likes</th>
+                      <th className="text-left p-4 text-white/60 font-medium">Date</th>
+                      <th className="text-left p-4 text-white/60 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {posts.filter(p => 
+                      p.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      p.user_name?.toLowerCase().includes(searchTerm.toLowerCase())
+                    ).map((post) => (
+                      <tr key={post.post_id} className="border-t border-white/5 hover:bg-white/5">
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={post.user_picture || `https://ui-avatars.com/api/?name=${post.user_name || 'User'}`}
+                              alt=""
+                              className="w-8 h-8 rounded-lg"
+                            />
+                            <span className="text-sm">{post.user_name || 'Utilisateur'}</span>
+                            {post.is_admin_post && (
+                              <span className="px-1.5 py-0.5 rounded text-xs bg-[#FF6B35]/20 text-[#FF6B35]">Admin</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <p className="text-sm text-white/80 truncate max-w-[200px]">{post.content || '(Média)'}</p>
+                        </td>
+                        <td className="p-4">
+                          <span className={`px-2 py-1 rounded-lg text-xs ${
+                            post.feed_type === 'rss' ? 'bg-blue-500/20 text-blue-400' :
+                            post.media_type === 'video' ? 'bg-purple-500/20 text-purple-400' :
+                            'bg-green-500/20 text-green-400'
+                          }`}>
+                            {post.feed_type === 'rss' ? 'RSS' : post.media_type || 'Texte'}
+                          </span>
+                        </td>
+                        <td className="p-4 text-white/60">{post.likes || 0}</td>
+                        <td className="p-4 text-white/60 text-sm">
+                          {new Date(post.created_at).toLocaleDateString('fr-FR')}
+                        </td>
+                        <td className="p-4">
+                          <button
+                            onClick={() => handleDeletePost(post.post_id)}
+                            className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Modal Nouveau Post */}
+            {showNewPostModal && (
+              <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-[#16213E] rounded-2xl p-6 w-full max-w-lg border border-white/20"
+                >
+                  <h3 className="text-xl font-bold mb-4">Nouveau Post Admin</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm text-white/60 mb-1 block">Contenu *</label>
+                      <textarea
+                        value={newPost.content}
+                        onChange={(e) => setNewPost({...newPost, content: e.target.value})}
+                        placeholder="Écrivez votre message..."
+                        rows={4}
+                        className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm text-white/60 mb-1 block">URL média (image/vidéo)</label>
+                      <Input
+                        value={newPost.media_url}
+                        onChange={(e) => setNewPost({...newPost, media_url: e.target.value})}
+                        placeholder="https://..."
+                        className="bg-white/10 border-white/20 text-white"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-white/60 mb-1 block">Localisation</label>
+                        <Input
+                          value={newPost.location}
+                          onChange={(e) => setNewPost({...newPost, location: e.target.value})}
+                          placeholder="Papeete, Tahiti"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-white/60 mb-1 block">Île</label>
+                        <select
+                          value={newPost.island}
+                          onChange={(e) => setNewPost({...newPost, island: e.target.value})}
+                          className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
+                        >
+                          <option value="">Sélectionner...</option>
+                          <option value="tahiti">Tahiti</option>
+                          <option value="moorea">Moorea</option>
+                          <option value="bora-bora">Bora Bora</option>
+                          <option value="raiatea">Raiatea</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowNewPostModal(false)}
+                      className="flex-1 border-white/20 text-white hover:bg-white/10"
+                    >
+                      Annuler
+                    </Button>
+                    <Button
+                      onClick={handleCreatePost}
+                      className="flex-1 bg-gradient-to-r from-[#FF6B35] to-[#FF1493]"
+                    >
+                      Publier
+                    </Button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
           </div>
         )}
       </main>
