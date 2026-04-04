@@ -4394,6 +4394,145 @@ async def create_checkout_session(request: Request):
         logger.error(f"Stripe checkout error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erreur de paiement: {str(e)}")
 
+
+# ==================== BOOST MARKER PAYMENT ====================
+
+class BoostMarkerRequest(BaseModel):
+    marker_id: str
+    amount: int = 300  # 300 XPF
+    currency: str = "XPF"
+    boost_type: str  # roulotte or market
+
+@api_router.post("/payments/boost-marker")
+async def create_boost_checkout(request: Request, data: BoostMarkerRequest):
+    """Create a Stripe checkout session for boosting a marker (roulotte/market) - 300 XPF"""
+    if not STRIPE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Paiement non disponible")
+    
+    user = await require_auth(request)
+    
+    # Verify marker exists and belongs to user
+    marker = await db.markers.find_one({"marker_id": data.marker_id}, {"_id": 0})
+    if not marker:
+        raise HTTPException(status_code=404, detail="Publication non trouvée")
+    
+    # Check if user owns the marker
+    owner_id = marker.get("user_id") or marker.get("extra_data", {}).get("vendor_user_id")
+    if owner_id != user.user_id:
+        raise HTTPException(status_code=403, detail="Vous ne pouvez booster que vos propres publications")
+    
+    # Only allow boosting roulottes and market
+    if marker.get("marker_type") not in ["roulotte", "market"]:
+        raise HTTPException(status_code=400, detail="Seules les roulottes et bonnes affaires peuvent être boostées")
+    
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe non configuré")
+    
+    try:
+        # Convert 300 XPF to EUR (1 EUR ≈ 119.33 XPF)
+        amount_eur = round(data.amount / 119.33, 2)
+        amount_cents = int(amount_eur * 100)
+        
+        # Ensure minimum amount for Stripe (50 cents)
+        if amount_cents < 50:
+            amount_cents = 50
+        
+        host_url = str(request.base_url).rstrip('/')
+        if 'localhost' not in host_url and 'http://' in host_url:
+            host_url = host_url.replace('http://', 'https://')
+        
+        webhook_url = f"{host_url}/api/webhook/stripe"
+        stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+        
+        checkout_request = CheckoutSessionRequest(
+            line_items=[{
+                "price_data": {
+                    "currency": "eur",
+                    "unit_amount": amount_cents,
+                    "product_data": {
+                        "name": f"Boost {marker.get('title', 'Publication')}",
+                        "description": f"Booster votre {data.boost_type} pendant 24h sur Fenua Mana"
+                    }
+                },
+                "quantity": 1
+            }],
+            success_url=f"{host_url}/mana?boost=success&marker={data.marker_id}",
+            cancel_url=f"{host_url}/mana?boost=cancelled",
+            metadata={
+                "type": "marker_boost",
+                "marker_id": data.marker_id,
+                "user_id": user.user_id,
+                "boost_type": data.boost_type,
+                "amount_xpf": str(data.amount)
+            }
+        )
+        
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        # Save transaction
+        transaction = {
+            "transaction_id": f"boost_{uuid.uuid4().hex[:12]}",
+            "session_id": session.session_id,
+            "user_id": user.user_id,
+            "marker_id": data.marker_id,
+            "type": "marker_boost",
+            "boost_type": data.boost_type,
+            "amount_xpf": data.amount,
+            "amount_eur": amount_eur,
+            "payment_status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.boost_transactions.insert_one(transaction)
+        
+        logger.info(f"Boost checkout created for marker {data.marker_id} by user {user.user_id}")
+        
+        return {
+            "success": True,
+            "checkout_url": session.url,
+            "session_id": session.session_id,
+            "amount_xpf": data.amount,
+            "amount_eur": amount_eur
+        }
+        
+    except Exception as e:
+        logger.error(f"Boost checkout error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur de paiement: {str(e)}")
+
+
+@api_router.post("/payments/boost-marker/activate")
+async def activate_marker_boost(marker_id: str, session_id: str):
+    """Activate boost for a marker after successful payment"""
+    try:
+        # Update marker with boost info
+        boost_expires = datetime.now(timezone.utc) + timedelta(hours=24)
+        
+        await db.markers.update_one(
+            {"marker_id": marker_id},
+            {"$set": {
+                "is_boosted": True,
+                "boost_expires_at": boost_expires.isoformat(),
+                "boosted_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        # Update transaction
+        await db.boost_transactions.update_one(
+            {"session_id": session_id},
+            {"$set": {
+                "payment_status": "paid",
+                "activated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        logger.info(f"Boost activated for marker {marker_id}")
+        return {"success": True, "message": "Boost activé pour 24h"}
+        
+    except Exception as e:
+        logger.error(f"Boost activation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @api_router.get("/payments/status/{session_id}")
 async def get_payment_status(session_id: str):
     """Get payment status for a checkout session"""
@@ -4525,6 +4664,7 @@ async def stripe_webhook(request: Request):
         webhook_response = await stripe_checkout.handle_webhook(body, signature)
         
         if webhook_response.payment_status == "paid":
+            # Check for advertising package transaction
             transaction = await db.payment_transactions.find_one({"session_id": webhook_response.session_id})
             if transaction and transaction.get("payment_status") != "paid":
                 await db.payment_transactions.update_one(
@@ -4535,6 +4675,31 @@ async def stripe_webhook(request: Request):
                     }}
                 )
                 await activate_advertising_package(transaction)
+            
+            # Check for boost transaction
+            boost_transaction = await db.boost_transactions.find_one({"session_id": webhook_response.session_id})
+            if boost_transaction and boost_transaction.get("payment_status") != "paid":
+                marker_id = boost_transaction.get("marker_id")
+                
+                # Activate boost for 24 hours
+                boost_expires = datetime.now(timezone.utc) + timedelta(hours=24)
+                await db.markers.update_one(
+                    {"marker_id": marker_id},
+                    {"$set": {
+                        "is_boosted": True,
+                        "boost_expires_at": boost_expires.isoformat(),
+                        "boosted_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                
+                await db.boost_transactions.update_one(
+                    {"session_id": webhook_response.session_id},
+                    {"$set": {
+                        "payment_status": "paid",
+                        "activated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                logger.info(f"Boost activated via webhook for marker {marker_id}")
         
         return {"received": True}
     except Exception as e:

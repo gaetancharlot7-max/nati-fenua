@@ -207,6 +207,8 @@ const PulsePage = () => {
   const [leaderboard, setLeaderboard] = useState([]);
   const [manaBalance, setManaBalance] = useState(0);
   const [contactingVendor, setContactingVendor] = useState(false);
+  const [showBoostModal, setShowBoostModal] = useState(null);
+  const [boostLoading, setBoostLoading] = useState(false);
 
   // Default center (Tahiti)
   const defaultCenter = { lat: -17.6509, lng: -149.4260, zoom: 11 };
@@ -363,6 +365,46 @@ const PulsePage = () => {
       toast.error(error.response?.data?.detail || 'Erreur lors du contact');
     } finally {
       setContactingVendor(false);
+    }
+  };
+
+  // Handle Boost Marker - Opens Stripe checkout for 300 XPF
+  const handleBoostMarker = async (marker) => {
+    if (!user) {
+      toast.error('Connectez-vous pour booster votre publication');
+      navigate('/auth');
+      return;
+    }
+    
+    setShowBoostModal(marker);
+  };
+
+  const confirmBoost = async () => {
+    if (!showBoostModal) return;
+    
+    setBoostLoading(true);
+    try {
+      // Call backend to create Stripe checkout session for 300 XPF boost
+      const response = await api.post('/payments/boost-marker', {
+        marker_id: showBoostModal.marker_id,
+        amount: 300,
+        currency: 'XPF',
+        boost_type: showBoostModal.marker_type // roulotte or market
+      });
+      
+      if (response.data.checkout_url) {
+        // Redirect to Stripe checkout
+        window.location.href = response.data.checkout_url;
+      } else {
+        toast.success('Publication boostée avec succès !');
+        setShowBoostModal(null);
+        loadMarkers();
+      }
+    } catch (error) {
+      console.error('Boost error:', error);
+      toast.error(error.response?.data?.detail || 'Erreur lors du boost');
+    } finally {
+      setBoostLoading(false);
     }
   };
 
@@ -600,7 +642,99 @@ const PulsePage = () => {
         onContactVendor={handleContactVendor}
         contactingVendor={contactingVendor}
         currentUserId={user?.user_id}
+        onBoostMarker={handleBoostMarker}
       />
+
+      {/* Boost Confirmation Modal */}
+      <AnimatePresence>
+        {showBoostModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4"
+            onClick={() => !boostLoading && setShowBoostModal(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-[#FFD700] to-[#FFA500] p-6 text-center">
+                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Zap size={32} className="text-[#1A1A2E]" />
+                </div>
+                <h2 className="text-2xl font-bold text-[#1A1A2E]">Booster ma publication</h2>
+                <p className="text-[#1A1A2E]/80 mt-1">Visibilité maximale pendant 24h</p>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                <div className="bg-gray-50 rounded-2xl p-4 mb-4">
+                  <h3 className="font-semibold text-[#1A1A2E] mb-2">{showBoostModal.title}</h3>
+                  <p className="text-sm text-gray-500">
+                    {showBoostModal.marker_type === 'roulotte' ? '🚚 Roulotte' : '🛍️ Bonne Affaire'}
+                  </p>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <Check size={16} className="text-green-600" />
+                    </div>
+                    <span>Apparaît en premier sur la carte Mana</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <Check size={16} className="text-green-600" />
+                    </div>
+                    <span>Badge "Boosté" doré visible</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <Check size={16} className="text-green-600" />
+                    </div>
+                    <span>3x plus de visibilité garantie</span>
+                  </div>
+                </div>
+
+                <div className="text-center mb-6">
+                  <p className="text-4xl font-bold text-[#FF6B35]">300 <span className="text-xl">XPF</span></p>
+                  <p className="text-sm text-gray-500">≈ 2,50 €</p>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowBoostModal(null)}
+                    disabled={boostLoading}
+                    className="flex-1 rounded-xl py-6"
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    onClick={confirmBoost}
+                    disabled={boostLoading}
+                    className="flex-1 bg-gradient-to-r from-[#FFD700] to-[#FFA500] hover:from-[#FFC700] hover:to-[#FF9500] text-[#1A1A2E] font-bold rounded-xl py-6"
+                  >
+                    {boostLoading ? (
+                      <Loader2 size={20} className="animate-spin" />
+                    ) : (
+                      <>
+                        <Zap size={18} className="mr-2" />
+                        Payer et Booster
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Leaderboard Modal */}
       <LeaderboardModal
@@ -818,7 +952,7 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
 };
 
 // Marker Detail Modal
-const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, contactingVendor, currentUserId }) => {
+const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, contactingVendor, currentUserId, onBoostMarker }) => {
   if (!marker) return null;
 
   const canVote = currentUserId && 
@@ -1007,6 +1141,19 @@ const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, contac
                     <Truck size={20} />
                     Voir le profil vendeur
                   </a>
+                )}
+
+                {/* BOOST BUTTON - 300 XPF */}
+                {onBoostMarker && (marker.user_id === currentUserId || marker.extra_data?.vendor_user_id === currentUserId) && (
+                  <button 
+                    onClick={() => onBoostMarker(marker)}
+                    className="flex items-center justify-center gap-2 w-full p-3 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-[#1A1A2E] rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg"
+                    data-testid="boost-marker-btn"
+                  >
+                    <Zap size={20} className="text-[#1A1A2E]" />
+                    <span>Booster ma publication</span>
+                    <span className="bg-white/30 px-2 py-0.5 rounded-full text-sm">300 XPF</span>
+                  </button>
                 )}
               </div>
             )}
