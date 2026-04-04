@@ -1,7 +1,7 @@
 # Nati Fenua - Product Requirements Document
 
 ## Original Problem Statement
-Application de réseau social polynésien avec flux RSS réels, webcams en direct, authentification Google OAuth, messagerie temps réel, et système publicitaire en Francs Pacifiques (XPF).
+Application de réseau social polynésien avec flux RSS réels, webcams en direct, authentification Google OAuth, messagerie temps réel, système publicitaire en Francs Pacifiques (XPF), et notifications push.
 
 ## Core Features Implemented
 
@@ -19,11 +19,13 @@ Application de réseau social polynésien avec flux RSS réels, webcams en direc
 - ✅ Webcams en direct (liens externes pour iframes bloquées)
 - ✅ Marqueurs sur carte polynésienne
 - ✅ Alertes Mana
+- ✅ **Boost 300 XPF** pour roulottes et bonnes affaires
 
 ### Messagerie
 - ✅ Chat temps réel (WebSockets v2)
 - ✅ Recherche d'utilisateurs par auto-complétion
 - ✅ Indicateurs de frappe et accusés de lecture
+- ✅ **Notifications push** quand message reçu (app fermée)
 
 ### Administration
 - ✅ Page admin complète (`/admin/login`)
@@ -32,6 +34,7 @@ Application de réseau social polynésien avec flux RSS réels, webcams en direc
 ### Publicité
 - ✅ Forfaits en XPF via Stripe
 - ✅ Page `/advertising`
+- ✅ Boost marker 300 XPF (24h visibilité)
 
 ### Internationalisation
 - ✅ Traductions FR/Tahitien (89 clés)
@@ -41,6 +44,7 @@ Application de réseau social polynésien avec flux RSS réels, webcams en direc
 - ✅ Installable sur mobile
 - ✅ Notifications push (Firebase ready)
 - ✅ Service Worker amélioré
+- ✅ Banner demande permission notifications
 
 ### Modération
 - ✅ Filtres mots interdits FR/Tahitien
@@ -51,9 +55,11 @@ Application de réseau social polynésien avec flux RSS réels, webcams en direc
 - ✅ Stats utilisateur `/api/users/{id}/statistics`
 - ✅ Stats plateforme `/api/statistics/platform`
 
-### Notifications
-- ✅ Push Notifications Firebase (code prêt, clé requise)
-- ✅ Emails Resend (code prêt, clé requise)
+### Notifications Push
+- ✅ Firebase Cloud Messaging (GRATUIT)
+- ✅ Notifications messages
+- ✅ Notifications boost roulottes/market
+- ✅ Banner permission automatique
 
 ## Technical Stack
 - Frontend: React 18
@@ -62,18 +68,20 @@ Application de réseau social polynésien avec flux RSS réels, webcams en direc
 - Hosting: Render
 - Auth: Google OAuth + JWT
 - Payments: Stripe (emergentintegrations)
+- Push: Firebase Cloud Messaging
 
-## API Endpoints Clés
-- `/api/auth/google` - OAuth Google
-- `/api/auth/forgot-password` - Réinitialisation
-- `/api/translations/{lang}` - Traductions
-- `/api/statistics/platform` - Stats publiques
-- `/api/users/{id}/statistics` - Stats utilisateur
-- `/ws/v2/chat/{user_id}` - WebSocket chat
+## Variables d'environnement Render
+- `MONGO_URL` - MongoDB Atlas
+- `GOOGLE_CLIENT_ID` - OAuth
+- `GOOGLE_CLIENT_SECRET` - OAuth
+- `STRIPE_API_KEY` - Paiements
+- `FIREBASE_SERVER_KEY` - Push notifications (optionnel)
+- `RESEND_API_KEY` - Emails (optionnel)
+- `MODERATION_AI_KEY` - IA modération (optionnel)
 
 ## Backlog (P3)
 - Application mobile Expo (App Store/Play Store)
 - Modération par IA avancée
 
 ## Last Update
-2026-04-04 - v3: Modération hybride, PWA améliorée, RSS nettoyé (18 sources)
+2026-04-04 - v5: Boost 300 XPF + Notifications Push gratuites

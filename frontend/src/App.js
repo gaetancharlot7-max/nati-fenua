@@ -57,6 +57,7 @@ const LiveViewPage = lazy(() => import('./pages/LiveViewPage'));
 // Components (loaded immediately as they're small)
 import CookieBanner from './components/CookieBanner';
 import MainLayout from './components/layout/MainLayout';
+import NotificationBanner from './components/NotificationBanner';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -144,6 +145,9 @@ function AppContent() {
       
       {/* Cookie Banner - shown on all pages except auth */}
       {!isAuthPage && !isAdminPage && <CookieBanner />}
+      
+      {/* Notification Permission Banner */}
+      {!isAuthPage && !isAdminPage && <NotificationBanner />}
       
       {/* Toast notifications */}
       <Toaster position="top-center" richColors />

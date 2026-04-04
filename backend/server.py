@@ -2494,6 +2494,35 @@ async def send_message(message_data: MessageCreate, request: Request):
         "message": message_dict
     }, conversation_id)
     
+    # Send push notification to receiver if offline
+    receiver = await db.users.find_one(
+        {"user_id": message_data.receiver_id},
+        {"device_tokens": 1, "username": 1, "_id": 0}
+    )
+    
+    if receiver and receiver.get("device_tokens"):
+        sender = await db.users.find_one(
+            {"user_id": user.user_id},
+            {"username": 1, "name": 1, "_id": 0}
+        )
+        sender_name = sender.get("name") or sender.get("username") or "Quelqu'un"
+        
+        # Check if receiver is online via WebSocket
+        is_online = chat_manager.is_user_online(message_data.receiver_id)
+        
+        if not is_online:
+            await push_service.send_to_devices(
+                receiver["device_tokens"],
+                f"💬 Message de {sender_name}",
+                message_data.content[:100],
+                {
+                    "type": "message",
+                    "sender_id": user.user_id,
+                    "conversation_id": conversation_id,
+                    "url": f"/chat?conversation={conversation_id}"
+                }
+            )
+    
     message_dict.pop("_id", None)
     return message_dict
 
@@ -4700,6 +4729,37 @@ async def stripe_webhook(request: Request):
                     }}
                 )
                 logger.info(f"Boost activated via webhook for marker {marker_id}")
+                
+                # Send push notifications to users on the same island
+                marker = await db.markers.find_one({"marker_id": marker_id}, {"_id": 0})
+                if marker:
+                    island = marker.get("island", "tahiti")
+                    marker_title = marker.get("title", "Publication")
+                    marker_type = marker.get("marker_type", "roulotte")
+                    
+                    # Get users on this island with device tokens
+                    users_on_island = await db.users.find(
+                        {"device_tokens": {"$exists": True, "$ne": []}},
+                        {"device_tokens": 1, "user_id": 1, "_id": 0}
+                    ).to_list(500)
+                    
+                    if users_on_island:
+                        all_tokens = []
+                        for u in users_on_island:
+                            all_tokens.extend(u.get("device_tokens", []))
+                        
+                        if all_tokens:
+                            emoji = "🚚" if marker_type == "roulotte" else "🛍️"
+                            await push_service.send_to_devices(
+                                all_tokens[:100],  # Limit to 100 devices
+                                f"{emoji} Nouveau sur Mana !",
+                                f"{marker_title} est maintenant boosté sur {island.capitalize()}",
+                                {
+                                    "type": "boost",
+                                    "marker_id": marker_id,
+                                    "url": f"/mana?marker={marker_id}"
+                                }
+                            )
         
         return {"received": True}
     except Exception as e:
