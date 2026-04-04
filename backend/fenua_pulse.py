@@ -135,11 +135,11 @@ MARKER_TYPES = {
         "label": "Webcam Live",
         "duration_hours": 999999  # Permanent
     },
-    "weather": {
-        "color": "#6B7280",  # Gray
-        "icon": "cloud",
-        "label": "Alerte météo",
-        "duration_hours": 6
+    "woofing": {
+        "color": "#84CC16",  # Lime green
+        "icon": "leaf",
+        "label": "Woofing / Ferme bio",
+        "duration_hours": 168  # 1 week
     },
     "market": {
         "color": "#F59E0B",  # Amber

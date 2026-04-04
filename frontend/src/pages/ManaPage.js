@@ -45,7 +45,7 @@ const getMarkerEmoji = (type) => {
     surf: '🌊',
     event: '📅',
     webcam: '📹',
-    weather: '☁️',
+    woofing: '🌿',
     market: '🛍️',
     carpool: '🚗',
     other: '📍'
@@ -676,7 +676,7 @@ const PulsePage = () => {
                 <div className="bg-gray-50 rounded-2xl p-4 mb-4">
                   <h3 className="font-semibold text-[#1A1A2E] mb-2">{showBoostModal.title}</h3>
                   <p className="text-sm text-gray-500">
-                    {showBoostModal.marker_type === 'roulotte' ? '🚚 Roulotte' : '🛍️ Bonne Affaire'}
+                    {showBoostModal.marker_type === 'roulotte' ? '🚚 Roulotte' : showBoostModal.marker_type === 'woofing' ? '🌿 Woofing' : '🛍️ Bonne Affaire'}
                   </p>
                 </div>
 
@@ -1100,8 +1100,8 @@ const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, contac
               </div>
             </div>
 
-            {/* Contact Button - For roulottes, market, and vendors */}
-            {(marker.marker_type === 'roulotte' || marker.marker_type === 'market') && (marker.extra_data?.phone || marker.phone || marker.extra_data?.vendor_id || marker.vendor_id || marker.user_id) && (
+            {/* Contact Button - For roulottes, market, woofing and vendors */}
+            {(marker.marker_type === 'roulotte' || marker.marker_type === 'market' || marker.marker_type === 'woofing') && (marker.extra_data?.phone || marker.phone || marker.extra_data?.vendor_id || marker.vendor_id || marker.user_id) && (
               <div className="space-y-2">
                 {/* Message Button - Opens conversation */}
                 {(marker.extra_data?.vendor_id || marker.vendor_id || marker.user_id) && !marker.is_webcam && (

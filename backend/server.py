@@ -4450,9 +4450,9 @@ async def create_boost_checkout(request: Request, data: BoostMarkerRequest):
     if owner_id != user.user_id:
         raise HTTPException(status_code=403, detail="Vous ne pouvez booster que vos propres publications")
     
-    # Only allow boosting roulottes and market
-    if marker.get("marker_type") not in ["roulotte", "market"]:
-        raise HTTPException(status_code=400, detail="Seules les roulottes et bonnes affaires peuvent être boostées")
+    # Only allow boosting roulottes, market and woofing
+    if marker.get("marker_type") not in ["roulotte", "market", "woofing"]:
+        raise HTTPException(status_code=400, detail="Seules les roulottes, bonnes affaires et woofing peuvent être boostées")
     
     stripe_api_key = os.environ.get("STRIPE_API_KEY")
     if not stripe_api_key:
