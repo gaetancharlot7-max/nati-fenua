@@ -4550,6 +4550,105 @@ async def create_boost_checkout(request: Request, data: BoostMarkerRequest):
         raise HTTPException(status_code=500, detail=f"Erreur de paiement: {str(e)}")
 
 
+# ==================== BOOST PRODUCT PAYMENT (MARKETPLACE) ====================
+
+class BoostProductRequest(BaseModel):
+    product_id: str
+    amount: int = 300  # 300 XPF for 2 days
+    currency: str = "XPF"
+
+@api_router.post("/payments/boost-product")
+async def create_product_boost_checkout(request: Request, data: BoostProductRequest):
+    """Create a Stripe checkout session for boosting a marketplace product - 300 XPF for 2 days at top"""
+    if not STRIPE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Paiement non disponible")
+    
+    user = await require_auth(request)
+    
+    # Verify product exists and belongs to user
+    product = await db.products.find_one({"product_id": data.product_id}, {"_id": 0})
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    
+    # Check if user owns the product
+    owner_id = product.get("user_id") or product.get("seller", {}).get("user_id")
+    if owner_id != user.user_id:
+        raise HTTPException(status_code=403, detail="Vous ne pouvez booster que vos propres annonces")
+    
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe non configuré")
+    
+    try:
+        # Convert 300 XPF to EUR (1 EUR ≈ 119.33 XPF)
+        amount_eur = round(data.amount / 119.33, 2)
+        amount_cents = int(amount_eur * 100)
+        
+        if amount_cents < 50:
+            amount_cents = 50
+        
+        host_url = str(request.base_url).rstrip('/')
+        if 'localhost' not in host_url and 'http://' in host_url:
+            host_url = host_url.replace('http://', 'https://')
+        
+        webhook_url = f"{host_url}/api/webhook/stripe"
+        stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+        
+        checkout_request = CheckoutSessionRequest(
+            line_items=[{
+                "price_data": {
+                    "currency": "eur",
+                    "unit_amount": amount_cents,
+                    "product_data": {
+                        "name": f"Boost {product.get('title', 'Annonce')}",
+                        "description": "Boost 2 jours en tête de liste du Marché"
+                    }
+                },
+                "quantity": 1
+            }],
+            success_url=f"{host_url}/marketplace?boost=success&product={data.product_id}",
+            cancel_url=f"{host_url}/marketplace?boost=cancelled",
+            metadata={
+                "type": "product_boost",
+                "product_id": data.product_id,
+                "user_id": user.user_id,
+                "boost_hours": "48",  # 2 days
+                "amount_xpf": str(data.amount)
+            }
+        )
+        
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        # Save transaction
+        transaction = {
+            "transaction_id": f"pboost_{uuid.uuid4().hex[:12]}",
+            "session_id": session.session_id,
+            "user_id": user.user_id,
+            "product_id": data.product_id,
+            "type": "product_boost",
+            "boost_hours": 48,
+            "amount_xpf": data.amount,
+            "amount_eur": amount_eur,
+            "payment_status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.product_boost_transactions.insert_one(transaction)
+        
+        logger.info(f"Product boost checkout created for {data.product_id} by user {user.user_id}")
+        
+        return {
+            "success": True,
+            "checkout_url": session.url,
+            "session_id": session.session_id,
+            "amount_xpf": data.amount,
+            "amount_eur": amount_eur
+        }
+        
+    except Exception as e:
+        logger.error(f"Product boost checkout error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur de paiement: {str(e)}")
+
+
 @api_router.post("/payments/boost-marker/activate")
 async def activate_marker_boost(marker_id: str, session_id: str):
     """Activate boost for a marker after successful payment"""
@@ -4783,6 +4882,31 @@ async def stripe_webhook(request: Request):
                                     "url": f"/mana?marker={marker_id}"
                                 }
                             )
+            
+            # Check for product boost transaction
+            product_boost = await db.product_boost_transactions.find_one({"session_id": webhook_response.session_id})
+            if product_boost and product_boost.get("payment_status") != "paid":
+                product_id = product_boost.get("product_id")
+                
+                # Activate boost for 48 hours (2 days)
+                boost_expires = datetime.now(timezone.utc) + timedelta(hours=48)
+                await db.products.update_one(
+                    {"product_id": product_id},
+                    {"$set": {
+                        "is_boosted": True,
+                        "boost_expires_at": boost_expires.isoformat(),
+                        "boosted_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                
+                await db.product_boost_transactions.update_one(
+                    {"session_id": webhook_response.session_id},
+                    {"$set": {
+                        "payment_status": "paid",
+                        "activated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                logger.info(f"Product boost activated via webhook for product {product_id}")
         
         return {"received": True}
     except Exception as e:

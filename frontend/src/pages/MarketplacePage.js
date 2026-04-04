@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, MapPin, Star, Plus, ShoppingBag, Briefcase, Package, Utensils, Compass, Sparkles, Gem, Droplet, Shirt, Home, Calendar, Car, Book, X, MessageCircle, Heart, Share2, ImagePlus, Loader2, Flag } from 'lucide-react';
+import { Search, Filter, MapPin, Star, Plus, ShoppingBag, Briefcase, Package, Utensils, Compass, Sparkles, Gem, Droplet, Shirt, Home, Calendar, Car, Book, X, MessageCircle, Heart, Share2, ImagePlus, Loader2, Flag, Zap, Check } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -10,10 +10,14 @@ import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { ShareModal } from '../components/ShareModal';
 import { ReportModal } from '../components/ReportModal';
 import { toast } from 'sonner';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../lib/api';
 
 // Product Detail Modal Component
-const ProductDetailModal = ({ product, onClose, onReport, onContact }) => {
+const ProductDetailModal = ({ product, onClose, onReport, onContact, onBoost, currentUserId }) => {
   if (!product) return null;
+  
+  const isOwner = product.seller?.user_id === currentUserId || product.user_id === currentUserId;
 
   return (
     <motion.div
@@ -37,18 +41,26 @@ const ProductDetailModal = ({ product, onClose, onReport, onContact }) => {
             alt={product.title}
             className="w-full h-full object-cover"
           />
+          {/* Boosted Badge */}
+          {product.is_boosted && (
+            <div className="absolute top-4 left-4 px-3 py-1.5 bg-gradient-to-r from-[#FFD700] to-[#FFA500] rounded-full flex items-center gap-1.5 shadow-lg">
+              <Zap size={14} className="text-[#1A1A2E]" />
+              <span className="text-sm font-bold text-[#1A1A2E]">Boosté</span>
+            </div>
+          )}
           <button 
             onClick={onClose}
             className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center"
           >
             <X size={20} />
           </button>
-          <button className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center">
+          <button className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center" style={{ left: product.is_boosted ? '120px' : '16px' }}>
             <Heart size={20} />
           </button>
           <button 
             onClick={() => onReport(product)}
-            className="absolute top-4 left-16 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center"
+            className="absolute top-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center"
+            style={{ left: product.is_boosted ? '170px' : '66px' }}
           >
             <Flag size={18} className="text-red-500" />
           </button>
@@ -92,6 +104,29 @@ const ProductDetailModal = ({ product, onClose, onReport, onContact }) => {
               </div>
             </div>
           </div>
+
+          {/* Boost Button for Owner */}
+          {isOwner && !product.is_boosted && onBoost && (
+            <button
+              onClick={() => onBoost(product)}
+              className="w-full mb-4 p-4 rounded-2xl bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-[#1A1A2E] font-bold flex items-center justify-center gap-3 hover:opacity-90 transition-opacity"
+              data-testid="boost-product-btn"
+            >
+              <Zap size={20} />
+              <span>Booster mon annonce</span>
+              <span className="bg-white/30 px-3 py-1 rounded-full text-sm">300 XPF · 2 jours</span>
+            </button>
+          )}
+          
+          {product.is_boosted && (
+            <div className="w-full mb-4 p-4 rounded-2xl bg-gradient-to-r from-[#FFD700]/20 to-[#FFA500]/20 border-2 border-[#FFD700] text-center">
+              <div className="flex items-center justify-center gap-2 text-[#B8860B] font-bold">
+                <Zap size={18} />
+                <span>Annonce boostée</span>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">En tête de liste jusqu'au {new Date(product.boost_expires_at).toLocaleDateString('fr-FR')}</p>
+            </div>
+          )}
 
           {/* Single Contact Button */}
           <Button 
@@ -301,6 +336,7 @@ const demoServices = [
 
 const MarketplacePage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('products');
   const [products, setProducts] = useState(demoProducts);
   const [services, setServices] = useState(demoServices);
@@ -313,6 +349,8 @@ const MarketplacePage = () => {
   const [showCreateProduct, setShowCreateProduct] = useState(false);
   const [shareItem, setShareItem] = useState(null);
   const [reportItem, setReportItem] = useState(null);
+  const [showBoostModal, setShowBoostModal] = useState(null);
+  const [boostLoading, setBoostLoading] = useState(false);
 
   useEffect(() => {
     loadMarketplace();
@@ -360,6 +398,43 @@ const MarketplacePage = () => {
     // Close the modal
     setSelectedProduct(null);
     setSelectedService(null);
+  };
+
+  // Handle Boost Product - 300 XPF for 2 days at top of list
+  const handleBoostProduct = (product) => {
+    if (!user) {
+      toast.error('Connectez-vous pour booster votre annonce');
+      navigate('/auth');
+      return;
+    }
+    setShowBoostModal(product);
+    setSelectedProduct(null);
+  };
+
+  const confirmProductBoost = async () => {
+    if (!showBoostModal) return;
+    
+    setBoostLoading(true);
+    try {
+      const response = await api.post('/payments/boost-product', {
+        product_id: showBoostModal.product_id,
+        amount: 300,
+        currency: 'XPF'
+      });
+      
+      if (response.data.checkout_url) {
+        window.location.href = response.data.checkout_url;
+      } else {
+        toast.success('Annonce boostée avec succès !');
+        setShowBoostModal(null);
+        loadMarketplace();
+      }
+    } catch (error) {
+      console.error('Boost error:', error);
+      toast.error(error.response?.data?.detail || 'Erreur lors du boost');
+    } finally {
+      setBoostLoading(false);
+    }
   };
 
   const formatPrice = (price, currency = 'XPF') => {
@@ -536,7 +611,98 @@ const MarketplacePage = () => {
               setReportItem({ ...item, type: 'product' });
             }}
             onContact={handleContactSeller}
+            onBoost={handleBoostProduct}
+            currentUserId={user?.user_id}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Boost Product Modal */}
+      <AnimatePresence>
+        {showBoostModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4"
+            onClick={() => !boostLoading && setShowBoostModal(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-[#FFD700] to-[#FFA500] p-6 text-center">
+                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Zap size={32} className="text-[#1A1A2E]" />
+                </div>
+                <h2 className="text-2xl font-bold text-[#1A1A2E]">Booster mon annonce</h2>
+                <p className="text-[#1A1A2E]/80 mt-1">En tête de liste pendant 2 jours</p>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                <div className="bg-gray-50 rounded-2xl p-4 mb-4">
+                  <h3 className="font-semibold text-[#1A1A2E] mb-2">{showBoostModal.title}</h3>
+                  <p className="text-sm text-gray-500">{showBoostModal.price?.toLocaleString()} XPF</p>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <Check size={16} className="text-green-600" />
+                    </div>
+                    <span>En première position dans la liste</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <Check size={16} className="text-green-600" />
+                    </div>
+                    <span>Badge "Boosté" doré visible</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <Check size={16} className="text-green-600" />
+                    </div>
+                    <span>Visibilité pendant 48 heures</span>
+                  </div>
+                </div>
+
+                <div className="text-center mb-6">
+                  <p className="text-4xl font-bold text-[#FF6B35]">300 <span className="text-xl">XPF</span></p>
+                  <p className="text-sm text-gray-500">≈ 2,50 € · 2 jours en tête</p>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowBoostModal(null)}
+                    disabled={boostLoading}
+                    className="flex-1 rounded-xl py-6"
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    onClick={confirmProductBoost}
+                    disabled={boostLoading}
+                    className="flex-1 bg-gradient-to-r from-[#FFD700] to-[#FFA500] hover:from-[#FFC700] hover:to-[#FF9500] text-[#1A1A2E] font-bold rounded-xl py-6"
+                  >
+                    {boostLoading ? (
+                      <Loader2 size={20} className="animate-spin" />
+                    ) : (
+                      <>
+                        <Zap size={18} className="mr-2" />
+                        Payer et Booster
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 
