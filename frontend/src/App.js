@@ -73,13 +73,9 @@ const ProtectedRoute = ({ children }) => {
 
 // Admin Route Component
 const AdminRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return <PageLoader />;
-  }
-
-  if (!user || user.role !== 'admin') {
+  const adminToken = localStorage.getItem('admin_token');
+  
+  if (!adminToken) {
     return <Navigate to="/admin/login" replace />;
   }
 

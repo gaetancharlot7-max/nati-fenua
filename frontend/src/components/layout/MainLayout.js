@@ -161,19 +161,19 @@ const MainLayout = ({ children, hideNav = false }) => {
             </Link>
           </div>
 
-          {/* Security Section */}
+          {/* Security Section - En bas du menu */}
           <div className="pt-4 border-t border-gray-100 mt-4">
             <Link
-              to="/security"
+              to="/settings/security"
               data-testid="nav-security"
               className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
-                location.pathname === '/security'
+                location.pathname === '/settings/security'
                   ? 'bg-gradient-to-r from-[#FF6B35]/10 to-[#00CED1]/10 text-[#FF6B35] font-semibold' 
                   : 'text-[#1A1A2E] hover:bg-gray-100'
               }`}
             >
               <Shield size={24} strokeWidth={1.5} />
-              <span>Sécurité</span>
+              <span>Sécurité & Confidentialité</span>
             </Link>
           </div>
         </nav>
