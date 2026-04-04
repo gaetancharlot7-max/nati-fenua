@@ -846,22 +846,54 @@ const AdminDashboardPage = () => {
                 </div>
               </div>
 
-              {/* Pricing Info */}
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl p-4 border border-purple-500/30">
-                  <DollarSign size={24} className="text-purple-400 mb-2" />
-                  <p className="font-medium">Post sponsorisé</p>
-                  <p className="text-2xl font-bold mt-1">À partir de 5€/jour</p>
+              {/* Pricing Info - En Franc Pacifique (XPF) */}
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <DollarSign className="text-[#FF6B35]" />
+                  Tarification publicitaire (Franc Pacifique - XPF)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl p-4 border border-purple-500/30">
+                    <FileText size={24} className="text-purple-400 mb-2" />
+                    <p className="font-medium">Post sponsorisé</p>
+                    <p className="text-2xl font-bold mt-1">600 XPF<span className="text-sm font-normal text-white/50">/jour</span></p>
+                    <p className="text-xs text-white/40 mt-1">≈ 5€ • CPM: 500 XPF</p>
+                  </div>
+                  <div className="bg-gradient-to-br from-blue-500/20 to-teal-500/20 rounded-xl p-4 border border-blue-500/30">
+                    <Users size={24} className="text-blue-400 mb-2" />
+                    <p className="font-medium">Compte promu</p>
+                    <p className="text-2xl font-bold mt-1">1 200 XPF<span className="text-sm font-normal text-white/50">/jour</span></p>
+                    <p className="text-xs text-white/40 mt-1">≈ 10€ • Visibilité +50%</p>
+                  </div>
+                  <div className="bg-gradient-to-br from-pink-500/20 to-orange-500/20 rounded-xl p-4 border border-pink-500/30">
+                    <Eye size={24} className="text-pink-400 mb-2" />
+                    <p className="font-medium">Story Ad</p>
+                    <p className="text-2xl font-bold mt-1">1 800 XPF<span className="text-sm font-normal text-white/50">/jour</span></p>
+                    <p className="text-xs text-white/40 mt-1">≈ 15€ • CPC: 50 XPF</p>
+                  </div>
                 </div>
-                <div className="bg-gradient-to-br from-blue-500/20 to-teal-500/20 rounded-xl p-4 border border-blue-500/30">
-                  <Users size={24} className="text-blue-400 mb-2" />
-                  <p className="font-medium">Compte promu</p>
-                  <p className="text-2xl font-bold mt-1">À partir de 10€/jour</p>
-                </div>
-                <div className="bg-gradient-to-br from-pink-500/20 to-orange-500/20 rounded-xl p-4 border border-pink-500/30">
-                  <BarChart3 size={24} className="text-pink-400 mb-2" />
-                  <p className="font-medium">Story Ad</p>
-                  <p className="text-2xl font-bold mt-1">À partir de 15€/jour</p>
+                
+                {/* Additional Pricing Details */}
+                <div className="mt-4 p-4 bg-white/5 rounded-xl border border-white/10">
+                  <p className="text-sm font-medium mb-2">Détails tarifaires</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-white/50">CPM (1000 vues)</p>
+                      <p className="font-semibold">500 XPF</p>
+                    </div>
+                    <div>
+                      <p className="text-white/50">CPC (par clic)</p>
+                      <p className="font-semibold">50 XPF</p>
+                    </div>
+                    <div>
+                      <p className="text-white/50">Budget minimum</p>
+                      <p className="font-semibold">1 000 XPF</p>
+                    </div>
+                    <div>
+                      <p className="text-white/50">Durée minimum</p>
+                      <p className="font-semibold">1 jour</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
