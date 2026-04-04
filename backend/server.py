@@ -106,6 +106,18 @@ from tahitian_dictionary import translate_text, get_dictionary_stats, get_common
 # Import Resend for emails
 import resend
 
+# Import WebSocket Manager for real-time chat
+from websocket_manager import chat_manager, WSMessageTypes, create_ws_message
+
+# Import Push Notifications service
+from push_notifications import push_service, NotificationTemplates
+
+# Import Email service
+from email_service import email_service
+
+# Import Translations
+from translations import get_translation, get_all_translations, TRANSLATIONS
+
 ROOT_DIR = Path(__file__).parent
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -6569,6 +6581,380 @@ async def start_auto_publisher():
     # Start periodic RSS task (runs every 12 hours = 2x per day)
     asyncio.create_task(rss_publish_task())
     logger.info("🚀 Auto-publisher started: RSS refresh every 12 hours, posts expire after 2 days")
+
+
+# ==================== USER STATISTICS ====================
+
+@api_router.get("/users/{user_id}/statistics")
+async def get_user_statistics(user_id: str, request: Request):
+    """Get detailed statistics for a user"""
+    try:
+        user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+        if not user:
+            raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+        
+        # Count posts
+        posts_count = await db.posts.count_documents({"user_id": user_id})
+        
+        # Count likes received
+        user_posts = await db.posts.find({"user_id": user_id}, {"likes": 1}).to_list(1000)
+        likes_received = sum(len(post.get("likes", [])) for post in user_posts)
+        
+        # Count comments received
+        comments_received = sum(len(post.get("comments", [])) for post in user_posts)
+        
+        # Count followers and following
+        followers_count = await db.users.count_documents({"following": user_id})
+        following_count = len(user.get("following", []))
+        
+        # Count messages sent
+        messages_sent = await db.messages.count_documents({"sender_id": user_id})
+        
+        # Count mana points
+        mana_points = user.get("mana_points", 0)
+        badges = user.get("badges", [])
+        
+        # Calculate engagement rate
+        engagement_rate = 0
+        if posts_count > 0 and followers_count > 0:
+            engagement_rate = round(((likes_received + comments_received) / posts_count / followers_count) * 100, 2)
+        
+        # Get join date
+        join_date = user.get("created_at", datetime.now(timezone.utc).isoformat())
+        
+        return {
+            "user_id": user_id,
+            "username": user.get("username", ""),
+            "stats": {
+                "posts": posts_count,
+                "likes_received": likes_received,
+                "comments_received": comments_received,
+                "followers": followers_count,
+                "following": following_count,
+                "messages_sent": messages_sent,
+                "mana_points": mana_points,
+                "badges_count": len(badges),
+                "engagement_rate": engagement_rate
+            },
+            "badges": badges,
+            "join_date": join_date
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting user statistics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/statistics/platform")
+async def get_platform_statistics(request: Request):
+    """Get platform-wide statistics (public)"""
+    try:
+        total_users = await db.users.count_documents({})
+        total_posts = await db.posts.count_documents({})
+        total_messages = await db.messages.count_documents({})
+        total_markers = await db.markers.count_documents({})
+        
+        # Active users (posted in last 7 days)
+        seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+        active_users = await db.posts.distinct("user_id", {
+            "created_at": {"$gte": seven_days_ago.isoformat()}
+        })
+        
+        # RSS articles count
+        rss_count = await db.posts.count_documents({"is_rss_article": True})
+        
+        return {
+            "platform": "Nati Fenua",
+            "stats": {
+                "total_users": total_users,
+                "active_users_7d": len(active_users),
+                "total_posts": total_posts,
+                "rss_articles": rss_count,
+                "user_posts": total_posts - rss_count,
+                "total_messages": total_messages,
+                "mana_markers": total_markers
+            },
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting platform statistics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== TRANSLATIONS API ====================
+
+@api_router.get("/translations/{lang}")
+async def get_translations_by_language(lang: str):
+    """Get all translations for a language (fr or ty)"""
+    if lang not in ["fr", "ty"]:
+        raise HTTPException(status_code=400, detail="Langue non supportée. Utilisez 'fr' ou 'ty'.")
+    
+    return {
+        "language": lang,
+        "language_name": "Français" if lang == "fr" else "Tahitien",
+        "translations": get_all_translations(lang)
+    }
+
+
+@api_router.get("/translations")
+async def get_available_translations():
+    """Get list of available translations and keys"""
+    return {
+        "languages": [
+            {"code": "fr", "name": "Français"},
+            {"code": "ty", "name": "Tahitien"}
+        ],
+        "total_keys": len(TRANSLATIONS),
+        "categories": list(set(key.split(".")[0] for key in TRANSLATIONS.keys()))
+    }
+
+
+# ==================== ENHANCED WEBSOCKET CHAT ====================
+
+@app.websocket("/ws/v2/chat/{user_id}")
+async def websocket_chat_v2(websocket: WebSocket, user_id: str):
+    """Enhanced WebSocket for real-time chat with typing indicators and read receipts"""
+    await chat_manager.connect(websocket, user_id)
+    
+    # Send connected confirmation
+    await websocket.send_json(create_ws_message(WSMessageTypes.CONNECTED, {
+        "user_id": user_id,
+        "message": "Connecté au chat en temps réel"
+    }))
+    
+    try:
+        while True:
+            data = await websocket.receive_json()
+            msg_type = data.get("type", "")
+            
+            if msg_type == "send_message":
+                # Handle new message
+                recipient_id = data.get("recipient_id")
+                content = data.get("content", "")
+                
+                if recipient_id and content:
+                    # Save message to DB
+                    message_id = str(uuid.uuid4())
+                    message = {
+                        "message_id": message_id,
+                        "sender_id": user_id,
+                        "recipient_id": recipient_id,
+                        "content": content,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "read": False
+                    }
+                    await db.messages.insert_one(message)
+                    
+                    # Send to recipient via WebSocket
+                    ws_msg = create_ws_message(WSMessageTypes.NEW_MESSAGE, {
+                        "message_id": message_id,
+                        "sender_id": user_id,
+                        "content": content
+                    })
+                    await chat_manager.send_personal_message(ws_msg, recipient_id)
+                    
+                    # Send push notification if recipient is offline
+                    if not chat_manager.is_user_online(recipient_id):
+                        sender = await db.users.find_one({"user_id": user_id}, {"username": 1, "_id": 0})
+                        sender_name = sender.get("username", "Quelqu'un") if sender else "Quelqu'un"
+                        
+                        # Get recipient device tokens
+                        recipient = await db.users.find_one({"user_id": recipient_id}, {"device_tokens": 1, "_id": 0})
+                        if recipient and recipient.get("device_tokens"):
+                            title, body = NotificationTemplates.new_message(sender_name)
+                            await push_service.send_to_devices(
+                                recipient["device_tokens"],
+                                title,
+                                body,
+                                {"type": "message", "sender_id": user_id}
+                            )
+                    
+                    # Confirm to sender
+                    await websocket.send_json(create_ws_message("message_sent", {
+                        "message_id": message_id,
+                        "status": "delivered"
+                    }))
+            
+            elif msg_type == "typing_start":
+                recipient_id = data.get("recipient_id")
+                if recipient_id:
+                    await chat_manager.send_personal_message(
+                        create_ws_message(WSMessageTypes.TYPING_START, {"user_id": user_id}),
+                        recipient_id
+                    )
+            
+            elif msg_type == "typing_stop":
+                recipient_id = data.get("recipient_id")
+                if recipient_id:
+                    await chat_manager.send_personal_message(
+                        create_ws_message(WSMessageTypes.TYPING_STOP, {"user_id": user_id}),
+                        recipient_id
+                    )
+            
+            elif msg_type == "mark_read":
+                message_ids = data.get("message_ids", [])
+                sender_id = data.get("sender_id")
+                if message_ids:
+                    await db.messages.update_many(
+                        {"message_id": {"$in": message_ids}},
+                        {"$set": {"read": True, "read_at": datetime.now(timezone.utc).isoformat()}}
+                    )
+                    # Notify sender
+                    if sender_id:
+                        await chat_manager.send_personal_message(
+                            create_ws_message(WSMessageTypes.MESSAGE_READ, {
+                                "message_ids": message_ids,
+                                "reader_id": user_id
+                            }),
+                            sender_id
+                        )
+            
+            elif msg_type == "ping":
+                await websocket.send_json(create_ws_message("pong", {}))
+    
+    except WebSocketDisconnect:
+        chat_manager.disconnect(websocket, user_id)
+        logger.info(f"WebSocket disconnected: {user_id}")
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+        chat_manager.disconnect(websocket, user_id)
+
+
+# ==================== PUSH NOTIFICATION REGISTRATION ====================
+
+class DeviceTokenRequest(BaseModel):
+    device_token: str
+    platform: str = "web"  # web, ios, android
+
+@api_router.post("/notifications/register-device")
+async def register_device_token(request: Request, data: DeviceTokenRequest):
+    """Register a device token for push notifications"""
+    try:
+        user = await require_auth(request)
+        
+        # Add token to user's device_tokens array
+        await db.users.update_one(
+            {"user_id": user.user_id},
+            {
+                "$addToSet": {"device_tokens": data.device_token},
+                "$set": {"last_device_platform": data.platform}
+            }
+        )
+        
+        return {"status": "success", "message": "Token enregistré"}
+    except Exception as e:
+        logger.error(f"Error registering device token: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.delete("/notifications/unregister-device")
+async def unregister_device_token(request: Request, device_token: str):
+    """Unregister a device token"""
+    try:
+        user = await require_auth(request)
+        
+        await db.users.update_one(
+            {"user_id": user.user_id},
+            {"$pull": {"device_tokens": device_token}}
+        )
+        
+        return {"status": "success", "message": "Token supprimé"}
+    except Exception as e:
+        logger.error(f"Error unregistering device token: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== PASSWORD RESET WITH EMAIL ====================
+
+class PasswordResetRequest(BaseModel):
+    email: str
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str
+
+@api_router.post("/auth/forgot-password")
+async def request_password_reset(data: PasswordResetRequest):
+    """Request a password reset email"""
+    try:
+        user = await db.users.find_one({"email": data.email.lower()}, {"_id": 0})
+        
+        if not user:
+            # Don't reveal if email exists or not (security)
+            return {"status": "success", "message": "Si cet email existe, vous recevrez un lien de réinitialisation."}
+        
+        # Generate reset token
+        reset_token = generate_secure_token(32)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        
+        # Store token
+        await db.password_resets.insert_one({
+            "token": reset_token,
+            "user_id": user["user_id"],
+            "email": data.email.lower(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "expires_at": expires_at.isoformat(),
+            "used": False
+        })
+        
+        # Send email
+        await email_service.send_password_reset(
+            data.email.lower(),
+            reset_token,
+            user.get("username", "Utilisateur")
+        )
+        
+        return {"status": "success", "message": "Si cet email existe, vous recevrez un lien de réinitialisation."}
+    except Exception as e:
+        logger.error(f"Error requesting password reset: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/auth/reset-password")
+async def confirm_password_reset(data: PasswordResetConfirm):
+    """Confirm password reset with token"""
+    try:
+        # Find valid token
+        reset = await db.password_resets.find_one({
+            "token": data.token,
+            "used": False
+        }, {"_id": 0})
+        
+        if not reset:
+            raise HTTPException(status_code=400, detail="Token invalide ou expiré")
+        
+        # Check expiration
+        expires_at = datetime.fromisoformat(reset["expires_at"].replace("Z", "+00:00"))
+        if datetime.now(timezone.utc) > expires_at:
+            raise HTTPException(status_code=400, detail="Token expiré")
+        
+        # Validate new password
+        password_validation = validate_password_strength(data.new_password)
+        if not password_validation["valid"]:
+            raise HTTPException(status_code=400, detail=password_validation["message"])
+        
+        # Hash new password
+        hashed = hash_password(data.new_password)
+        
+        # Update user password
+        await db.users.update_one(
+            {"user_id": reset["user_id"]},
+            {"$set": {"password": hashed, "password_updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        # Mark token as used
+        await db.password_resets.update_one(
+            {"token": data.token},
+            {"$set": {"used": True}}
+        )
+        
+        return {"status": "success", "message": "Mot de passe réinitialisé avec succès"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error resetting password: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # Include router AFTER all routes are defined

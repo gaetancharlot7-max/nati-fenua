@@ -1,41 +1,70 @@
-# Nati Fenua - PRD v2.2
+# Nati Fenua - Product Requirements Document
 
-## Dernières modifications (31 Mars 2026)
+## Original Problem Statement
+Application de réseau social polynésien avec flux RSS réels, webcams en direct, authentification Google OAuth, messagerie, et système publicitaire en Francs Pacifiques (XPF).
 
-### Flux RSS corrigés
-- ✅ **Max 2 posts par source** (strict)
-- ✅ **Pas de doublons** (vérification URL unique)
-- ✅ **Mélange aléatoire** ratio 2:1 (user:rss)
-- ✅ **35 sources configurées**
+## Core Features Implemented
 
-### Google OAuth natif
-- ✅ Client ID + Secret configurés
-- ✅ Fonctionne sur Render
+### Authentication
+- ✅ Google OAuth (Production sur Render)
+- ✅ JWT-based custom auth
+- ✅ Password reset via email (Resend)
 
-## Fichiers à télécharger
+### Feed & Content
+- ✅ Flux RSS polynésiens (2x/jour, expire après 48h)
+- ✅ Publications utilisateurs avec likes/commentaires
+- ✅ Modération de contenu
 
-| Type | URL |
-|------|-----|
-| Documentation HTML | https://fenua-connect.preview.emergentagent.com/DOCUMENTATION_NATI_FENUA.html |
-| Backend ZIP | https://fenua-connect.preview.emergentagent.com/final-backend.zip |
-| Frontend ZIP | https://fenua-connect.preview.emergentagent.com/final-frontend.zip |
+### Carte Mana
+- ✅ Webcams en direct (liens externes pour iframes bloquées)
+- ✅ Marqueurs sur carte polynésienne
+- ✅ Alertes Mana
 
-## Pour imprimer en PDF
-1. Ouvrez le lien HTML dans Chrome
-2. Ctrl+P → Enregistrer en PDF
+### Messagerie
+- ✅ Chat temps réel (WebSockets v2)
+- ✅ Recherche d'utilisateurs par auto-complétion
+- ✅ Indicateurs de frappe et accusés de lecture
 
-## Variables Render
+### Administration
+- ✅ Page admin complète (`/admin/login`)
+- ✅ Gestion des posts et marqueurs Mana
 
-```
-GOOGLE_CLIENT_ID=795265896237-vbtdva4ubl9r203j79dj7jcctd7s3d2g.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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
-GOOGLE_REDIRECT_URI=https://nati-fenua-backend.onrender.com/api/auth/google/callback
-FRONTEND_URL=https://nati-fenua-frontend.onrender.com
-```
+### Publicité
+- ✅ Forfaits en XPF via Stripe
+- ✅ Page `/advertising`
 
-## Test
-- Email: user1@test.com
-- Password: TestPass123!
+### Internationalisation
+- ✅ Traductions FR/Tahitien (89 clés)
+- ✅ API `/api/translations/{lang}`
 
----
-*v2.2 - 31 Mars 2026*
+### Statistiques
+- ✅ Stats utilisateur `/api/users/{id}/statistics`
+- ✅ Stats plateforme `/api/statistics/platform`
+
+### Notifications
+- ✅ Push Notifications Firebase (code prêt, clé requise)
+- ✅ Emails Resend (code prêt, clé requise)
+
+## Technical Stack
+- Frontend: React 18
+- Backend: FastAPI
+- Database: MongoDB Atlas
+- Hosting: Render
+- Auth: Google OAuth + JWT
+- Payments: Stripe (emergentintegrations)
+
+## API Endpoints Clés
+- `/api/auth/google` - OAuth Google
+- `/api/auth/forgot-password` - Réinitialisation
+- `/api/translations/{lang}` - Traductions
+- `/api/statistics/platform` - Stats publiques
+- `/api/users/{id}/statistics` - Stats utilisateur
+- `/ws/v2/chat/{user_id}` - WebSocket chat
+
+## Backlog (P3)
+- Application mobile Expo
+- Modération par IA
+- Nettoyage flux RSS morts
+
+## Last Update
+2026-04-04 - WebSockets, traductions, stats, Firebase/Resend, Stripe fix

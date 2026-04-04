@@ -42,3 +42,6 @@ slowapi>=0.1.9
 
 # Email (Resend)
 resend>=0.7.0
+
+# Payments (Stripe via Emergent)
+emergentintegrations
