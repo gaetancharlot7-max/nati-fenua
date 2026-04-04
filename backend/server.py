@@ -4554,12 +4554,12 @@ async def create_boost_checkout(request: Request, data: BoostMarkerRequest):
 
 class BoostProductRequest(BaseModel):
     product_id: str
-    amount: int = 300  # 300 XPF for 2 days
+    amount: int = 300  # 300 XPF for 24h
     currency: str = "XPF"
 
 @api_router.post("/payments/boost-product")
 async def create_product_boost_checkout(request: Request, data: BoostProductRequest):
-    """Create a Stripe checkout session for boosting a marketplace product - 300 XPF for 2 days at top"""
+    """Create a Stripe checkout session for boosting a marketplace product - 300 XPF for 24h at top"""
     if not STRIPE_AVAILABLE:
         raise HTTPException(status_code=503, detail="Paiement non disponible")
     
@@ -4601,7 +4601,7 @@ async def create_product_boost_checkout(request: Request, data: BoostProductRequ
                     "unit_amount": amount_cents,
                     "product_data": {
                         "name": f"Boost {product.get('title', 'Annonce')}",
-                        "description": "Boost 2 jours en tête de liste du Marché"
+                        "description": "Boost 24h en tête de liste du Marché"
                     }
                 },
                 "quantity": 1
@@ -4612,7 +4612,7 @@ async def create_product_boost_checkout(request: Request, data: BoostProductRequ
                 "type": "product_boost",
                 "product_id": data.product_id,
                 "user_id": user.user_id,
-                "boost_hours": "48",  # 2 days
+                "boost_hours": "24",  # 24h
                 "amount_xpf": str(data.amount)
             }
         )
@@ -4626,7 +4626,7 @@ async def create_product_boost_checkout(request: Request, data: BoostProductRequ
             "user_id": user.user_id,
             "product_id": data.product_id,
             "type": "product_boost",
-            "boost_hours": 48,
+            "boost_hours": 24,
             "amount_xpf": data.amount,
             "amount_eur": amount_eur,
             "payment_status": "pending",
@@ -4888,8 +4888,8 @@ async def stripe_webhook(request: Request):
             if product_boost and product_boost.get("payment_status") != "paid":
                 product_id = product_boost.get("product_id")
                 
-                # Activate boost for 48 hours (2 days)
-                boost_expires = datetime.now(timezone.utc) + timedelta(hours=48)
+                # Activate boost for 24 hours
+                boost_expires = datetime.now(timezone.utc) + timedelta(hours=24)
                 await db.products.update_one(
                     {"product_id": product_id},
                     {"$set": {

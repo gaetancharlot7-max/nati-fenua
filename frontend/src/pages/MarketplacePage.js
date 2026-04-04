@@ -114,7 +114,7 @@ const ProductDetailModal = ({ product, onClose, onReport, onContact, onBoost, cu
             >
               <Zap size={20} />
               <span>Booster mon annonce</span>
-              <span className="bg-white/30 px-3 py-1 rounded-full text-sm">300 XPF · 2 jours</span>
+              <span className="bg-white/30 px-3 py-1 rounded-full text-sm">300 XPF · 24h</span>
             </button>
           )}
           
@@ -640,7 +640,7 @@ const MarketplacePage = () => {
                   <Zap size={32} className="text-[#1A1A2E]" />
                 </div>
                 <h2 className="text-2xl font-bold text-[#1A1A2E]">Booster mon annonce</h2>
-                <p className="text-[#1A1A2E]/80 mt-1">En tête de liste pendant 2 jours</p>
+                <p className="text-[#1A1A2E]/80 mt-1">En tête de liste pendant 24h</p>
               </div>
 
               {/* Content */}
@@ -667,13 +667,13 @@ const MarketplacePage = () => {
                     <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                       <Check size={16} className="text-green-600" />
                     </div>
-                    <span>Visibilité pendant 48 heures</span>
+                    <span>Visibilité pendant 24 heures</span>
                   </div>
                 </div>
 
                 <div className="text-center mb-6">
                   <p className="text-4xl font-bold text-[#FF6B35]">300 <span className="text-xl">XPF</span></p>
-                  <p className="text-sm text-gray-500">≈ 2,50 € · 2 jours en tête</p>
+                  <p className="text-sm text-gray-500">≈ 2,50 € · 24h en tête</p>
                 </div>
 
                 <div className="flex gap-3">
