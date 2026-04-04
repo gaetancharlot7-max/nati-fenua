@@ -4457,10 +4457,10 @@ async def create_boost_checkout(request: Request, data: BoostMarkerRequest):
     
     # Determine boost duration and price
     # Roulotte/Market: 300 XPF = 8h
-    # Woofing: 300 XPF = 24h, 500 XPF = 1 week
+    # Woofing: 300 XPF = 24h, 1500 XPF = 1 week
     if data.boost_duration == "weekly" and data.boost_type == "woofing":
         boost_hours = 168  # 1 week
-        boost_price = 500
+        boost_price = 1500
         boost_description = "1 semaine"
     elif data.boost_type == "woofing":
         boost_hours = 24

@@ -744,8 +744,8 @@ const PulsePage = () => {
                           <p className="text-sm text-gray-500">Maximum de visibilité</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-2xl font-bold text-[#FF6B35]">500 <span className="text-sm">XPF</span></p>
-                          <p className="text-xs text-gray-400">≈ 4,20 €</p>
+                          <p className="text-2xl font-bold text-[#FF6B35]">1500 <span className="text-sm">XPF</span></p>
+                          <p className="text-xs text-gray-400">≈ 12,50 €</p>
                         </div>
                       </div>
                     </button>
