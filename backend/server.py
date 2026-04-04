@@ -118,6 +118,9 @@ from email_service import email_service
 # Import Translations
 from translations import get_translation, get_all_translations, TRANSLATIONS
 
+# Import Auto-Moderation
+from auto_moderation import auto_moderator, check_text, is_safe
+
 ROOT_DIR = Path(__file__).parent
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)

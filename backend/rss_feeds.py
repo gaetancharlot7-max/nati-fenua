@@ -175,7 +175,7 @@ RSS_FEEDS = [
         "feed_type": "economie"
     },
     
-    # === ANCIENNES SOURCES (gardées pour compatibilité) ===
+    # === SOURCES LOCALES ACTIVES ===
     {
         "name": "TNTV",
         "url": "https://www.tntv.pf/feed/",
@@ -194,273 +194,23 @@ RSS_FEEDS = [
         "categories": ["actualité", "local", "société"],
         "feed_type": "media"
     },
-    {
-        "name": "Tahiti Nui TV",
-        "url": "https://www.tahitinuitv.pf/feed/",
-        "island": "tahiti",
-        "account_id": "tahiti_nui_tv",
-        "logo": "https://www.tahitinuitv.pf/wp-content/uploads/tntv-logo.png",
-        "categories": ["actualité", "télévision", "culture"],
-        "feed_type": "media"
-    },
-    
-    # === MÉTÉO ===
-    {
-        "name": "Météo France Polynésie",
-        "url": "https://meteofrance.pf/rss/previsions.xml",
-        "island": "tahiti",
-        "account_id": "meteo_polynesie",
-        "logo": "https://meteofrance.com/sites/default/files/logo-mf.svg",
-        "categories": ["météo", "prévisions", "climat"],
-        "feed_type": "meteo"
-    },
-    {
-        "name": "Météo Marine Polynésie",
-        "url": "https://meteofrance.pf/rss/marine.xml",
-        "island": "tahiti",
-        "account_id": "meteo_marine_pf",
-        "logo": "https://meteofrance.com/sites/default/files/logo-mf.svg",
-        "categories": ["météo", "marine", "navigation"],
-        "feed_type": "meteo"
-    },
-    {
-        "name": "Windy Tahiti",
-        "url": "https://www.windy.com/rss/tahiti",
-        "island": "tahiti",
-        "account_id": "windy_tahiti",
-        "logo": "https://www.windy.com/img/logo201802/windy-logo-full.svg",
-        "categories": ["météo", "vent", "surf"],
-        "feed_type": "meteo"
-    },
-    
-    # === SURF & SPORTS NAUTIQUES ===
-    {
-        "name": "Surf Report Tahiti",
-        "url": "https://www.surf-report.com/rss/spots/polynesie-francaise.xml",
-        "island": "tahiti",
-        "account_id": "surf_report_tahiti",
-        "logo": "https://www.surf-report.com/images/logo-surf-report.png",
-        "categories": ["surf", "sport", "vagues"],
-        "feed_type": "sport_surf"
-    },
-    {
-        "name": "Magic Seaweed Tahiti",
-        "url": "https://magicseaweed.com/rss/tahiti-surf-forecast.xml",
-        "island": "tahiti",
-        "account_id": "msw_tahiti",
-        "logo": "https://magicseaweed.com/images/logo.svg",
-        "categories": ["surf", "prévisions", "vagues"],
-        "feed_type": "sport_surf"
-    },
-    {
-        "name": "Surfline Teahupo'o",
-        "url": "https://www.surfline.com/rss/teahupoo",
-        "island": "tahiti",
-        "account_id": "surfline_teahupoo",
-        "logo": "https://www.surfline.com/images/surfline-logo.svg",
-        "categories": ["surf", "Teahupo'o", "compétition"],
-        "feed_type": "sport_surf"
-    },
-    {
-        "name": "Tahiti Surf Club",
-        "url": "https://www.tahitisurfclub.pf/feed/",
-        "island": "tahiti",
-        "account_id": "tahiti_surf_club",
-        "logo": "https://www.tahitisurfclub.pf/wp-content/uploads/tsc-logo.png",
-        "categories": ["surf", "club", "événements"],
-        "feed_type": "sport_surf"
-    },
-    {
-        "name": "Fédération Tahitienne de Surf",
-        "url": "https://www.surfingpolynesie.pf/feed/",
-        "island": "tahiti",
-        "account_id": "fts_polynesie",
-        "logo": "https://www.surfingpolynesie.pf/wp-content/uploads/fts-logo.png",
-        "categories": ["surf", "fédération", "compétition"],
-        "feed_type": "sport_surf"
-    },
-    
-    # === AUTRES SPORTS ===
-    {
-        "name": "Va'a News",
-        "url": "https://vaanews.pf/feed/",
-        "island": "tahiti",
-        "account_id": "vaa_news",
-        "logo": "https://vaanews.pf/wp-content/uploads/vaa-logo.png",
-        "categories": ["va'a", "pirogue", "sport"],
-        "feed_type": "sport"
-    },
-    {
-        "name": "Fédération Tahitienne de Football",
-        "url": "https://www.ftf.pf/feed/",
-        "island": "tahiti",
-        "account_id": "ftf_tahiti",
-        "logo": "https://www.ftf.pf/wp-content/uploads/logo-ftf.png",
-        "categories": ["football", "sport", "association"],
-        "feed_type": "sport"
-    },
-    {
-        "name": "Fédération Tahitienne de Voile",
-        "url": "https://www.voile.pf/feed/",
-        "island": "tahiti",
-        "account_id": "ftv_tahiti",
-        "logo": "https://www.voile.pf/wp-content/uploads/ftv-logo.png",
-        "categories": ["voile", "sport", "nautique"],
-        "feed_type": "sport"
-    },
-    {
-        "name": "Fédération Polynésienne de Natation",
-        "url": "https://www.natation.pf/feed/",
-        "island": "tahiti",
-        "account_id": "fpn_tahiti",
-        "logo": "https://www.natation.pf/wp-content/uploads/fpn-logo.png",
-        "categories": ["natation", "sport", "piscine"],
-        "feed_type": "sport"
-    },
-    
-    # === CULTURE & TRADITIONS ===
-    {
-        "name": "Heiva i Tahiti",
-        "url": "https://www.heiva.org/feed/",
-        "island": "tahiti",
-        "account_id": "heiva_tahiti",
-        "logo": "https://www.heiva.org/wp-content/uploads/heiva-logo.png",
-        "categories": ["culture", "danse", "tradition"],
-        "feed_type": "culture"
-    },
-    {
-        "name": "Te Fare Tauhiti Nui",
-        "url": "https://www.maisondelaculture.pf/feed/",
-        "island": "tahiti",
-        "account_id": "maison_culture",
-        "logo": "https://www.maisondelaculture.pf/wp-content/uploads/tftn-logo.png",
-        "categories": ["culture", "événements", "spectacles"],
-        "feed_type": "culture"
-    },
-    {
-        "name": "Musée de Tahiti",
-        "url": "https://www.museetahiti.pf/feed/",
-        "island": "tahiti",
-        "account_id": "musee_tahiti",
-        "logo": "https://www.museetahiti.pf/wp-content/uploads/musee-logo.png",
-        "categories": ["culture", "musée", "histoire"],
-        "feed_type": "culture"
-    },
-    {
-        "name": "Conservatoire Artistique",
-        "url": "https://www.conservatoire.pf/feed/",
-        "island": "tahiti",
-        "account_id": "conservatoire_pf",
-        "logo": "https://www.conservatoire.pf/wp-content/uploads/capf-logo.png",
-        "categories": ["culture", "musique", "danse"],
-        "feed_type": "culture"
-    },
-    {
-        "name": "Académie Tahitienne",
-        "url": "https://www.farevanaa.pf/feed/",
-        "island": "tahiti",
-        "account_id": "academie_tahitienne",
-        "logo": "https://www.farevanaa.pf/wp-content/uploads/fv-logo.png",
-        "categories": ["culture", "langue", "reo tahiti"],
-        "feed_type": "culture"
-    },
-    {
-        "name": "Festival du Film Océanien",
-        "url": "https://www.fifo-tahiti.com/feed/",
-        "island": "tahiti",
-        "account_id": "fifo_tahiti",
-        "logo": "https://www.fifo-tahiti.com/wp-content/uploads/fifo-logo.png",
-        "categories": ["culture", "cinéma", "festival"],
-        "feed_type": "culture"
-    },
-    
-    # === OFFRES D'EMPLOI ===
-    {
-        "name": "Emploi Polynésie",
-        "url": "https://www.emploi.pf/feed/",
-        "island": "tahiti",
-        "account_id": "emploi_polynesie",
-        "logo": "https://www.emploi.pf/wp-content/uploads/emploi-logo.png",
-        "categories": ["emploi", "travail", "recrutement"],
-        "feed_type": "emploi"
-    },
-    {
-        "name": "SEFI Polynésie",
-        "url": "https://www.sefi.pf/feed/",
-        "island": "tahiti",
-        "account_id": "sefi_pf",
-        "logo": "https://www.sefi.pf/wp-content/uploads/sefi-logo.png",
-        "categories": ["emploi", "formation", "insertion"],
-        "feed_type": "emploi"
-    },
-    {
-        "name": "Pôle Emploi Tahiti",
-        "url": "https://www.pole-emploi.pf/feed/",
-        "island": "tahiti",
-        "account_id": "pole_emploi_tahiti",
-        "logo": "https://www.pole-emploi.pf/wp-content/uploads/pe-logo.png",
-        "categories": ["emploi", "chômage", "aide"],
-        "feed_type": "emploi"
-    },
-    {
-        "name": "LinkedIn Tahiti",
-        "url": "https://www.linkedin.com/jobs/tahiti-jobs-rss",
-        "island": "tahiti",
-        "account_id": "linkedin_tahiti",
-        "logo": "https://content.linkedin.com/content/dam/me/business/en-us/amp/brand-site/v2/bg/LI-Logo.svg",
-        "categories": ["emploi", "professionnel", "réseau"],
-        "feed_type": "emploi"
-    },
-    {
-        "name": "Indeed Polynésie",
-        "url": "https://fr.indeed.com/rss?q=&l=Polyn%C3%A9sie+fran%C3%A7aise",
-        "island": "tahiti",
-        "account_id": "indeed_polynesie",
-        "logo": "https://www.indeed.com/images/indeed-logo.svg",
-        "categories": ["emploi", "offres", "international"],
-        "feed_type": "emploi"
-    },
-    
-    # === TOURISME ===
-    {
-        "name": "Air Tahiti Magazine",
-        "url": "https://www.airtahitimagazine.com/feed/",
-        "island": "tahiti",
-        "account_id": "airtahiti_mag",
-        "logo": "https://www.airtahitimagazine.com/wp-content/uploads/logo-atm.png",
-        "categories": ["tourisme", "voyage", "culture"],
-        "feed_type": "tourisme"
-    },
-    {
-        "name": "Tahiti Tourisme",
-        "url": "https://tahititourisme.pf/feed/",
-        "island": "tahiti",
-        "account_id": "tahiti_tourisme",
-        "logo": "https://tahititourisme.pf/wp-content/uploads/logo-tt.png",
-        "categories": ["tourisme", "voyage", "îles"],
-        "feed_type": "tourisme"
-    },
-    
-    # === ENVIRONNEMENT ===
-    {
-        "name": "Environnement Polynésie",
-        "url": "https://www.environnement.pf/feed/",
-        "island": "tahiti",
-        "account_id": "environnement_pf",
-        "logo": "https://www.environnement.pf/wp-content/uploads/env-logo.png",
-        "categories": ["environnement", "écologie", "nature"],
-        "feed_type": "environnement"
-    },
-    {
-        "name": "Te Mana o te Moana",
-        "url": "https://www.temanaotemoana.org/feed/",
-        "island": "tahiti",
-        "account_id": "te_mana_moana",
-        "logo": "https://www.temanaotemoana.org/wp-content/uploads/tmm-logo.png",
-        "categories": ["environnement", "océan", "protection"],
-        "feed_type": "environnement"
-    }
 ]
+
+# Note: Sources suivantes supprimées car inactives:
+# - tahitinuitv.pf (erreurs SSL/404)
+# - meteofrance.pf (pas de flux RSS valide)
+# - windy.com/rss (n'existe pas)
+# - surf-report.com/rss (n'existe pas)
+# - magicseaweed.com/rss (n'existe pas)
+# - surfline.com/rss (n'existe pas)
+# - Autres domaines .pf locaux souvent indisponibles
+
+# Sources de secours fiables (non utilisées actuellement)
+BACKUP_FEEDS = []
+
+# Les sources .pf locales sont souvent instables
+# Seules les sources internationales fiables sont gardées dans RSS_FEEDS
+
 
 # Configuration pour permettre l'ajout dynamique de feeds
 CUSTOM_FEEDS_COLLECTION = "custom_rss_feeds"

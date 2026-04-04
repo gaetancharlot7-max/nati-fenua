@@ -6,58 +6,40 @@
   "display": "standalone",
   "background_color": "#1A1A2E",
   "theme_color": "#FF6B35",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "scope": "/",
   "lang": "fr",
-  "categories": ["social", "lifestyle", "shopping"],
+  "categories": ["social", "lifestyle", "news"],
   "icons": [
     {
-      "src": "/icons/icon-72x72.png",
-      "sizes": "72x72",
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
-    },
-    {
-      "src": "/icons/icon-96x96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "maskable any"
-    },
-    {
-      "src": "/icons/icon-128x128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "maskable any"
-    },
-    {
-      "src": "/icons/icon-144x144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "maskable any"
-    },
-    {
-      "src": "/icons/icon-152x152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "maskable any"
-    },
-    {
-      "src": "/icons/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable any"
-    },
-    {
-      "src": "/icons/icon-384x384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/hui-fenua-playstore-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/logo-flag-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "screenshots": [
@@ -66,7 +48,7 @@
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Feed Fenua Social"
+      "label": "Feed Nati Fenua"
     }
   ],
   "shortcuts": [
@@ -75,23 +57,24 @@
       "short_name": "Créer",
       "description": "Créer une nouvelle publication",
       "url": "/create",
-      "icons": [{ "src": "/icons/create.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/icon-512x512.png", "sizes": "512x512" }]
     },
     {
       "name": "Messages",
       "short_name": "Chat",
       "description": "Voir vos messages",
       "url": "/chat",
-      "icons": [{ "src": "/icons/chat.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/icon-512x512.png", "sizes": "512x512" }]
     },
     {
-      "name": "Marketplace",
-      "short_name": "Marché",
-      "description": "Acheter et vendre",
-      "url": "/marketplace",
-      "icons": [{ "src": "/icons/shop.png", "sizes": "96x96" }]
+      "name": "Carte Mana",
+      "short_name": "Mana",
+      "description": "Voir les webcams et événements",
+      "url": "/mana",
+      "icons": [{ "src": "/icons/icon-512x512.png", "sizes": "512x512" }]
     }
   ],
   "related_applications": [],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "id": "com.natifenua.app"
 }

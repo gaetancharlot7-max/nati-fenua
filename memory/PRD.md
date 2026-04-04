@@ -1,7 +1,7 @@
 # Nati Fenua - Product Requirements Document
 
 ## Original Problem Statement
-Application de réseau social polynésien avec flux RSS réels, webcams en direct, authentification Google OAuth, messagerie, et système publicitaire en Francs Pacifiques (XPF).
+Application de réseau social polynésien avec flux RSS réels, webcams en direct, authentification Google OAuth, messagerie temps réel, et système publicitaire en Francs Pacifiques (XPF).
 
 ## Core Features Implemented
 
@@ -11,9 +11,9 @@ Application de réseau social polynésien avec flux RSS réels, webcams en direc
 - ✅ Password reset via email (Resend)
 
 ### Feed & Content
-- ✅ Flux RSS polynésiens (2x/jour, expire après 48h)
+- ✅ Flux RSS polynésiens (18 sources fiables, 2x/jour, expire après 48h)
 - ✅ Publications utilisateurs avec likes/commentaires
-- ✅ Modération de contenu
+- ✅ Modération hybride (filtres mots + préparé IA)
 
 ### Carte Mana
 - ✅ Webcams en direct (liens externes pour iframes bloquées)
@@ -36,6 +36,16 @@ Application de réseau social polynésien avec flux RSS réels, webcams en direc
 ### Internationalisation
 - ✅ Traductions FR/Tahitien (89 clés)
 - ✅ API `/api/translations/{lang}`
+
+### PWA (Progressive Web App)
+- ✅ Installable sur mobile
+- ✅ Notifications push (Firebase ready)
+- ✅ Service Worker amélioré
+
+### Modération
+- ✅ Filtres mots interdits FR/Tahitien
+- ✅ Détection spam automatique
+- ✅ Préparé pour IA (clé API optionnelle)
 
 ### Statistiques
 - ✅ Stats utilisateur `/api/users/{id}/statistics`
@@ -62,9 +72,8 @@ Application de réseau social polynésien avec flux RSS réels, webcams en direc
 - `/ws/v2/chat/{user_id}` - WebSocket chat
 
 ## Backlog (P3)
-- Application mobile Expo
-- Modération par IA
-- Nettoyage flux RSS morts
+- Application mobile Expo (App Store/Play Store)
+- Modération par IA avancée
 
 ## Last Update
-2026-04-04 - WebSockets, traductions, stats, Firebase/Resend, Stripe fix
+2026-04-04 - v3: Modération hybride, PWA améliorée, RSS nettoyé (18 sources)
