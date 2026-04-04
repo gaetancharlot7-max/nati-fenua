@@ -4428,13 +4428,14 @@ async def create_checkout_session(request: Request):
 
 class BoostMarkerRequest(BaseModel):
     marker_id: str
-    amount: int = 300  # 300 XPF
+    amount: int = 300  # 300 XPF default, 500 XPF for weekly woofing
     currency: str = "XPF"
-    boost_type: str  # roulotte or market
+    boost_type: str  # roulotte, market, or woofing
+    boost_duration: str = "standard"  # standard (8h/24h) or weekly (7 days, woofing only)
 
 @api_router.post("/payments/boost-marker")
 async def create_boost_checkout(request: Request, data: BoostMarkerRequest):
-    """Create a Stripe checkout session for boosting a marker (roulotte/market) - 300 XPF"""
+    """Create a Stripe checkout session for boosting a marker - 300 XPF (8h) or 500 XPF (1 week for woofing)"""
     if not STRIPE_AVAILABLE:
         raise HTTPException(status_code=503, detail="Paiement non disponible")
     
@@ -4454,13 +4455,29 @@ async def create_boost_checkout(request: Request, data: BoostMarkerRequest):
     if marker.get("marker_type") not in ["roulotte", "market", "woofing"]:
         raise HTTPException(status_code=400, detail="Seules les roulottes, bonnes affaires et woofing peuvent être boostées")
     
+    # Determine boost duration and price
+    # Roulotte/Market: 300 XPF = 8h
+    # Woofing: 300 XPF = 24h, 500 XPF = 1 week
+    if data.boost_duration == "weekly" and data.boost_type == "woofing":
+        boost_hours = 168  # 1 week
+        boost_price = 500
+        boost_description = "1 semaine"
+    elif data.boost_type == "woofing":
+        boost_hours = 24
+        boost_price = 300
+        boost_description = "24h"
+    else:
+        boost_hours = 8
+        boost_price = 300
+        boost_description = "8h"
+    
     stripe_api_key = os.environ.get("STRIPE_API_KEY")
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe non configuré")
     
     try:
-        # Convert 300 XPF to EUR (1 EUR ≈ 119.33 XPF)
-        amount_eur = round(data.amount / 119.33, 2)
+        # Convert XPF to EUR (1 EUR ≈ 119.33 XPF)
+        amount_eur = round(boost_price / 119.33, 2)
         amount_cents = int(amount_eur * 100)
         
         # Ensure minimum amount for Stripe (50 cents)
@@ -4481,7 +4498,7 @@ async def create_boost_checkout(request: Request, data: BoostMarkerRequest):
                     "unit_amount": amount_cents,
                     "product_data": {
                         "name": f"Boost {marker.get('title', 'Publication')}",
-                        "description": f"Booster votre {data.boost_type} pendant 24h sur Fenua Mana"
+                        "description": f"Booster votre {data.boost_type} pendant {boost_description} sur Fenua Mana"
                     }
                 },
                 "quantity": 1
@@ -4493,7 +4510,9 @@ async def create_boost_checkout(request: Request, data: BoostMarkerRequest):
                 "marker_id": data.marker_id,
                 "user_id": user.user_id,
                 "boost_type": data.boost_type,
-                "amount_xpf": str(data.amount)
+                "boost_duration": data.boost_duration,
+                "boost_hours": str(boost_hours),
+                "amount_xpf": str(boost_price)
             }
         )
         
@@ -4507,7 +4526,9 @@ async def create_boost_checkout(request: Request, data: BoostMarkerRequest):
             "marker_id": data.marker_id,
             "type": "marker_boost",
             "boost_type": data.boost_type,
-            "amount_xpf": data.amount,
+            "boost_duration": data.boost_duration,
+            "boost_hours": boost_hours,
+            "amount_xpf": boost_price,
             "amount_eur": amount_eur,
             "payment_status": "pending",
             "created_at": datetime.now(timezone.utc).isoformat()
@@ -4709,15 +4730,17 @@ async def stripe_webhook(request: Request):
             boost_transaction = await db.boost_transactions.find_one({"session_id": webhook_response.session_id})
             if boost_transaction and boost_transaction.get("payment_status") != "paid":
                 marker_id = boost_transaction.get("marker_id")
+                boost_hours = boost_transaction.get("boost_hours", 8)  # Default 8h for roulotte/market
                 
-                # Activate boost for 24 hours
-                boost_expires = datetime.now(timezone.utc) + timedelta(hours=24)
+                # Activate boost for the specified duration
+                boost_expires = datetime.now(timezone.utc) + timedelta(hours=boost_hours)
                 await db.markers.update_one(
                     {"marker_id": marker_id},
                     {"$set": {
                         "is_boosted": True,
                         "boost_expires_at": boost_expires.isoformat(),
-                        "boosted_at": datetime.now(timezone.utc).isoformat()
+                        "boosted_at": datetime.now(timezone.utc).isoformat(),
+                        "boost_hours": boost_hours
                     }}
                 )
                 
@@ -4728,7 +4751,7 @@ async def stripe_webhook(request: Request):
                         "activated_at": datetime.now(timezone.utc).isoformat()
                     }}
                 )
-                logger.info(f"Boost activated via webhook for marker {marker_id}")
+                logger.info(f"Boost activated via webhook for marker {marker_id} ({boost_hours}h)")
                 
                 # Send push notifications to users on the same island
                 marker = await db.markers.find_one({"marker_id": marker_id}, {"_id": 0})
@@ -4749,7 +4772,7 @@ async def stripe_webhook(request: Request):
                             all_tokens.extend(u.get("device_tokens", []))
                         
                         if all_tokens:
-                            emoji = "🚚" if marker_type == "roulotte" else "🛍️"
+                            emoji = "🚚" if marker_type == "roulotte" else "🌿" if marker_type == "woofing" else "🛍️"
                             await push_service.send_to_devices(
                                 all_tokens[:100],  # Limit to 100 devices
                                 f"{emoji} Nouveau sur Mana !",

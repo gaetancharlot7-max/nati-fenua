@@ -109,7 +109,7 @@ MARKER_TYPES = {
         "color": "#FF6B35",  # Orange
         "icon": "truck",
         "label": "Roulotte / Vendeur",
-        "duration_hours": 4
+        "duration_hours": 3
     },
     "accident": {
         "color": "#EF4444",  # Red
@@ -139,13 +139,13 @@ MARKER_TYPES = {
         "color": "#84CC16",  # Lime green
         "icon": "leaf",
         "label": "Woofing / Ferme bio",
-        "duration_hours": 168  # 1 week
+        "duration_hours": 24
     },
     "market": {
         "color": "#F59E0B",  # Amber
         "icon": "shopping-bag",
         "label": "Bonne affaire / Marché",
-        "duration_hours": 4
+        "duration_hours": 3
     },
     "carpool": {
         "color": "#10B981",  # Emerald

@@ -368,7 +368,7 @@ const PulsePage = () => {
     }
   };
 
-  // Handle Boost Marker - Opens Stripe checkout for 300 XPF
+  // Handle Boost Marker - Opens Stripe checkout
   const handleBoostMarker = async (marker) => {
     if (!user) {
       toast.error('Connectez-vous pour booster votre publication');
@@ -376,20 +376,26 @@ const PulsePage = () => {
       return;
     }
     
-    setShowBoostModal(marker);
+    setShowBoostModal({...marker, selectedBoostOption: 'standard'});
   };
 
-  const confirmBoost = async () => {
+  const confirmBoost = async (boostDuration = 'standard') => {
     if (!showBoostModal) return;
     
     setBoostLoading(true);
     try {
-      // Call backend to create Stripe checkout session for 300 XPF boost
+      // Determine price based on type and duration
+      // Roulotte/Market: 300 XPF = 8h
+      // Woofing: 300 XPF = 24h, 500 XPF = 1 week
+      const isWoofing = showBoostModal.marker_type === 'woofing';
+      const amount = (isWoofing && boostDuration === 'weekly') ? 500 : 300;
+      
       const response = await api.post('/payments/boost-marker', {
         marker_id: showBoostModal.marker_id,
-        amount: 300,
+        amount: amount,
         currency: 'XPF',
-        boost_type: showBoostModal.marker_type // roulotte or market
+        boost_type: showBoostModal.marker_type,
+        boost_duration: boostDuration
       });
       
       if (response.data.checkout_url) {
@@ -668,7 +674,9 @@ const PulsePage = () => {
                   <Zap size={32} className="text-[#1A1A2E]" />
                 </div>
                 <h2 className="text-2xl font-bold text-[#1A1A2E]">Booster ma publication</h2>
-                <p className="text-[#1A1A2E]/80 mt-1">Visibilité maximale pendant 24h</p>
+                <p className="text-[#1A1A2E]/80 mt-1">
+                  {showBoostModal.marker_type === 'woofing' ? 'Choisissez votre durée' : 'Visibilité maximale pendant 8h'}
+                </p>
               </div>
 
               {/* Content */}
@@ -701,10 +709,54 @@ const PulsePage = () => {
                   </div>
                 </div>
 
-                <div className="text-center mb-6">
-                  <p className="text-4xl font-bold text-[#FF6B35]">300 <span className="text-xl">XPF</span></p>
-                  <p className="text-sm text-gray-500">≈ 2,50 €</p>
-                </div>
+                {/* Boost Options */}
+                {showBoostModal.marker_type === 'woofing' ? (
+                  // Woofing: 2 options
+                  <div className="space-y-3 mb-6">
+                    <button
+                      onClick={() => confirmBoost('standard')}
+                      disabled={boostLoading}
+                      className="w-full p-4 rounded-2xl border-2 border-[#84CC16] bg-[#84CC16]/10 hover:bg-[#84CC16]/20 transition-colors text-left"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-bold text-[#1A1A2E]">Boost 24h</p>
+                          <p className="text-sm text-gray-500">Idéal pour une annonce rapide</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-[#84CC16]">300 <span className="text-sm">XPF</span></p>
+                          <p className="text-xs text-gray-400">≈ 2,50 €</p>
+                        </div>
+                      </div>
+                    </button>
+                    
+                    <button
+                      onClick={() => confirmBoost('weekly')}
+                      disabled={boostLoading}
+                      className="w-full p-4 rounded-2xl border-2 border-[#FF6B35] bg-gradient-to-r from-[#FF6B35]/10 to-[#FF1493]/10 hover:from-[#FF6B35]/20 hover:to-[#FF1493]/20 transition-colors text-left relative overflow-hidden"
+                    >
+                      <div className="absolute top-2 right-2 bg-[#FF6B35] text-white text-xs px-2 py-0.5 rounded-full">
+                        Recommandé
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-bold text-[#1A1A2E]">Boost 1 semaine</p>
+                          <p className="text-sm text-gray-500">Maximum de visibilité</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-[#FF6B35]">500 <span className="text-sm">XPF</span></p>
+                          <p className="text-xs text-gray-400">≈ 4,20 €</p>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                ) : (
+                  // Roulotte/Market: Single option 300 XPF = 8h
+                  <div className="text-center mb-6">
+                    <p className="text-4xl font-bold text-[#FF6B35]">300 <span className="text-xl">XPF</span></p>
+                    <p className="text-sm text-gray-500">≈ 2,50 € · Boost 8 heures</p>
+                  </div>
+                )}
 
                 <div className="flex gap-3">
                   <Button
@@ -715,21 +767,30 @@ const PulsePage = () => {
                   >
                     Annuler
                   </Button>
-                  <Button
-                    onClick={confirmBoost}
-                    disabled={boostLoading}
-                    className="flex-1 bg-gradient-to-r from-[#FFD700] to-[#FFA500] hover:from-[#FFC700] hover:to-[#FF9500] text-[#1A1A2E] font-bold rounded-xl py-6"
-                  >
-                    {boostLoading ? (
-                      <Loader2 size={20} className="animate-spin" />
-                    ) : (
-                      <>
-                        <Zap size={18} className="mr-2" />
-                        Payer et Booster
-                      </>
-                    )}
-                  </Button>
+                  {showBoostModal.marker_type !== 'woofing' && (
+                    <Button
+                      onClick={() => confirmBoost('standard')}
+                      disabled={boostLoading}
+                      className="flex-1 bg-gradient-to-r from-[#FFD700] to-[#FFA500] hover:from-[#FFC700] hover:to-[#FF9500] text-[#1A1A2E] font-bold rounded-xl py-6"
+                    >
+                      {boostLoading ? (
+                        <Loader2 size={20} className="animate-spin" />
+                      ) : (
+                        <>
+                          <Zap size={18} className="mr-2" />
+                          Payer et Booster
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
+                
+                {boostLoading && (
+                  <div className="mt-4 text-center">
+                    <Loader2 size={24} className="animate-spin mx-auto text-[#FF6B35]" />
+                    <p className="text-sm text-gray-500 mt-2">Redirection vers le paiement...</p>
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>
