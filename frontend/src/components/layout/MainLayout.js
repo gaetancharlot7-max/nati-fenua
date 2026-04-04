@@ -145,24 +145,36 @@ const MainLayout = ({ children, hideNav = false }) => {
           <div className="pt-4 border-t border-gray-100 mt-4">
             <p className="px-4 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Business</p>
             <Link
-              to="/business"
-              data-testid="nav-business"
+              to="/advertising"
+              data-testid="nav-advertising"
               className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
-                location.pathname === '/business' || location.pathname === '/create-ad'
+                location.pathname === '/advertising' || location.pathname.startsWith('/payment')
                   ? 'bg-gradient-to-r from-[#FF6B35]/10 to-[#00CED1]/10 text-[#FF6B35] font-semibold' 
                   : 'text-[#1A1A2E] hover:bg-gray-100'
               }`}
             >
               <Megaphone size={24} strokeWidth={1.5} />
-              <span>Publicité</span>
-              <span className="ml-auto px-2 py-0.5 rounded-full bg-gradient-to-r from-[#00CED1] to-[#006994] text-white text-xs font-bold">
-                PRO
+              <span>Publicité Pro</span>
+              <span className="ml-auto px-2 py-0.5 rounded-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white text-xs font-bold">
+                NEW
               </span>
             </Link>
           </div>
 
-          {/* Security Section - En bas du menu */}
-          <div className="pt-4 border-t border-gray-100 mt-4">
+          {/* Settings Section - En bas du menu */}
+          <div className="pt-4 border-t border-gray-100 mt-4 space-y-1">
+            <Link
+              to="/settings/notifications"
+              data-testid="nav-notifications-settings"
+              className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
+                location.pathname === '/settings/notifications'
+                  ? 'bg-gradient-to-r from-[#FF6B35]/10 to-[#00CED1]/10 text-[#FF6B35] font-semibold' 
+                  : 'text-[#1A1A2E] hover:bg-gray-100'
+              }`}
+            >
+              <Bell size={24} strokeWidth={1.5} />
+              <span>Paramètres Notifications</span>
+            </Link>
             <Link
               to="/settings/security"
               data-testid="nav-security"

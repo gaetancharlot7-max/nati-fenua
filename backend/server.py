@@ -23,6 +23,9 @@ import json
 import shutil
 import base64
 
+# Import Stripe checkout
+from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
+
 # Import security module
 from security import (
     moderate_text_content, moderate_media_url,
@@ -4240,6 +4243,405 @@ async def admin_get_webcams(request: Request):
     
     from fenua_pulse import WEBCAMS
     return {"webcams": WEBCAMS, "total": len(WEBCAMS)}
+
+# ==================== ADVERTISING PACKAGES & STRIPE PAYMENTS ====================
+
+# Fixed advertising packages in XPF (Pacific Franc)
+AD_PACKAGES = {
+    # Post Sponsorisé
+    "post_1day": {"name": "Post Sponsorisé - 1 jour", "type": "post_sponsorise", "amount": 300.0, "currency": "xpf", "duration_days": 1},
+    "post_7days": {"name": "Post Sponsorisé - 7 jours", "type": "post_sponsorise", "amount": 1500.0, "currency": "xpf", "duration_days": 7},
+    "post_30days": {"name": "Post Sponsorisé - 30 jours", "type": "post_sponsorise", "amount": 5000.0, "currency": "xpf", "duration_days": 30},
+    
+    # Compte Promu
+    "account_1day": {"name": "Compte Promu - 1 jour", "type": "compte_promu", "amount": 500.0, "currency": "xpf", "duration_days": 1},
+    "account_7days": {"name": "Compte Promu - 7 jours", "type": "compte_promu", "amount": 2500.0, "currency": "xpf", "duration_days": 7},
+    "account_30days": {"name": "Compte Promu - 30 jours", "type": "compte_promu", "amount": 8000.0, "currency": "xpf", "duration_days": 30},
+    
+    # Story Ad
+    "story_1day": {"name": "Story Ad - 1 jour", "type": "story_ad", "amount": 800.0, "currency": "xpf", "duration_days": 1},
+    "story_7days": {"name": "Story Ad - 7 jours", "type": "story_ad", "amount": 4000.0, "currency": "xpf", "duration_days": 7},
+    "story_30days": {"name": "Story Ad - 30 jours", "type": "story_ad", "amount": 12000.0, "currency": "xpf", "duration_days": 30},
+    
+    # Mana Alert (notifications)
+    "mana_alert_1": {"name": "Mana Alert - 1 notification", "type": "mana_alert", "amount": 200.0, "currency": "xpf", "notifications": 1},
+    "mana_alert_5": {"name": "Mana Alert - Pack 5 notifications", "type": "mana_alert", "amount": 800.0, "currency": "xpf", "notifications": 5},
+    "mana_alert_10": {"name": "Mana Alert - Pack 10 notifications", "type": "mana_alert", "amount": 1500.0, "currency": "xpf", "notifications": 10},
+}
+
+@api_router.get("/advertising/packages")
+async def get_advertising_packages():
+    """Get all available advertising packages"""
+    packages = []
+    for package_id, details in AD_PACKAGES.items():
+        packages.append({
+            "package_id": package_id,
+            **details
+        })
+    return {"packages": packages}
+
+@api_router.post("/payments/checkout")
+async def create_checkout_session(request: Request):
+    """Create a Stripe checkout session for advertising payment"""
+    body = await request.json()
+    package_id = body.get("package_id")
+    origin_url = body.get("origin_url")
+    user_id = body.get("user_id")
+    post_id = body.get("post_id")  # Optional: for post sponsorise
+    marker_id = body.get("marker_id")  # Optional: for mana alert
+    island = body.get("island")  # Optional: for mana alert targeting
+    
+    if not package_id or package_id not in AD_PACKAGES:
+        raise HTTPException(status_code=400, detail="Package invalide")
+    
+    if not origin_url:
+        raise HTTPException(status_code=400, detail="Origin URL requis")
+    
+    package = AD_PACKAGES[package_id]
+    
+    # Convert XPF to EUR for Stripe (1 EUR ≈ 119.33 XPF)
+    xpf_to_eur = 119.33
+    amount_eur = round(package["amount"] / xpf_to_eur, 2)
+    
+    # Build URLs
+    success_url = f"{origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{origin_url}/payment/cancel"
+    
+    # Initialize Stripe
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe non configuré")
+    
+    host_url = str(request.base_url)
+    webhook_url = f"{host_url}api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+    
+    # Create checkout session
+    metadata = {
+        "package_id": package_id,
+        "package_name": package["name"],
+        "package_type": package["type"],
+        "amount_xpf": str(package["amount"]),
+        "user_id": user_id or "",
+        "post_id": post_id or "",
+        "marker_id": marker_id or "",
+        "island": island or ""
+    }
+    
+    checkout_request = CheckoutSessionRequest(
+        amount=amount_eur,
+        currency="eur",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata=metadata
+    )
+    
+    try:
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        # Create payment transaction record
+        transaction = {
+            "transaction_id": f"tx_{uuid.uuid4().hex[:12]}",
+            "session_id": session.session_id,
+            "user_id": user_id,
+            "package_id": package_id,
+            "package_name": package["name"],
+            "package_type": package["type"],
+            "amount_xpf": package["amount"],
+            "amount_eur": amount_eur,
+            "currency": "eur",
+            "post_id": post_id,
+            "marker_id": marker_id,
+            "island": island,
+            "payment_status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.payment_transactions.insert_one(transaction)
+        
+        logger.info(f"Checkout session created: {session.session_id} for package {package_id}")
+        
+        return {
+            "checkout_url": session.url,
+            "session_id": session.session_id,
+            "amount_xpf": package["amount"],
+            "amount_eur": amount_eur
+        }
+        
+    except Exception as e:
+        logger.error(f"Stripe checkout error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur de paiement: {str(e)}")
+
+@api_router.get("/payments/status/{session_id}")
+async def get_payment_status(session_id: str):
+    """Get payment status for a checkout session"""
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe non configuré")
+    
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url="")
+    
+    try:
+        status = await stripe_checkout.get_checkout_status(session_id)
+        
+        # Update transaction in database
+        transaction = await db.payment_transactions.find_one({"session_id": session_id})
+        
+        if transaction and transaction.get("payment_status") != "paid":
+            if status.payment_status == "paid":
+                # Payment successful - activate the advertising package
+                await db.payment_transactions.update_one(
+                    {"session_id": session_id},
+                    {"$set": {
+                        "payment_status": "paid",
+                        "paid_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                
+                # Activate the package
+                await activate_advertising_package(transaction)
+                
+                logger.info(f"Payment completed for session: {session_id}")
+            elif status.status == "expired":
+                await db.payment_transactions.update_one(
+                    {"session_id": session_id},
+                    {"$set": {"payment_status": "expired"}}
+                )
+        
+        return {
+            "status": status.status,
+            "payment_status": status.payment_status,
+            "amount_total": status.amount_total,
+            "currency": status.currency,
+            "metadata": status.metadata
+        }
+        
+    except Exception as e:
+        logger.error(f"Payment status error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+
+async def activate_advertising_package(transaction: dict):
+    """Activate an advertising package after successful payment"""
+    package_type = transaction.get("package_type")
+    user_id = transaction.get("user_id")
+    package_id = transaction.get("package_id")
+    
+    package = AD_PACKAGES.get(package_id, {})
+    duration_days = package.get("duration_days", 1)
+    
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(days=duration_days)
+    
+    if package_type == "post_sponsorise":
+        # Mark post as sponsored
+        post_id = transaction.get("post_id")
+        if post_id:
+            await db.posts.update_one(
+                {"post_id": post_id},
+                {"$set": {
+                    "is_sponsored": True,
+                    "sponsored_until": expires_at.isoformat(),
+                    "sponsored_at": now.isoformat()
+                }}
+            )
+            
+    elif package_type == "compte_promu":
+        # Mark account as promoted
+        if user_id:
+            await db.users.update_one(
+                {"user_id": user_id},
+                {"$set": {
+                    "is_promoted": True,
+                    "promoted_until": expires_at.isoformat(),
+                    "promoted_at": now.isoformat()
+                }}
+            )
+            
+    elif package_type == "story_ad":
+        # Create story ad slot
+        story_ad = {
+            "ad_id": f"story_ad_{uuid.uuid4().hex[:8]}",
+            "user_id": user_id,
+            "transaction_id": transaction.get("transaction_id"),
+            "active": True,
+            "expires_at": expires_at.isoformat(),
+            "created_at": now.isoformat()
+        }
+        await db.story_ads.insert_one(story_ad)
+        
+    elif package_type == "mana_alert":
+        # Add notification credits
+        notifications = package.get("notifications", 1)
+        await db.users.update_one(
+            {"user_id": user_id},
+            {"$inc": {"mana_alert_credits": notifications}}
+        )
+    
+    logger.info(f"Activated package {package_type} for user {user_id}")
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhook events"""
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_api_key:
+        return {"error": "Stripe not configured"}
+    
+    body = await request.body()
+    signature = request.headers.get("Stripe-Signature")
+    
+    host_url = str(request.base_url)
+    webhook_url = f"{host_url}api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+    
+    try:
+        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        
+        if webhook_response.payment_status == "paid":
+            transaction = await db.payment_transactions.find_one({"session_id": webhook_response.session_id})
+            if transaction and transaction.get("payment_status") != "paid":
+                await db.payment_transactions.update_one(
+                    {"session_id": webhook_response.session_id},
+                    {"$set": {
+                        "payment_status": "paid",
+                        "paid_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                await activate_advertising_package(transaction)
+        
+        return {"received": True}
+    except Exception as e:
+        logger.error(f"Webhook error: {str(e)}")
+        return {"error": str(e)}
+
+# ==================== MANA ALERT NOTIFICATIONS ====================
+
+@api_router.post("/mana/alert")
+async def send_mana_alert(request: Request):
+    """Send a Mana Alert notification to users on a specific island"""
+    body = await request.json()
+    user_id = body.get("user_id")
+    island = body.get("island")
+    title = body.get("title")
+    message = body.get("message")
+    marker_id = body.get("marker_id")
+    
+    if not all([user_id, island, title, message]):
+        raise HTTPException(status_code=400, detail="Données manquantes")
+    
+    # Check user has credits
+    user = await db.users.find_one({"user_id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    credits = user.get("mana_alert_credits", 0)
+    if credits < 1:
+        raise HTTPException(status_code=402, detail="Crédits Mana Alert insuffisants")
+    
+    # Deduct credit
+    await db.users.update_one(
+        {"user_id": user_id},
+        {"$inc": {"mana_alert_credits": -1}}
+    )
+    
+    # Get users on this island who have notifications enabled
+    recipients = await db.users.find({
+        "preferred_island": island,
+        "notifications_mana_alert": {"$ne": False}
+    }, {"user_id": 1}).to_list(1000)
+    
+    # Create notifications for all recipients
+    notifications = []
+    now = datetime.now(timezone.utc).isoformat()
+    
+    for recipient in recipients:
+        if recipient["user_id"] != user_id:  # Don't notify sender
+            notifications.append({
+                "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                "user_id": recipient["user_id"],
+                "type": "mana_alert",
+                "title": title,
+                "message": message,
+                "from_user_id": user_id,
+                "island": island,
+                "marker_id": marker_id,
+                "read": False,
+                "created_at": now
+            })
+    
+    if notifications:
+        await db.notifications.insert_many(notifications)
+    
+    # Log the alert
+    alert_log = {
+        "alert_id": f"alert_{uuid.uuid4().hex[:12]}",
+        "user_id": user_id,
+        "island": island,
+        "title": title,
+        "message": message,
+        "marker_id": marker_id,
+        "recipients_count": len(notifications),
+        "created_at": now
+    }
+    await db.mana_alerts.insert_one(alert_log)
+    
+    logger.info(f"Mana Alert sent to {len(notifications)} users on {island}")
+    
+    return {
+        "success": True,
+        "recipients_count": len(notifications),
+        "remaining_credits": credits - 1
+    }
+
+@api_router.get("/mana/alert/credits/{user_id}")
+async def get_mana_alert_credits(user_id: str):
+    """Get user's Mana Alert credits"""
+    user = await db.users.find_one({"user_id": user_id}, {"mana_alert_credits": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    return {"credits": user.get("mana_alert_credits", 0)}
+
+# ==================== USER NOTIFICATION SETTINGS ====================
+
+@api_router.get("/users/{user_id}/notification-settings")
+async def get_notification_settings(user_id: str):
+    """Get user's notification settings"""
+    user = await db.users.find_one({"user_id": user_id}, {
+        "notifications_mana_alert": 1,
+        "notifications_promo": 1,
+        "notifications_social": 1,
+        "notifications_messages": 1
+    })
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    return {
+        "notifications_mana_alert": user.get("notifications_mana_alert", True),
+        "notifications_promo": user.get("notifications_promo", True),
+        "notifications_social": user.get("notifications_social", True),
+        "notifications_messages": user.get("notifications_messages", True)
+    }
+
+@api_router.put("/users/{user_id}/notification-settings")
+async def update_notification_settings(user_id: str, request: Request):
+    """Update user's notification settings"""
+    body = await request.json()
+    
+    allowed_settings = ["notifications_mana_alert", "notifications_promo", "notifications_social", "notifications_messages"]
+    updates = {k: v for k, v in body.items() if k in allowed_settings}
+    
+    if not updates:
+        raise HTTPException(status_code=400, detail="Aucun paramètre valide")
+    
+    result = await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": updates}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    return {"success": True, "updated": updates}
 
 # ==================== CACHE & PERFORMANCE ADMIN ====================
 

@@ -1,206 +1,227 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, Heart, MessageCircle, UserPlus, Film, Radio, ShoppingBag, Megaphone, ArrowLeft, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Bell, BellOff, MapPin, Megaphone, Heart, MessageCircle, ArrowLeft, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Switch } from '../components/ui/switch';
-import { notificationsApi } from '../lib/api';
 import { toast } from 'sonner';
+import { useAuth } from '../contexts/AuthContext';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const NotificationSettingsPage = () => {
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [settings, setSettings] = useState({
+    notifications_mana_alert: true,
+    notifications_promo: true,
+    notifications_social: true,
+    notifications_messages: true
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState({
-    friend_posts: true,
-    likes: true,
-    comments: true,
-    follows: true,
-    messages: true,
-    live_streams: true,
-    marketing: false
-  });
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    if (user?.user_id) {
+      loadSettings();
+    }
+  }, [user]);
 
-  const fetchSettings = async () => {
+  const loadSettings = async () => {
     try {
-      const response = await notificationsApi.getSettings();
-      setSettings(response.data);
+      const response = await fetch(`${API_URL}/api/users/${user.user_id}/notification-settings`);
+      const data = await response.json();
+      setSettings(data);
     } catch (error) {
-      console.error('Error fetching settings:', error);
-      toast.error('Erreur lors du chargement des paramètres');
+      console.error('Error loading settings:', error);
+      toast.error('Erreur de chargement');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleToggle = async (key) => {
-    const newValue = !settings[key];
-    setSettings({ ...settings, [key]: newValue });
-    
+  const updateSetting = async (key, value) => {
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings);
     setSaving(true);
+
     try {
-      await notificationsApi.updateSettings({ [key]: newValue });
-      toast.success('Paramètre mis à jour');
+      const response = await fetch(`${API_URL}/api/users/${user.user_id}/notification-settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: value })
+      });
+
+      if (response.ok) {
+        toast.success('Paramètre mis à jour');
+      } else {
+        throw new Error('Update failed');
+      }
     } catch (error) {
-      setSettings({ ...settings, [key]: !newValue }); // Revert
-      toast.error('Erreur lors de la mise à jour');
+      // Revert on error
+      setSettings(settings);
+      toast.error('Erreur de mise à jour');
     } finally {
       setSaving(false);
     }
   };
 
-  const notificationTypes = [
+  const notificationOptions = [
     {
-      key: 'friend_posts',
-      icon: Film,
-      title: 'Publications d\'amis',
-      description: 'Recevoir une notification quand vos amis publient du contenu',
-      color: 'from-[#FF6B35] to-[#FF1493]'
+      key: 'notifications_mana_alert',
+      title: 'Alertes Mana',
+      description: 'Notifications des commerces et événements de votre île',
+      icon: MapPin,
+      color: 'text-orange-500',
+      bgColor: 'bg-orange-500/10'
     },
     {
-      key: 'likes',
-      icon: Heart,
-      title: 'J\'aime',
-      description: 'Quand quelqu\'un aime votre publication',
-      color: 'from-red-400 to-pink-500'
-    },
-    {
-      key: 'comments',
-      icon: MessageCircle,
-      title: 'Commentaires',
-      description: 'Quand quelqu\'un commente votre publication',
-      color: 'from-blue-400 to-cyan-500'
-    },
-    {
-      key: 'follows',
-      icon: UserPlus,
-      title: 'Nouveaux amis',
-      description: 'Quand quelqu\'un vous ajoute en ami',
-      color: 'from-green-400 to-emerald-500'
-    },
-    {
-      key: 'messages',
-      icon: MessageCircle,
-      title: 'Messages',
-      description: 'Notifications pour les nouveaux messages',
-      color: 'from-purple-400 to-violet-500'
-    },
-    {
-      key: 'live_streams',
-      icon: Radio,
-      title: 'Lives',
-      description: 'Quand vos amis démarrent un live',
-      color: 'from-rose-400 to-red-500'
-    },
-    {
-      key: 'marketing',
+      key: 'notifications_promo',
+      title: 'Promotions & Offres',
+      description: 'Offres spéciales et promotions des partenaires',
       icon: Megaphone,
-      title: 'Promotions',
-      description: 'Offres spéciales et actualités de Nati Fenua',
-      color: 'from-amber-400 to-orange-500'
+      color: 'text-purple-500',
+      bgColor: 'bg-purple-500/10'
+    },
+    {
+      key: 'notifications_social',
+      title: 'Activité sociale',
+      description: 'Likes, commentaires et nouveaux abonnés',
+      icon: Heart,
+      color: 'text-pink-500',
+      bgColor: 'bg-pink-500/10'
+    },
+    {
+      key: 'notifications_messages',
+      title: 'Messages privés',
+      description: 'Nouveaux messages dans vos conversations',
+      icon: MessageCircle,
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-500/10'
     }
   ];
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#FF6B35] border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-gradient-to-b from-[#FFF5E6] to-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[#FF6B35] animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 safe-bottom">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-            className="rounded-full"
-          >
-            <ArrowLeft size={24} />
-          </Button>
+    <div className="min-h-screen bg-gradient-to-b from-[#FFF5E6] to-white pb-20">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-4">
+          <Link to="/profile" className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+            <ArrowLeft size={24} className="text-[#1A1A2E]" />
+          </Link>
           <div>
-            <h1 className="text-2xl font-serif text-[#1A1A2E]">Paramètres de notifications</h1>
-            <p className="text-gray-500 text-sm mt-1">Choisissez ce que vous souhaitez recevoir</p>
+            <h1 className="text-xl font-bold text-[#1A1A2E]">Notifications</h1>
+            <p className="text-sm text-gray-500">Gérez vos préférences de notifications</p>
           </div>
         </div>
+      </div>
 
-        {/* Info Banner */}
-        <div className="bg-gradient-to-r from-[#FF6B35]/10 to-[#FF1493]/10 rounded-2xl p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493] flex items-center justify-center flex-shrink-0">
-              <Bell size={20} className="text-white" />
+      {/* Content */}
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        {/* Main Toggle */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493] flex items-center justify-center">
+              <Bell size={28} className="text-white" />
             </div>
-            <div>
-              <h3 className="font-semibold text-[#1A1A2E]">Restez connecté avec vos amis</h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Activez les notifications pour ne rien manquer de ce que vos amis partagent sur Nati Fenua
+            <div className="flex-1">
+              <h2 className="text-lg font-bold text-[#1A1A2E]">Notifications push</h2>
+              <p className="text-sm text-gray-500">
+                Activez ou désactivez les notifications sur votre appareil
               </p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Notification Settings */}
-        <div className="space-y-3">
-          {notificationTypes.map((type) => (
-            <div
-              key={type.key}
-              className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${type.color} flex items-center justify-center`}>
-                    <type.icon size={22} className="text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-[#1A1A2E]">{type.title}</h3>
-                    <p className="text-sm text-gray-500">{type.description}</p>
-                  </div>
+        {/* Individual Settings */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+          <div className="p-4 border-b border-gray-100">
+            <h3 className="font-semibold text-[#1A1A2E]">Types de notifications</h3>
+          </div>
+
+          <div className="divide-y divide-gray-100">
+            {notificationOptions.map((option, index) => (
+              <motion.div
+                key={option.key}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="p-4 flex items-center gap-4"
+              >
+                <div className={`w-12 h-12 rounded-xl ${option.bgColor} flex items-center justify-center`}>
+                  <option.icon size={24} className={option.color} />
                 </div>
-                <Switch
-                  checked={settings[type.key]}
-                  onCheckedChange={() => handleToggle(type.key)}
+                <div className="flex-1">
+                  <p className="font-medium text-[#1A1A2E]">{option.title}</p>
+                  <p className="text-sm text-gray-500">{option.description}</p>
+                </div>
+                <button
+                  onClick={() => updateSetting(option.key, !settings[option.key])}
                   disabled={saving}
-                  data-testid={`toggle-${type.key}`}
-                />
-              </div>
-            </div>
-          ))}
+                  className={`w-14 h-8 rounded-full transition-all relative ${
+                    settings[option.key] 
+                      ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF1493]' 
+                      : 'bg-gray-200'
+                  }`}
+                >
+                  <div className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow transition-transform ${
+                    settings[option.key] ? 'translate-x-7' : 'translate-x-1'
+                  }`} />
+                </button>
+              </motion.div>
+            ))}
+          </div>
         </div>
 
-        {/* Push Notification CTA */}
-        <div className="mt-8 bg-gradient-to-r from-[#00CED1] to-[#006994] rounded-2xl p-6 text-white">
-          <h3 className="text-lg font-semibold mb-2">Notifications push sur téléphone</h3>
-          <p className="text-white/80 text-sm mb-4">
-            Installez Nati Fenua sur votre téléphone pour recevoir des notifications même quand l'app est fermée
-          </p>
-          <Button
-            onClick={() => {
-              if ('Notification' in window) {
-                Notification.requestPermission().then(permission => {
-                  if (permission === 'granted') {
-                    toast.success('Notifications activées !');
-                  }
-                });
-              }
-            }}
-            className="bg-white text-[#006994] hover:bg-white/90"
-          >
-            <Bell size={18} className="mr-2" />
-            Activer les notifications push
-          </Button>
-        </div>
-      </motion.div>
+        {/* Info Box */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mt-6 bg-blue-50 rounded-2xl p-4 border border-blue-100"
+        >
+          <div className="flex items-start gap-3">
+            <BellOff size={20} className="text-blue-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-blue-900">Besoin de calme ?</p>
+              <p className="text-sm text-blue-700 mt-1">
+                Désactivez les notifications que vous ne souhaitez pas recevoir. 
+                Vous pouvez les réactiver à tout moment.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Mana Alert Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mt-4 bg-orange-50 rounded-2xl p-4 border border-orange-100"
+        >
+          <div className="flex items-start gap-3">
+            <MapPin size={20} className="text-orange-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-orange-900">À propos des Alertes Mana</p>
+              <p className="text-sm text-orange-700 mt-1">
+                Les Alertes Mana sont des notifications envoyées par les commerces et 
+                organisateurs d'événements de votre île. Elles vous informent des 
+                promotions, nouveautés et événements locaux.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 };

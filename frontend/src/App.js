@@ -38,6 +38,9 @@ const ChatPage = lazy(() => import('./pages/ChatPage'));
 const CreateAdPage = lazy(() => import('./pages/CreateAdPage'));
 const SecuritySettingsPage = lazy(() => import('./pages/SecuritySettingsPage'));
 const NotificationSettingsPage = lazy(() => import('./pages/NotificationSettingsPage'));
+const AdvertisingPage = lazy(() => import('./pages/AdvertisingPage'));
+const PaymentSuccessPage = lazy(() => import('./pages/PaymentPages').then(m => ({ default: m.PaymentSuccessPage })));
+const PaymentCancelPage = lazy(() => import('./pages/PaymentPages').then(m => ({ default: m.PaymentCancelPage })));
 const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage'));
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'));
 const EditProfilePage = lazy(() => import('./pages/EditProfilePage'));
@@ -128,6 +131,9 @@ function AppContent() {
         <Route path="/settings/security" element={<ProtectedRoute><MainLayout><SecuritySettingsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/settings/notifications" element={<ProtectedRoute><MainLayout><NotificationSettingsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/settings/privacy" element={<ProtectedRoute><MainLayout><GDPRSettingsPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/advertising" element={<ProtectedRoute><MainLayout><AdvertisingPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/payment/success" element={<PaymentSuccessPage />} />
+        <Route path="/payment/cancel" element={<PaymentCancelPage />} />
         <Route path="/mana" element={<ProtectedRoute><MainLayout><ManaPage /></MainLayout></ProtectedRoute>} />
         <Route path="/pulse" element={<Navigate to="/mana" replace />} />
         <Route path="/vendor/dashboard" element={<ProtectedRoute><MainLayout><VendorDashboardPage /></MainLayout></ProtectedRoute>} />
