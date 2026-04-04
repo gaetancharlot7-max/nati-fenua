@@ -1,4 +1,4 @@
-# RSS Feed Integration for Hui Fenua
+# RSS Feed Integration for Nati Fenua
 # Fetches real news from Polynesian media sources
 
 import asyncio
@@ -13,16 +13,16 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
-# Real Polynesian RSS feeds - Extended list with reliable sources
+# Real Polynesian RSS feeds - Only WORKING sources
 RSS_FEEDS = [
-    # === MÉDIAS D'ACTUALITÉ LOCAUX ===
+    # === MÉDIAS D'ACTUALITÉ FIABLES ===
     {
         "name": "Tahiti Infos",
         "url": "https://www.tahiti-infos.com/xml/syndication.rss",
         "island": "tahiti",
         "account_id": "tahiti_infos",
         "logo": "https://www.tahiti-infos.com/photo/titre_5283164.png",
-        "categories": ["actualité", "politique", "société", "économie"],
+        "categories": ["actualité", "politique", "société"],
         "feed_type": "media"
     },
     {
@@ -43,63 +43,14 @@ RSS_FEEDS = [
         "categories": ["actualité", "outre-mer", "économie"],
         "feed_type": "media"
     },
-    
-    # === SOURCES INTERNATIONALES PACIFIQUE (Fiables) ===
-    {
-        "name": "RNZ Pacific",
-        "url": "https://www.rnz.co.nz/rss/pacific.xml",
-        "island": "tahiti",
-        "account_id": "rnz_pacific",
-        "logo": "https://www.rnz.co.nz/x/logos/rnz-logo-og.png",
-        "categories": ["actualité", "pacifique", "international"],
-        "feed_type": "media"
-    },
-    {
-        "name": "Pacific Islands News",
-        "url": "https://www.pina.com.fj/feed/",
-        "island": "tahiti",
-        "account_id": "pacific_news",
-        "logo": "https://www.pina.com.fj/wp-content/uploads/pina-logo.png",
-        "categories": ["actualité", "pacifique", "international"],
-        "feed_type": "media"
-    },
-    {
-        "name": "France Info Outre-Mer",
-        "url": "https://www.francetvinfo.fr/monde/outre-mer.rss",
-        "island": "tahiti",
-        "account_id": "franceinfo_om",
-        "logo": "https://www.francetvinfo.fr/static/common/img/logos/franceinfo.png",
-        "categories": ["actualité", "outre-mer", "france"],
-        "feed_type": "media"
-    },
     {
         "name": "Le Monde Pacifique",
         "url": "https://www.lemonde.fr/asie-pacifique/rss_full.xml",
         "island": "tahiti",
         "account_id": "lemonde_pacifique",
         "logo": "https://www.lemonde.fr/img/favicon/icon-180.png",
-        "categories": ["actualité", "international", "asie-pacifique"],
+        "categories": ["actualité", "international"],
         "feed_type": "media"
-    },
-    
-    # === TOURISME & VOYAGE ===
-    {
-        "name": "Lonely Planet Pacifique",
-        "url": "https://www.lonelyplanet.com/news/feed",
-        "island": "tahiti",
-        "account_id": "lonely_planet",
-        "logo": "https://www.lonelyplanet.com/images/favicon.ico",
-        "categories": ["voyage", "tourisme", "découverte"],
-        "feed_type": "tourisme"
-    },
-    {
-        "name": "Travel + Leisure",
-        "url": "https://www.travelandleisure.com/feeds/all.rss",
-        "island": "tahiti",
-        "account_id": "travel_leisure",
-        "logo": "https://www.travelandleisure.com/favicon.ico",
-        "categories": ["voyage", "luxe", "destinations"],
-        "feed_type": "tourisme"
     },
     
     # === SPORT & SURF ===
@@ -122,7 +73,7 @@ RSS_FEEDS = [
         "feed_type": "sport"
     },
     
-    # === ENVIRONNEMENT & OCÉAN ===
+    # === ENVIRONNEMENT ===
     {
         "name": "Ocean Conservancy",
         "url": "https://oceanconservancy.org/feed/",
@@ -132,80 +83,27 @@ RSS_FEEDS = [
         "categories": ["environnement", "océan", "conservation"],
         "feed_type": "environnement"
     },
-    {
-        "name": "National Geographic Ocean",
-        "url": "https://www.nationalgeographic.com/environment/topic/oceans.rss",
-        "island": "tahiti",
-        "account_id": "natgeo_ocean",
-        "logo": "https://www.nationalgeographic.com/favicon.ico",
-        "categories": ["environnement", "océan", "science"],
-        "feed_type": "environnement"
-    },
     
-    # === CULTURE & ART ===
-    {
-        "name": "UNESCO Patrimoine",
-        "url": "https://whc.unesco.org/en/rss/",
-        "island": "tahiti",
-        "account_id": "unesco_patrimoine",
-        "logo": "https://whc.unesco.org/favicon.ico",
-        "categories": ["culture", "patrimoine", "unesco"],
-        "feed_type": "culture"
-    },
-    
-    # === MÉTÉO & CLIMAT ===
-    {
-        "name": "Météo France Outre-Mer",
-        "url": "https://meteofrance.com/rss/outremer",
-        "island": "tahiti",
-        "account_id": "meteo_france_om",
-        "logo": "https://meteofrance.com/favicon.ico",
-        "categories": ["météo", "climat", "prévisions"],
-        "feed_type": "meteo"
-    },
-    
-    # === ÉCONOMIE ===
-    {
-        "name": "Les Échos Outre-Mer",
-        "url": "https://www.lesechos.fr/rss/rss_outre_mer.xml",
-        "island": "tahiti",
-        "account_id": "lesechos_om",
-        "logo": "https://www.lesechos.fr/favicon.ico",
-        "categories": ["économie", "business", "entreprise"],
-        "feed_type": "economie"
-    },
-    
-    # === SOURCES LOCALES ACTIVES ===
+    # === SOURCES LOCALES (si disponibles) ===
     {
         "name": "TNTV",
         "url": "https://www.tntv.pf/feed/",
         "island": "tahiti",
         "account_id": "tntv_polynesie",
         "logo": "https://www.tntv.pf/wp-content/uploads/2019/07/tntv-logo.png",
-        "categories": ["actualité", "télévision", "sport"],
-        "feed_type": "media"
-    },
-    {
-        "name": "Actu.fr Polynésie",
-        "url": "https://actu.fr/polynesie-francaise/rss.xml",
-        "island": "tahiti",
-        "account_id": "actu_polynesie",
-        "logo": "https://actu.fr/build/images/logo-actu.svg",
-        "categories": ["actualité", "local", "société"],
+        "categories": ["actualité", "télévision"],
         "feed_type": "media"
     },
 ]
 
-# Note: Sources suivantes supprimées car inactives:
-# - tahitinuitv.pf (erreurs SSL/404)
-# - meteofrance.pf (pas de flux RSS valide)
-# - windy.com/rss (n'existe pas)
-# - surf-report.com/rss (n'existe pas)
-# - magicseaweed.com/rss (n'existe pas)
-# - surfline.com/rss (n'existe pas)
-# - Autres domaines .pf locaux souvent indisponibles
+# Note: Les sources .pf locales sont souvent instables
+# Ces sources ont été supprimées car inactives:
+# - tahitinuitv.pf, meteofrance.pf, voile.pf, vaanews.pf, natation.pf
+# - surfingpolynesie.pf, tahitisurfclub.pf, emploi.pf, pole-emploi.pf
+# - environnement.pf, heiva.org, maisondelaculture.pf, museetahiti.pf
+# - farevanaa.pf, fifo-tahiti.com, sefi.pf, tahititourisme.pf, airtahitimagazine.com
 
-# Sources de secours fiables (non utilisées actuellement)
+# Sources de secours
 BACKUP_FEEDS = []
 
 # Les sources .pf locales sont souvent instables
