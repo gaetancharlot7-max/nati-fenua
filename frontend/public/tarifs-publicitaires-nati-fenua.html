@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarifs Publicitaires - Nati Fenua</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        @page {
+            size: A4;
+            margin: 20mm;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #FFF5E6 0%, #FFFFFF 100%);
+            color: #1A1A2E;
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #FF6B35;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #FF6B35, #FF1493, #00CED1);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            transform: rotate(3deg);
+        }
+        
+        .logo-text h1 {
+            font-size: 36px;
+            font-weight: 900;
+        }
+        
+        .logo-text h1 span:first-child {
+            background: linear-gradient(90deg, #FF6B35, #FF1493);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .logo-text p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        h2 {
+            color: #FF6B35;
+            font-size: 24px;
+            margin: 30px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #FFE4D6;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: linear-gradient(135deg, #FF6B35, #FF1493);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:hover {
+            background: #FFF5E6;
+        }
+        
+        .price {
+            font-size: 20px;
+            font-weight: bold;
+            color: #FF6B35;
+        }
+        
+        .price-eur {
+            font-size: 12px;
+            color: #999;
+            font-weight: normal;
+        }
+        
+        .offer-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            margin: 15px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #FF6B35;
+        }
+        
+        .offer-card h3 {
+            color: #1A1A2E;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .offer-card .price-tag {
+            font-size: 28px;
+            font-weight: bold;
+            color: #FF6B35;
+            margin: 10px 0;
+        }
+        
+        .offer-card ul {
+            list-style: none;
+            margin-top: 15px;
+        }
+        
+        .offer-card li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+        
+        .offer-card li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #00CED1;
+            font-weight: bold;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .metric-box {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        
+        .metric-box .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FF6B35;
+        }
+        
+        .metric-box .label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #FFE4D6;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+        }
+        
+        .cta {
+            background: linear-gradient(135deg, #FF6B35, #FF1493);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 30px 0;
+        }
+        
+        .cta h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .cta p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .flag {
+            font-size: 24px;
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .offer-card, table, .metric-box {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <div class="logo-icon">N</div>
+            <div class="logo-text">
+                <h1><span>Nati</span> Fenua</h1>
+                <p>Le réseau social de la Polynésie Française 🇵🇫</p>
+            </div>
+        </div>
+    </div>
+    
+    <p class="subtitle">📢 Grille Tarifaire Publicitaire 2024-2025</p>
+    
+    <h2>🎯 Offres Principales</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Type de Publicité</th>
+                <th>Prix / Jour</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>📝 Post Sponsorisé</strong></td>
+                <td>
+                    <span class="price">600 XPF</span>
+                    <br><span class="price-eur">≈ 5€</span>
+                </td>
+                <td>Votre publication apparaît dans le fil d'actualité de plus d'utilisateurs</td>
+            </tr>
+            <tr>
+                <td><strong>👤 Compte Promu</strong></td>
+                <td>
+                    <span class="price">1 200 XPF</span>
+                    <br><span class="price-eur">≈ 10€</span>
+                </td>
+                <td>Votre profil est suggéré aux nouveaux utilisateurs (+50% de visibilité)</td>
+            </tr>
+            <tr>
+                <td><strong>📱 Story Ad</strong></td>
+                <td>
+                    <span class="price">1 800 XPF</span>
+                    <br><span class="price-eur">≈ 15€</span>
+                </td>
+                <td>Publicité plein écran entre les stories des utilisateurs</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <h2>💰 Tarification Détaillée</h2>
+    
+    <div class="metrics-grid">
+        <div class="metric-box">
+            <div class="value">500 XPF</div>
+            <div class="label">CPM (Coût pour 1000 vues)</div>
+        </div>
+        <div class="metric-box">
+            <div class="value">50 XPF</div>
+            <div class="label">CPC (Coût par clic)</div>
+        </div>
+        <div class="metric-box">
+            <div class="value">1 000 XPF</div>
+            <div class="label">Budget minimum</div>
+        </div>
+        <div class="metric-box">
+            <div class="value">1 jour</div>
+            <div class="label">Durée minimum</div>
+        </div>
+    </div>
+    
+    <h2>✨ Détail des Offres</h2>
+    
+    <div class="offer-card">
+        <h3>📝 Post Sponsorisé</h3>
+        <div class="price-tag">600 XPF / jour</div>
+        <ul>
+            <li>Apparition dans le fil "Pour Toi" de tous les utilisateurs</li>
+            <li>Badge "Sponsorisé" discret et professionnel</li>
+            <li>Statistiques de performance détaillées (vues, clics, engagement)</li>
+            <li>Ciblage par île et centres d'intérêt</li>
+            <li>Idéal pour promouvoir un produit, un événement ou une offre</li>
+        </ul>
+    </div>
+    
+    <div class="offer-card">
+        <h3>👤 Compte Promu</h3>
+        <div class="price-tag">1 200 XPF / jour</div>
+        <ul>
+            <li>Suggestion dans "Personnes à suivre" et page d'exploration</li>
+            <li>+50% de visibilité sur votre profil</li>
+            <li>Badge vérifié temporaire pendant la campagne</li>
+            <li>Augmentation garantie du nombre d'abonnés</li>
+            <li>Idéal pour les entreprises et influenceurs locaux</li>
+        </ul>
+    </div>
+    
+    <div class="offer-card">
+        <h3>📱 Story Ad</h3>
+        <div class="price-tag">1 800 XPF / jour</div>
+        <ul>
+            <li>Format plein écran immersif et impactant</li>
+            <li>Lien cliquable (swipe up) vers votre site ou page</li>
+            <li>Ciblage précis par île, âge et intérêts</li>
+            <li>Durée de 15 secondes maximum</li>
+            <li>Idéal pour les lancements et promotions flash</li>
+        </ul>
+    </div>
+    
+    <div class="cta">
+        <h3>🚀 Lancez votre première campagne !</h3>
+        <p>Contactez-nous ou créez votre publicité directement depuis l'application Nati Fenua</p>
+    </div>
+    
+    <h2>📋 Informations Complémentaires</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Élément</th>
+                <th>Détail</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Modes de paiement acceptés</td>
+                <td>Carte bancaire, Virement, Chèque</td>
+            </tr>
+            <tr>
+                <td>Délai de validation</td>
+                <td>24 heures maximum</td>
+            </tr>
+            <tr>
+                <td>Modification de campagne</td>
+                <td>Possible à tout moment</td>
+            </tr>
+            <tr>
+                <td>Remboursement</td>
+                <td>Prorata du budget non consommé</td>
+            </tr>
+            <tr>
+                <td>Assistance</td>
+                <td>Support dédié aux annonceurs</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <div class="footer">
+        <p><strong>Nati Fenua</strong> - Le réseau social de la Polynésie Française</p>
+        <p>Tous les prix sont en Franc Pacifique (XPF) • TVA incluse</p>
+        <p>Document généré le <script>document.write(new Date().toLocaleDateString('fr-FR'))</script></p>
+        <p class="flag">🇵🇫</p>
+    </div>
+</body>
+</html>
