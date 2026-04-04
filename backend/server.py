@@ -6058,6 +6058,62 @@ async def refresh_rss_feeds():
     return result
 
 
+@api_router.post("/rss/cleanup-old")
+async def cleanup_old_rss_posts_endpoint():
+    """Delete RSS posts older than 2 days"""
+    two_days_ago = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+    
+    # Delete RSS posts older than 2 days
+    result = await db.posts.delete_many({
+        "is_rss_article": True,
+        "created_at": {"$lt": two_days_ago}
+    })
+    
+    if result.deleted_count > 0:
+        await feed_cache.clear()
+    
+    return {
+        "success": True,
+        "deleted_count": result.deleted_count,
+        "message": f"Supprimé {result.deleted_count} posts RSS de plus de 2 jours"
+    }
+
+
+@api_router.get("/rss/stats")
+async def get_rss_stats():
+    """Get RSS feed statistics"""
+    total_rss = await db.posts.count_documents({"is_rss_article": True})
+    
+    # Count by age
+    now = datetime.now(timezone.utc)
+    one_day_ago = (now - timedelta(days=1)).isoformat()
+    two_days_ago = (now - timedelta(days=2)).isoformat()
+    
+    posts_last_24h = await db.posts.count_documents({
+        "is_rss_article": True,
+        "created_at": {"$gte": one_day_ago}
+    })
+    
+    posts_24h_48h = await db.posts.count_documents({
+        "is_rss_article": True,
+        "created_at": {"$gte": two_days_ago, "$lt": one_day_ago}
+    })
+    
+    posts_older = await db.posts.count_documents({
+        "is_rss_article": True,
+        "created_at": {"$lt": two_days_ago}
+    })
+    
+    return {
+        "total_rss_posts": total_rss,
+        "posts_last_24h": posts_last_24h,
+        "posts_24h_to_48h": posts_24h_48h,
+        "posts_older_than_48h": posts_older,
+        "refresh_interval": "12 heures (2x par jour)",
+        "expiration": "2 jours"
+    }
+
+
 @api_router.post("/rss/cleanup-duplicates")
 async def cleanup_rss_duplicates():
     """Remove duplicate RSS posts from database"""
@@ -6405,6 +6461,26 @@ async def start_auto_publisher():
     """Start the RSS feed publisher background task"""
     import asyncio
     
+    async def cleanup_old_rss_posts():
+        """Delete RSS posts older than 2 days"""
+        try:
+            two_days_ago = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+            
+            # Delete RSS posts older than 2 days
+            result = await db.posts.delete_many({
+                "is_rss_article": True,
+                "created_at": {"$lt": two_days_ago}
+            })
+            
+            if result.deleted_count > 0:
+                logger.info(f"🗑️ Supprimé {result.deleted_count} posts RSS de plus de 2 jours")
+                await feed_cache.clear()
+            
+            return result.deleted_count
+        except Exception as e:
+            logger.error(f"Error cleaning old RSS posts: {e}")
+            return 0
+    
     async def initial_cleanup_and_rss():
         """Clean up old AI posts and fetch real RSS articles on startup"""
         try:
@@ -6415,6 +6491,9 @@ async def start_auto_publisher():
             rss_posts = await db.posts.count_documents({"is_rss_article": True})
             
             logger.info(f"📊 Posts actuels: {total_posts} total, {rss_posts} RSS")
+            
+            # Clean up old RSS posts (older than 2 days)
+            await cleanup_old_rss_posts()
             
             # If there are many non-RSS posts, clean them up
             if total_posts > 0 and rss_posts < total_posts * 0.5:
@@ -6445,17 +6524,24 @@ async def start_auto_publisher():
             logger.error(f"Error in initial cleanup: {e}")
     
     async def rss_publish_task():
-        """Background task that fetches and publishes RSS articles periodically"""
+        """Background task that fetches and publishes RSS articles 2x per day (every 12 hours)"""
         while True:
             try:
-                # Wait 2 hours between refreshes
-                await asyncio.sleep(2 * 3600)
+                # Wait 12 hours between refreshes (2 times per day)
+                await asyncio.sleep(12 * 3600)  # 12 hours = 43200 seconds
                 
+                logger.info("🔄 Démarrage du rafraîchissement RSS (2x/jour)...")
+                
+                # First, clean up old RSS posts (older than 2 days)
+                deleted = await cleanup_old_rss_posts()
+                
+                # Then fetch new RSS articles
                 from rss_feeds import RSSFeedService
                 rss_service = RSSFeedService(db)
                 result = await rss_service.publish_articles_as_posts(max_total_posts=30)
                 await rss_service.close()
-                logger.info(f"RSS feed publish completed: {result}")
+                logger.info(f"📰 RSS refresh completed: {result}")
+                logger.info(f"📊 Résumé: {deleted} anciens supprimés, {result.get('posts_created', 0)} nouveaux ajoutés")
                 
                 # Clear feed cache
                 await feed_cache.clear()
@@ -6466,9 +6552,9 @@ async def start_auto_publisher():
     # Run initial cleanup
     asyncio.create_task(initial_cleanup_and_rss())
     
-    # Start periodic RSS task
+    # Start periodic RSS task (runs every 12 hours = 2x per day)
     asyncio.create_task(rss_publish_task())
-    logger.info("Auto-publisher background task started")
+    logger.info("🚀 Auto-publisher started: RSS refresh every 12 hours, posts expire after 2 days")
 
 
 # Include router AFTER all routes are defined
