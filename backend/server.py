@@ -23,8 +23,13 @@ import json
 import shutil
 import base64
 
-# Import Stripe checkout
-from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
+# Import Stripe checkout (optional - may not be available on all deployments)
+try:
+    from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
+    STRIPE_AVAILABLE = True
+except ImportError:
+    STRIPE_AVAILABLE = False
+    logging.warning("Stripe integration not available - emergentintegrations not installed")
 
 # Import security module
 from security import (
@@ -4283,6 +4288,9 @@ async def get_advertising_packages():
 @api_router.post("/payments/checkout")
 async def create_checkout_session(request: Request):
     """Create a Stripe checkout session for advertising payment"""
+    if not STRIPE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Paiement non disponible - Stripe non configuré sur ce serveur")
+    
     body = await request.json()
     package_id = body.get("package_id")
     origin_url = body.get("origin_url")
@@ -4374,6 +4382,9 @@ async def create_checkout_session(request: Request):
 @api_router.get("/payments/status/{session_id}")
 async def get_payment_status(session_id: str):
     """Get payment status for a checkout session"""
+    if not STRIPE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Paiement non disponible")
+    
     stripe_api_key = os.environ.get("STRIPE_API_KEY")
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe non configuré")
@@ -4481,6 +4492,9 @@ async def activate_advertising_package(transaction: dict):
 @api_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request):
     """Handle Stripe webhook events"""
+    if not STRIPE_AVAILABLE:
+        return {"error": "Stripe not available"}
+    
     stripe_api_key = os.environ.get("STRIPE_API_KEY")
     if not stripe_api_key:
         return {"error": "Stripe not configured"}
