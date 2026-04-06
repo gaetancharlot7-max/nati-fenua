@@ -50,6 +50,14 @@ export const AuthProvider = ({ children }) => {
 
   const loginWithGoogle = () => {
     // Native Google OAuth - redirect to backend which handles Google OAuth
+    // Use same-window redirect for cleaner UX (no popups)
+    const currentUrl = window.location.origin;
+    const backendUrl = API.replace('/api', '');
+    
+    // Store the return URL to redirect back after OAuth
+    sessionStorage.setItem('oauth_return_url', currentUrl);
+    
+    // Redirect to Google OAuth
     window.location.href = `${API}/auth/google`;
   };
 
