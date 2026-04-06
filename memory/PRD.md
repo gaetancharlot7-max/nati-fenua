@@ -83,5 +83,12 @@ Application de réseau social polynésien avec flux RSS réels, webcams en direc
 - Application mobile Expo (App Store/Play Store)
 - Modération par IA avancée
 
+## Templates Territoires Créés
+- **TEMPLATE_KAMO_NOUVELLE_CALEDONIE.md** : Template complet pour créer "Kamo" (NC)
+  - Régions : Nouméa, Dumbéa, Mont-Dore, Païta, Bourail, Koné, Lifou, Maré, Ouvéa, Île des Pins...
+  - RSS : LNC, NC la 1ère, Caledonia, Outremers 360...
+  - Traductions : Français/Drehu
+  - Même architecture et performances que Nati Fenua
+
 ## Last Update
-2026-04-04 - v5: Boost 300 XPF + Notifications Push gratuites
+2026-04-06 - v12: Page Média séparée (sans stats, lien site web) + Template Kamo NC
