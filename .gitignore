@@ -160,3 +160,4 @@ frontend/node_modules/.cache/default-development/5.pack
 *.env.*
 frontend/public/final-frontend.zip
 frontend/public/final-backend.zip
+frontend/public/update.zip

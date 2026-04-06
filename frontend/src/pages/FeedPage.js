@@ -448,7 +448,13 @@ const FeedPage = () => {
           >
             {/* Post Header */}
             <div className="flex items-center justify-between p-4">
-              <Link to={`/profile/${post.user?.user_id}`} className="flex items-center gap-3">
+              <Link 
+                to={post.feed_type === 'rss' || post.is_rss_article 
+                  ? `/media/${post.user?.user_id}` 
+                  : `/profile/${post.user?.user_id}`
+                } 
+                className="flex items-center gap-3"
+              >
                 <Avatar className="w-11 h-11 rounded-xl">
                   <AvatarImage src={post.user?.picture} className="rounded-xl" />
                   <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl">{post.user?.name?.[0]}</AvatarFallback>
@@ -456,15 +462,20 @@ const FeedPage = () => {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <p className="font-bold text-[#1A1A2E] text-sm">{post.user?.name}</p>
-                    {post.user?.is_verified && (
+                    {(post.user?.is_verified || post.feed_type === 'rss' || post.is_rss_article) && (
                       <span className="w-4 h-4 rounded-full bg-gradient-to-r from-[#00CED1] to-[#006994] flex items-center justify-center">
                         <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
                         </svg>
                       </span>
                     )}
+                    {(post.feed_type === 'rss' || post.is_rss_article) && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#00899B]/10 text-[#00899B] font-medium">
+                        Média
+                      </span>
+                    )}
                   </div>
-                  {post.location && (
+                  {post.location && !(post.feed_type === 'rss' || post.is_rss_article) && (
                     <p className="text-xs text-gray-500 flex items-center gap-1">
                       <MapPin size={12} />
                       {post.location}

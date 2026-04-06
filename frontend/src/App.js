@@ -29,6 +29,7 @@ const ReelsPage = lazy(() => import('./pages/ReelsPage'));
 const LivePage = lazy(() => import('./pages/LivePage'));
 const MarketplacePage = lazy(() => import('./pages/MarketplacePage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const MediaPage = lazy(() => import('./pages/MediaPage'));
 const CreatePostPage = lazy(() => import('./pages/CreatePostPage'));
 const CreateProductPage = lazy(() => import('./pages/CreateProductPage'));
 const BusinessDashboard = lazy(() => import('./pages/BusinessDashboard'));
@@ -121,6 +122,7 @@ function AppContent() {
         <Route path="/profile" element={<ProtectedRoute><MainLayout><ProfilePage /></MainLayout></ProtectedRoute>} />
         <Route path="/profile/edit" element={<ProtectedRoute><MainLayout><EditProfilePage /></MainLayout></ProtectedRoute>} />
         <Route path="/profile/:userId" element={<ProtectedRoute><MainLayout><ProfilePage /></MainLayout></ProtectedRoute>} />
+        <Route path="/media/:mediaId" element={<ProtectedRoute><MainLayout><MediaPage /></MainLayout></ProtectedRoute>} />
         <Route path="/create" element={<ProtectedRoute><MainLayout><CreatePostPage /></MainLayout></ProtectedRoute>} />
         <Route path="/create-product" element={<ProtectedRoute><MainLayout><CreateProductPage /></MainLayout></ProtectedRoute>} />
         <Route path="/business" element={<ProtectedRoute><MainLayout><BusinessDashboard /></MainLayout></ProtectedRoute>} />
