@@ -46,3 +46,4 @@ resend>=0.7.0
 # Payments (Stripe via Emergent) - Install with: pip install emergentintegrations --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
 --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
 emergentintegrations
+redis>=5.0.0

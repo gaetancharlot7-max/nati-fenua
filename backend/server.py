@@ -205,11 +205,35 @@ async def get_performance_stats():
 async def startup_event():
     """Initialise les optimisations au démarrage"""
     logger.info("🚀 Starting Nati Fenua with performance optimizations...")
+    
+    # 1. Initialize performance optimizations
     try:
         result = await initialize_performance_optimizations(db)
         logger.info(f"✅ Performance optimizations: {result}")
     except Exception as e:
         logger.error(f"❌ Failed to initialize optimizations: {e}")
+    
+    # 2. Connect to Redis cache (if REDIS_URL is configured)
+    try:
+        redis_url = os.environ.get("REDIS_URL")
+        if redis_url:
+            connected = await redis_cache.connect(redis_url)
+            if connected:
+                logger.info("✅ Redis cache connected")
+            else:
+                logger.info("⚠️ Redis unavailable, using memory cache")
+        else:
+            logger.info("ℹ️ REDIS_URL not configured, using memory cache (add Upstash for better performance)")
+    except Exception as e:
+        logger.warning(f"⚠️ Redis connection failed: {e}")
+    
+    # 3. Create MongoDB indexes
+    try:
+        from db_optimization import create_indexes
+        await create_indexes(db)
+        logger.info("✅ MongoDB indexes verified")
+    except Exception as e:
+        logger.warning(f"⚠️ Index creation warning: {e}")
 
 
 # Initialize services
