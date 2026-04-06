@@ -121,6 +121,17 @@ from translations import get_translation, get_all_translations, TRANSLATIONS
 # Import Auto-Moderation
 from auto_moderation import auto_moderator, check_text, is_safe
 
+# Import Performance Optimizer
+from performance_optimizer import (
+    perf_cache, perf_monitor, adaptive_limiter, get_performance_report,
+    initialize_performance_optimizations, batch_get_users, enrich_posts_with_users,
+    USER_PROJECTION_MINIMAL, USER_PROJECTION_PROFILE, POST_PROJECTION_FEED, MARKER_PROJECTION
+)
+from performance_optimizer import feed_cache as perf_feed_cache
+from performance_optimizer import user_cache as perf_user_cache
+from performance_optimizer import marker_cache as perf_marker_cache
+from performance_optimizer import translation_cache as perf_translation_cache
+
 ROOT_DIR = Path(__file__).parent
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -181,7 +192,24 @@ app.add_middleware(
 # Health check endpoint (pour Railway/monitoring)
 @app.get("/api/health")
 async def health_check():
-    return {"status": "healthy", "app": "Nati Fenua", "version": "1.0.0"}
+    return {"status": "healthy", "app": "Nati Fenua", "version": "1.2.0", "optimized": True}
+
+# Performance monitoring endpoint
+@app.get("/api/performance")
+async def get_performance_stats():
+    """Retourne les statistiques de performance en temps réel"""
+    return get_performance_report()
+
+# Startup event - Initialize optimizations
+@app.on_event("startup")
+async def startup_event():
+    """Initialise les optimisations au démarrage"""
+    logger.info("🚀 Starting Nati Fenua with performance optimizations...")
+    try:
+        result = await initialize_performance_optimizations(db)
+        logger.info(f"✅ Performance optimizations: {result}")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize optimizations: {e}")
 
 
 # Initialize services
