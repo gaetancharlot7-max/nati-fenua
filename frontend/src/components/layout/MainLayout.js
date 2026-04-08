@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone, Shield, Settings, LogOut, ChevronUp, MapPin, Truck } from 'lucide-react';
+import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone, Shield, Settings, LogOut, ChevronUp, MapPin, Truck, Music, Volume2, VolumeX } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import NotificationBell from '../NotificationBell';
+import { useUnreadMessages } from '../../hooks/useUnreadMessages';
+import soundManager from '../../lib/soundManager';
 
 // Nati Fenua Logo Component - Style Play Store avec drapeau polynésien
 const NatiFenuaLogo = ({ size = 'md' }) => {
@@ -36,6 +38,7 @@ const MainLayout = ({ children, hideNav = false }) => {
   const { user, logout } = useAuth();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
+  const { unreadCount } = useUnreadMessages();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -133,11 +136,20 @@ const MainLayout = ({ children, hideNav = false }) => {
                   : 'text-[#1A1A2E] hover:bg-gray-100'
               }`}
             >
-              <MessageCircle size={24} strokeWidth={1.5} />
+              <div className="relative">
+                <MessageCircle size={24} strokeWidth={1.5} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white text-[10px] font-bold animate-pulse">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </div>
               <span>Messages</span>
-              <span className="ml-auto px-2 py-0.5 rounded-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white text-xs font-bold">
-                3
-              </span>
+              {unreadCount > 0 && (
+                <span className="ml-auto px-2 py-0.5 rounded-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white text-xs font-bold">
+                  {unreadCount}
+                </span>
+              )}
             </Link>
           </div>
 
@@ -358,7 +370,11 @@ const MainLayout = ({ children, hideNav = false }) => {
         <div className="flex items-center gap-1">
           <Link to="/chat" className="relative p-2 rounded-xl hover:bg-gray-100">
             <MessageCircle size={22} strokeWidth={1.5} className="text-[#1A1A2E]" />
-            <span className="absolute top-0 right-0 w-4 h-4 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white text-[10px] font-bold rounded-full flex items-center justify-center">3</span>
+            {unreadCount > 0 && (
+              <span className="absolute top-0 right-0 min-w-[16px] h-4 px-1 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </Link>
           <Link to="/search" className="p-2 rounded-xl hover:bg-gray-100">
             <Search size={22} strokeWidth={1.5} className="text-[#1A1A2E]" />

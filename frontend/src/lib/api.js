@@ -76,7 +76,9 @@ export const chatApi = {
   getConversations: () => api.get('/conversations'),
   getMessages: (conversationId, params) => api.get(`/conversations/${conversationId}/messages`, { params }),
   sendMessage: (data) => api.post('/messages', data),
-  createConversation: (userId) => api.post('/conversations', { user_id: userId })
+  createConversation: (userId) => api.post('/conversations', { user_id: userId }),
+  markAsRead: (conversationId) => api.post(`/conversations/${conversationId}/read`),
+  searchUsers: (query) => api.get('/users/search', { params: { q: query, limit: 10 } })
 };
 
 // Marketplace API

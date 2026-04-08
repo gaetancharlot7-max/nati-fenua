@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Users, ShoppingBag, Play, Heart, MapPin, MessageCircle, Radio, Sparkles, Camera, Film, CheckCircle, Loader2 } from 'lucide-react';
+import { ArrowRight, Users, ShoppingBag, Play, Heart, MapPin, MessageCircle, Radio, Sparkles, Camera, Film, CheckCircle, Loader2, Volume2, VolumeX, Music } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { authApi } from '../lib/api';
+import soundManager from '../lib/soundManager';
 
 // Nati Fenua Logo Component - Style Play Store avec drapeau polynésien
 const NatiFenuaLogo = ({ size = 'lg' }) => {
@@ -42,6 +43,7 @@ const LandingPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -52,6 +54,22 @@ const LandingPage = () => {
     password: '',
     confirmPassword: ''
   });
+
+  // Ambient music URL (royalty-free Polynesian style)
+  const ambientMusicUrl = 'https://assets.mixkit.co/music/preview/mixkit-tropical-island-vibes-621.mp3';
+
+  const toggleMusic = () => {
+    soundManager.init();
+    const isPlaying = soundManager.toggleAmbient(ambientMusicUrl);
+    setIsMusicPlaying(isPlaying);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      soundManager.stopAmbient();
+    };
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -165,6 +183,26 @@ const LandingPage = () => {
 
         {/* Content */}
         <div className="relative z-10 max-w-6xl mx-auto px-4 text-center py-20">
+          {/* Music Toggle Button */}
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 1, duration: 0.5 }}
+            onClick={toggleMusic}
+            className="fixed top-4 right-4 z-50 w-12 h-12 rounded-full bg-white/20 backdrop-blur-lg border border-white/30 flex items-center justify-center text-white hover:bg-white/30 transition-all duration-300 group"
+            title={isMusicPlaying ? "Couper la musique" : "Jouer la musique d'ambiance"}
+            data-testid="music-toggle-btn"
+          >
+            {isMusicPlaying ? (
+              <Volume2 size={22} className="text-[#00CED1]" />
+            ) : (
+              <VolumeX size={22} className="text-white/70 group-hover:text-white" />
+            )}
+            {isMusicPlaying && (
+              <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-[#00CED1] rounded-full animate-pulse"></span>
+            )}
+          </motion.button>
+
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
