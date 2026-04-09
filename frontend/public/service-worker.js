@@ -1,18 +1,24 @@
 // Nati Fenua - Service Worker for PWA
-const CACHE_NAME = 'nati-fenua-v2';
+// Version optimisée pour iOS Safari
+const CACHE_NAME = 'nati-fenua-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json',
-  '/icons/icon-512x512.png',
-  '/icons/icon.svg'
+  '/manifest.json'
 ];
+
+// Detect iOS
+const isIOS = /iPad|iPhone|iPod/.test(self.navigator?.userAgent || '');
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
+      // iOS has limited cache, only cache essential files
+      return cache.addAll(STATIC_ASSETS).catch(err => {
+        console.log('Cache addAll failed:', err);
+        return Promise.resolve();
+      });
     })
   );
   self.skipWaiting();
@@ -37,17 +43,32 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
   
-  // Skip API requests
+  // Skip API requests - let them go through normally
   if (event.request.url.includes('/api/')) return;
+  
+  // Skip cross-origin requests
+  if (!event.request.url.startsWith(self.location.origin)) return;
+  
+  // For iOS, use simpler strategy to avoid issues
+  if (isIOS) {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(event.request))
+    );
+    return;
+  }
   
   event.respondWith(
     fetch(event.request)
       .then((response) => {
+        // Don't cache non-ok responses
+        if (!response || response.status !== 200) {
+          return response;
+        }
         // Clone the response for caching
         const responseClone = response.clone();
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseClone);
-        });
+        }).catch(() => {});
         return response;
       })
       .catch(() => {

@@ -5,18 +5,40 @@ const AuthContext = createContext(null);
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// Detect iOS Safari
+const isIOSSafari = () => {
+  const ua = window.navigator.userAgent;
+  const iOS = !!ua.match(/iPad/i) || !!ua.match(/iPhone/i);
+  const webkit = !!ua.match(/WebKit/i);
+  const iOSSafari = iOS && webkit && !ua.match(/CriOS/i) && !ua.match(/FxiOS/i);
+  return iOSSafari;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const checkAuth = useCallback(async () => {
     try {
+      // For iOS Safari, add a small delay to ensure cookies are set
+      if (isIOSSafari()) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
       const response = await axios.get(`${API}/auth/me`, {
-        withCredentials: true
+        withCredentials: true,
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
       });
       setUser(response.data);
     } catch (error) {
       setUser(null);
+      // Clear any stale session data on iOS
+      if (isIOSSafari()) {
+        sessionStorage.removeItem('oauth_return_url');
+      }
     } finally {
       setLoading(false);
     }
@@ -25,7 +47,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // CRITICAL: If returning from OAuth callback, skip the /me check.
     // AuthCallback will exchange the session_id and establish the session first.
-    if (window.location.hash?.includes('session_id=')) {
+    if (window.location.hash?.includes('session_id=') || window.location.hash?.includes('session_token=')) {
       setLoading(false);
       return;
     }
