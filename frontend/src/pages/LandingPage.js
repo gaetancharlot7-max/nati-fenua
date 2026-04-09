@@ -213,7 +213,7 @@ const LandingPage = () => {
               <span className="text-white">Fenua</span>
             </h1>
             
-            <p className="text-3xl md:text-4xl mb-6 italic font-bold text-white">
+            <p className="text-3xl md:text-4xl mb-6 italic font-bold text-[#00CED1]">
               Le seul réseau qui nous ressemble
             </p>
             
