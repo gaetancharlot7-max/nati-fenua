@@ -5,7 +5,7 @@ import {
   Calendar, Video, Cloud, ShoppingBag, Check, AlertTriangle,
   Star, Phone, Clock, Users, Trophy, Award, Zap, ChevronRight,
   Camera, Send, ThumbsUp, ThumbsDown, Loader2, MessageCircle,
-  ZoomIn, ZoomOut, Locate
+  ZoomIn, ZoomOut, Locate, Heart, Share2, Flag
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -209,6 +209,7 @@ const PulsePage = () => {
   const [contactingVendor, setContactingVendor] = useState(false);
   const [showBoostModal, setShowBoostModal] = useState(null);
   const [boostLoading, setBoostLoading] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(null);
 
   // Default center (Tahiti)
   const defaultCenter = { lat: -17.6509, lng: -149.4260, zoom: 11 };
@@ -336,6 +337,59 @@ const PulsePage = () => {
       setShowMarkerDetail(null);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Erreur lors de la suppression');
+    }
+  };
+
+  // Like a marker
+  const likeMarker = async (markerId) => {
+    if (!user) {
+      toast.error('Connectez-vous pour liker');
+      navigate('/auth');
+      return;
+    }
+    try {
+      await api.post(`/pulse/markers/${markerId}/like`);
+      toast.success('Vous aimez ce signalement !');
+      loadMarkers();
+    } catch (error) {
+      if (error.response?.status === 400) {
+        toast.info('Vous avez déjà liké ce signalement');
+      } else {
+        toast.error('Erreur');
+      }
+    }
+  };
+
+  // Report a marker
+  const reportMarker = async (markerId, reason) => {
+    if (!user) {
+      toast.error('Connectez-vous pour signaler');
+      navigate('/auth');
+      return;
+    }
+    try {
+      await api.post(`/pulse/markers/${markerId}/report`, { reason });
+      toast.success('Signalement envoyé aux modérateurs');
+      setShowReportModal(null);
+    } catch (error) {
+      toast.error('Erreur lors du signalement');
+    }
+  };
+
+  // Share a marker
+  const shareMarker = (marker) => {
+    const shareUrl = `${window.location.origin}/mana?marker=${marker.marker_id}`;
+    const shareText = `${marker.title || 'Signalement'} sur Nati Fenua Mana`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: 'Nati Fenua - Mana',
+        text: shareText,
+        url: shareUrl
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      toast.success('Lien copié !');
     }
   };
 
@@ -661,7 +715,54 @@ const PulsePage = () => {
         currentUserId={user?.user_id}
         onBoostMarker={handleBoostMarker}
         onDeleteMarker={deleteMarker}
+        onLikeMarker={likeMarker}
+        onShareMarker={shareMarker}
+        onReportMarker={(marker) => setShowReportModal(marker)}
       />
+
+      {/* Report Modal */}
+      <AnimatePresence>
+        {showReportModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-[3000] flex items-center justify-center p-4"
+            onClick={() => setShowReportModal(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white w-full max-w-md rounded-2xl overflow-hidden"
+            >
+              <div className="p-4 border-b bg-red-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-red-600">
+                    <Flag size={20} />
+                    <h3 className="font-bold">Signaler ce contenu</h3>
+                  </div>
+                  <button onClick={() => setShowReportModal(null)} className="p-1 hover:bg-red-100 rounded-full">
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+              <div className="p-4 space-y-3">
+                {['Contenu inapproprié', 'Information fausse', 'Spam', 'Harcèlement', 'Autre'].map((reason) => (
+                  <button
+                    key={reason}
+                    onClick={() => reportMarker(showReportModal.marker_id, reason)}
+                    className="w-full p-3 text-left rounded-xl border border-gray-200 hover:bg-gray-50 hover:border-red-300 transition-colors"
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Boost Confirmation Modal */}
       <AnimatePresence>
@@ -1025,7 +1126,7 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
 };
 
 // Marker Detail Modal
-const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, contactingVendor, currentUserId, onBoostMarker, onDeleteMarker }) => {
+const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, contactingVendor, currentUserId, onBoostMarker, onDeleteMarker, onLikeMarker, onShareMarker, onReportMarker }) => {
   if (!marker) return null;
 
   const canVote = currentUserId && 
@@ -1034,6 +1135,7 @@ const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, contac
     marker.user_id !== currentUserId;
   
   const isOwner = currentUserId && marker.user_id === currentUserId;
+  const hasLiked = marker.liked_by?.includes(currentUserId);
 
   return (
     <AnimatePresence>
@@ -1264,6 +1366,47 @@ const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, contac
                 <X size={18} className="mr-2" />
                 Supprimer mon signalement
               </Button>
+            )}
+
+            {/* Action Buttons - Like, Share, Report */}
+            {!marker.is_webcam && (
+              <div className="flex gap-2 pt-2 border-t border-gray-100">
+                {/* Like Button */}
+                <button
+                  onClick={() => onLikeMarker && onLikeMarker(marker.marker_id)}
+                  className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl transition-colors ${
+                    hasLiked 
+                      ? 'bg-pink-100 text-pink-600' 
+                      : 'bg-gray-100 text-gray-600 hover:bg-pink-50 hover:text-pink-500'
+                  }`}
+                  data-testid="like-marker-btn"
+                >
+                  <Heart size={20} className={hasLiked ? 'fill-current' : ''} />
+                  <span className="font-medium">{marker.likes_count || 0}</span>
+                </button>
+
+                {/* Share Button */}
+                <button
+                  onClick={() => onShareMarker && onShareMarker(marker)}
+                  className="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-500 transition-colors"
+                  data-testid="share-marker-btn"
+                >
+                  <Share2 size={20} />
+                  <span className="font-medium">Partager</span>
+                </button>
+
+                {/* Report Button - Not for owner */}
+                {!isOwner && (
+                  <button
+                    onClick={() => onReportMarker && onReportMarker(marker)}
+                    className="flex items-center justify-center gap-2 p-3 rounded-xl bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500 transition-colors"
+                    data-testid="report-marker-btn"
+                    title="Signaler"
+                  >
+                    <Flag size={20} />
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </motion.div>

@@ -5786,6 +5786,66 @@ async def delete_pulse_marker(marker_id: str, request: Request):
     
     return {"success": True, "message": "Signalement supprimé"}
 
+@api_router.post("/pulse/markers/{marker_id}/like")
+async def like_pulse_marker(marker_id: str, request: Request):
+    """Like a marker"""
+    user = await require_auth(request)
+    
+    # Find the marker
+    marker = await db.markers.find_one({"marker_id": marker_id}, {"_id": 0})
+    if not marker:
+        raise HTTPException(status_code=404, detail="Marqueur non trouvé")
+    
+    # Check if already liked
+    liked_by = marker.get("liked_by", [])
+    if user.user_id in liked_by:
+        raise HTTPException(status_code=400, detail="Vous avez déjà liké ce signalement")
+    
+    # Add like
+    await db.markers.update_one(
+        {"marker_id": marker_id},
+        {
+            "$addToSet": {"liked_by": user.user_id},
+            "$inc": {"likes_count": 1}
+        }
+    )
+    
+    return {"success": True, "message": "Signalement liké"}
+
+@api_router.post("/pulse/markers/{marker_id}/report")
+async def report_pulse_marker(marker_id: str, request: Request):
+    """Report a marker to moderators"""
+    user = await require_auth(request)
+    body = await request.json()
+    reason = body.get("reason", "Non spécifié")
+    
+    # Find the marker
+    marker = await db.markers.find_one({"marker_id": marker_id}, {"_id": 0})
+    if not marker:
+        raise HTTPException(status_code=404, detail="Marqueur non trouvé")
+    
+    # Create report
+    report = {
+        "report_id": str(uuid.uuid4()),
+        "marker_id": marker_id,
+        "reporter_id": user.user_id,
+        "reason": reason,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.marker_reports.insert_one(report)
+    
+    # Increment report count on marker
+    await db.markers.update_one(
+        {"marker_id": marker_id},
+        {"$inc": {"reports_count": 1}}
+    )
+    
+    logger.info(f"User {user.user_id} reported marker {marker_id}: {reason}")
+    
+    return {"success": True, "message": "Signalement envoyé aux modérateurs"}
+
 @api_router.get("/pulse/leaderboard")
 async def get_pulse_leaderboard(island: Optional[str] = None):
     """Get weekly leaderboard"""
