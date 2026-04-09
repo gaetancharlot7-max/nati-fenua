@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="gradientPF" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#CE1126"/>
+      <stop offset="50%" style="stop-color:#FFFFFF"/>
+      <stop offset="100%" style="stop-color:#CE1126"/>
+    </linearGradient>
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700"/>
+      <stop offset="100%" style="stop-color:#FFA500"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Fond avec les couleurs du drapeau -->
+  <rect width="512" height="170" rx="100" ry="100" fill="#CE1126"/>
+  <rect y="170" width="512" height="172" fill="#FFFFFF"/>
+  <rect y="342" width="512" height="170" fill="#CE1126"/>
+  
+  <!-- Masque arrondi -->
+  <rect width="512" height="512" rx="100" fill="url(#gradientPF)" fill-opacity="0"/>
+  
+  <!-- Bordure arrondie -->
+  <rect x="5" y="5" width="502" height="502" rx="95" fill="none" stroke="#CE1126" stroke-width="10"/>
+  
+  <!-- Cercle doré central (soleil polynésien) -->
+  <circle cx="256" cy="256" r="120" fill="url(#goldGradient)"/>
+  <circle cx="256" cy="256" r="100" fill="#FFFFFF"/>
+  
+  <!-- Lettre N avec dégradé polynésien -->
+  <text x="256" y="310" font-family="Georgia, serif" font-size="180" font-weight="bold" fill="#CE1126" text-anchor="middle">N</text>
+  
+  <!-- Petites vagues polynésiennes sous le N -->
+  <path d="M180 330 Q200 340 220 330 Q240 320 260 330 Q280 340 300 330 Q320 320 340 330" 
+        stroke="#1E90FF" stroke-width="4" fill="none" stroke-linecap="round"/>
+</svg>

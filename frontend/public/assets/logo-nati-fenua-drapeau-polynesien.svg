@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Drapeau Polynésien: Rouge-Blanc-Rouge avec emblème -->
+    <linearGradient id="sunGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700"/>
+      <stop offset="100%" style="stop-color:#FFA500"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Fond arrondi -->
+  <rect width="512" height="512" rx="100" fill="#CE1126"/>
+  
+  <!-- Bande blanche centrale (style drapeau) -->
+  <rect x="0" y="170" width="512" height="172" fill="#FFFFFF"/>
+  
+  <!-- Cercle central avec soleil polynésien stylisé -->
+  <circle cx="256" cy="256" r="85" fill="#FFD700"/>
+  
+  <!-- Rayons du soleil (5 rayons comme sur l'emblème) -->
+  <g fill="#CE1126">
+    <!-- Rayon haut -->
+    <polygon points="256,120 270,180 242,180"/>
+    <!-- Rayon haut-droite -->
+    <polygon points="340,160 300,200 280,180"/>
+    <!-- Rayon bas-droite -->
+    <polygon points="360,280 300,260 310,235"/>
+    <!-- Rayon bas-gauche -->
+    <polygon points="152,280 212,260 202,235"/>
+    <!-- Rayon haut-gauche -->
+    <polygon points="172,160 212,200 232,180"/>
+  </g>
+  
+  <!-- Pirogue stylisée (emblème central) -->
+  <ellipse cx="256" cy="270" rx="50" ry="12" fill="#CE1126"/>
+  <rect x="230" y="235" width="4" height="40" fill="#CE1126"/>
+  <rect x="256" y="220" width="4" height="55" fill="#CE1126"/>
+  <rect x="278" y="235" width="4" height="40" fill="#CE1126"/>
+  
+  <!-- Lettre N par dessus -->
+  <text x="256" y="290" font-family="Georgia, serif" font-size="140" font-weight="bold" fill="#FFFFFF" text-anchor="middle" stroke="#CE1126" stroke-width="3">N</text>
+</svg>
