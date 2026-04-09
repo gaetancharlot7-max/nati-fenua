@@ -213,10 +213,6 @@ const LandingPage = () => {
               <span className="text-white">Fenua</span>
             </h1>
             
-            <p className="text-2xl md:text-3xl text-white/90 mb-2 font-light">
-              Le réseau social de la <span className="font-semibold text-[#FFD700]">Polynésie Française</span>
-            </p>
-            
             <p className="text-2xl md:text-3xl mb-6 italic font-bold bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent">
               Le seul réseau qui nous ressemble
             </p>
