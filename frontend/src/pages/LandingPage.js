@@ -217,7 +217,7 @@ const LandingPage = () => {
               Le réseau social de la <span className="font-semibold text-[#FFD700]">Polynésie Française</span>
             </p>
             
-            <p className="text-xl md:text-2xl text-white/80 mb-6 italic font-medium">
+            <p className="text-2xl md:text-3xl mb-6 italic font-bold bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent">
               Le seul réseau qui nous ressemble
             </p>
             
