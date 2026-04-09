@@ -18,7 +18,7 @@ const NatiFenuaLogo = ({ size = 'md' }) => {
   return (
     <div className="relative rotate-3 hover:rotate-0 transition-transform duration-300">
       <img 
-        src="/assets/logo_nati_fenua_custom.svg" 
+        src="/assets/logo_nati_fenua_v2.svg" 
         alt="Nati Fenua"
         className={`${sizes[size]} drop-shadow-md`}
       />

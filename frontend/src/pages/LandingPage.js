@@ -23,7 +23,7 @@ const NatiFenuaLogo = ({ size = 'lg' }) => {
       transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
     >
       <img 
-        src="/assets/logo_nati_fenua_custom.svg" 
+        src="/assets/logo_nati_fenua_v2.svg" 
         alt="Nati Fenua"
         className={`${sizes[size]} drop-shadow-xl`}
       />

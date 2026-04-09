@@ -67,7 +67,7 @@ const AuthPage = () => {
     return (
       <div className="relative rotate-3">
         <img 
-          src="/assets/logo_nati_fenua_custom.svg" 
+          src="/assets/logo_nati_fenua_v2.svg" 
           alt="Nati Fenua"
           className={`${sizes[size]} drop-shadow-lg`}
         />

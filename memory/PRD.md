@@ -3,6 +3,16 @@
 ## Original Problem Statement
 Application de réseau social polynésien avec flux RSS réels, webcams en direct, authentification Google OAuth, messagerie temps réel, système publicitaire en Francs Pacifiques (XPF), et notifications push.
 
+## Last Update: 9 Avril 2025
+
+### Recent Changes
+- ✅ **Logo personnalisé v2 intégré** - SVG avec "N" stylisé et drapeau polynésien (LandingPage, AuthPage, MainLayout)
+- ✅ **Page MediaPage** pour profils RSS/Médias sans statistiques personnelles  
+- ✅ **Optimisations performance** (Gzip, connection pooling, indexes DB, module Redis)
+- ✅ **Badges messages non lus** avec sons polynésiens (Web Audio API)
+- ✅ **Musique d'ambiance tahitienne** (toggle sur Landing Page)
+- ✅ **Compatibilité iOS/Safari** (Meta tags, Service Worker, fallback LocalStorage)
+
 ## Core Features Implemented
 
 ### Authentication
