@@ -56,27 +56,21 @@ const AuthPage = () => {
 
   // Facebook login removed - using Google OAuth only
 
-  // Nati Fenua Logo Component - Style Play Store avec drapeau polynésien
+  // Nati Fenua Logo Component - Logo personnalisé SVG
   const NatiFenuaLogo = ({ size = 'md' }) => {
     const sizes = {
-      sm: { outer: 'w-10 h-10', inner: 'text-lg', flag: 'w-3.5 h-2.5', radius: 'rounded-xl', padding: 'p-0.5' },
-      md: { outer: 'w-14 h-14', inner: 'text-2xl', flag: 'w-4 h-3', radius: 'rounded-2xl', padding: 'p-1' },
-      lg: { outer: 'w-16 h-16', inner: 'text-3xl', flag: 'w-5 h-3.5', radius: 'rounded-2xl', padding: 'p-1' }
+      sm: 'w-10 h-10',
+      md: 'w-14 h-14',
+      lg: 'w-16 h-16'
     };
     
     return (
-      <div className="relative">
-        <div className={`${sizes[size].outer} ${sizes[size].radius} bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] ${sizes[size].padding} rotate-3 shadow-lg`}>
-          <div className={`w-full h-full ${sizes[size].radius} bg-white flex items-center justify-center relative`}>
-            <span className={`${sizes[size].inner} font-black bg-gradient-to-b from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent`}>N</span>
-            {/* Drapeau polynésien */}
-            <img 
-              src="/icons/drapeau-polynesie.png" 
-              alt="🇵🇫" 
-              className={`absolute bottom-0.5 right-0.5 ${sizes[size].flag} object-cover rounded-sm shadow-sm`}
-            />
-          </div>
-        </div>
+      <div className="relative rotate-3">
+        <img 
+          src="/assets/logo_nati_fenua_custom.svg" 
+          alt="Nati Fenua"
+          className={`${sizes[size]} drop-shadow-lg`}
+        />
       </div>
     );
   };

@@ -7,27 +7,21 @@ import NotificationBell from '../NotificationBell';
 import { useUnreadMessages } from '../../hooks/useUnreadMessages';
 import soundManager from '../../lib/soundManager';
 
-// Nati Fenua Logo Component - Style Play Store avec drapeau polynésien
+// Nati Fenua Logo Component - Logo personnalisé SVG
 const NatiFenuaLogo = ({ size = 'md' }) => {
   const sizes = {
-    sm: { outer: 'w-8 h-8', inner: 'text-lg', flag: 'w-3 h-2', radius: 'rounded-lg', padding: 'p-0.5' },
-    md: { outer: 'w-10 h-10', inner: 'text-xl', flag: 'w-4 h-2.5', radius: 'rounded-xl', padding: 'p-0.5' },
-    lg: { outer: 'w-14 h-14', inner: 'text-2xl', flag: 'w-5 h-3', radius: 'rounded-2xl', padding: 'p-1' }
+    sm: 'w-8 h-8',
+    md: 'w-10 h-10',
+    lg: 'w-14 h-14'
   };
   
   return (
-    <div className="relative">
-      <div className={`${sizes[size].outer} ${sizes[size].radius} bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] ${sizes[size].padding} rotate-3 hover:rotate-0 transition-transform duration-300`}>
-        <div className={`w-full h-full ${sizes[size].radius} bg-white flex items-center justify-center relative`}>
-          <span className={`${sizes[size].inner} font-black bg-gradient-to-b from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent`}>N</span>
-          {/* Drapeau polynésien */}
-          <img 
-            src="/icons/drapeau-polynesie.png" 
-            alt="🇵🇫" 
-            className={`absolute bottom-0.5 right-0.5 ${sizes[size].flag} object-cover rounded-sm shadow-sm`}
-          />
-        </div>
-      </div>
+    <div className="relative rotate-3 hover:rotate-0 transition-transform duration-300">
+      <img 
+        src="/assets/logo_nati_fenua_custom.svg" 
+        alt="Nati Fenua"
+        className={`${sizes[size]} drop-shadow-md`}
+      />
     </div>
   );
 };
