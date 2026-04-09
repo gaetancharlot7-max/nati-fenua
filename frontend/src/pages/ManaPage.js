@@ -328,6 +328,17 @@ const PulsePage = () => {
     }
   };
 
+  const deleteMarker = async (markerId) => {
+    try {
+      await api.delete(`/pulse/markers/${markerId}`);
+      toast.success('Signalement supprimé');
+      loadMarkers();
+      setShowMarkerDetail(null);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur lors de la suppression');
+    }
+  };
+
   const handleContactVendor = async (marker) => {
     if (!user) {
       toast.error('Connectez-vous pour contacter le vendeur');
@@ -649,6 +660,7 @@ const PulsePage = () => {
         contactingVendor={contactingVendor}
         currentUserId={user?.user_id}
         onBoostMarker={handleBoostMarker}
+        onDeleteMarker={deleteMarker}
       />
 
       {/* Boost Confirmation Modal */}
@@ -1013,13 +1025,15 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
 };
 
 // Marker Detail Modal
-const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, contactingVendor, currentUserId, onBoostMarker }) => {
+const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, contactingVendor, currentUserId, onBoostMarker, onDeleteMarker }) => {
   if (!marker) return null;
 
   const canVote = currentUserId && 
     !marker.confirmed_by?.includes(currentUserId) && 
     !marker.denied_by?.includes(currentUserId) &&
     marker.user_id !== currentUserId;
+  
+  const isOwner = currentUserId && marker.user_id === currentUserId;
 
   return (
     <AnimatePresence>
@@ -1238,6 +1252,18 @@ const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, contac
                   Faux / Résolu
                 </Button>
               </div>
+            )}
+            
+            {/* Owner controls - Delete button */}
+            {isOwner && !marker.is_webcam && (
+              <Button
+                onClick={() => onDeleteMarker && onDeleteMarker(marker.marker_id)}
+                variant="outline"
+                className="w-full border-red-300 text-red-600 hover:bg-red-50 rounded-xl"
+              >
+                <X size={18} className="mr-2" />
+                Supprimer mon signalement
+              </Button>
             )}
           </div>
         </motion.div>

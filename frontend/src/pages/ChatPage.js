@@ -39,6 +39,7 @@ const ChatPage = () => {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const emojiPickerRef = useRef(null);
+  const [showConvMenu, setShowConvMenu] = useState(null);
   
   // New states for user search
   const [showNewConversation, setShowNewConversation] = useState(false);
@@ -47,6 +48,20 @@ const ChatPage = () => {
   const [searchingUsers, setSearchingUsers] = useState(false);
   const searchInputRef = useRef(null);
   const searchResultsRef = useRef(null);
+
+  // Delete conversation
+  const deleteConversation = async (convId) => {
+    try {
+      await chatApi.deleteConversation(convId);
+      setConversations(prev => prev.filter(c => c.conversation_id !== convId));
+      if (selectedConversation?.conversation_id === convId) {
+        setSelectedConversation(null);
+      }
+      setShowConvMenu(null);
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
+  };
 
   // Si on arrive avec un paramètre ?user=, créer ou ouvrir une conversation avec cet utilisateur
   useEffect(() => {
@@ -410,7 +425,7 @@ const ChatPage = () => {
             <motion.div
               key={conv.conversation_id}
               data-testid={`conversation-${conv.conversation_id}`}
-              className={`w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-all cursor-pointer ${
+              className={`w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-all cursor-pointer relative ${
                 selectedConversation?.conversation_id === conv.conversation_id ? 'bg-gradient-to-r from-[#FF6B35]/10 to-transparent' : ''
               }`}
               whileTap={{ scale: 0.98 }}
@@ -443,7 +458,7 @@ const ChatPage = () => {
                   <span className="text-xs text-gray-400">{formatDate(conv.last_message_at)}</span>
                 </div>
                 <p className={`text-sm truncate ${conv.unread > 0 ? 'text-[#1A1A2E] font-medium' : 'text-gray-500'}`}>
-                  {conv.last_message}
+                  {conv.last_message || 'Démarrer la conversation...'}
                 </p>
               </div>
               
@@ -452,6 +467,34 @@ const ChatPage = () => {
                   {conv.unread}
                 </div>
               )}
+              
+              {/* Menu 3 points */}
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowConvMenu(showConvMenu === conv.conversation_id ? null : conv.conversation_id);
+                  }}
+                  className="p-2 rounded-full hover:bg-gray-200 transition-colors"
+                >
+                  <MoreVertical size={18} className="text-gray-500" />
+                </button>
+                
+                {showConvMenu === conv.conversation_id && (
+                  <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 min-w-[160px]">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteConversation(conv.conversation_id);
+                      }}
+                      className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
+                    >
+                      <X size={16} />
+                      Supprimer
+                    </button>
+                  </div>
+                )}
+              </div>
             </motion.div>
           ))
           )}

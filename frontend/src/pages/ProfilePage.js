@@ -63,6 +63,8 @@ const ProfilePage = () => {
       const response = await usersApi.follow(userId);
       setIsFollowing(response.data.following);
       toast.success(response.data.following ? 'Ami ajouté !' : 'Ami retiré');
+      // Recharger le profil pour mettre à jour les compteurs
+      loadProfile();
     } catch (error) {
       toast.error('Erreur');
     }
@@ -219,17 +221,18 @@ const ProfilePage = () => {
         {/* Posts Grid */}
         <TabsContent value="posts">
           <div className="profile-grid">
-            {posts.map((post, index) => (
+            {posts.filter(p => !p.is_rss && !p.is_external).map((post, index) => (
               <motion.div
                 key={post.post_id}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.05 }}
                 data-testid={`profile-post-${post.post_id}`}
-                className="aspect-square relative group cursor-pointer overflow-hidden"
+                onClick={() => navigate(`/post/${post.post_id}`)}
+                className="aspect-square relative group cursor-pointer overflow-hidden rounded-xl"
               >
                 <img 
-                  src={post.media_url || post.thumbnail_url}
+                  src={post.media_url || post.thumbnail_url || 'https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=400'}
                   alt=""
                   className="w-full h-full object-cover"
                 />
@@ -247,7 +250,7 @@ const ProfilePage = () => {
             ))}
           </div>
 
-          {posts.length === 0 && (
+          {posts.filter(p => !p.is_rss && !p.is_external).length === 0 && (
             <div className="text-center py-16">
               <Grid3X3 size={48} className="mx-auto text-gray-300 mb-4" />
               <p className="text-gray-500">Aucune publication</p>

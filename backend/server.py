@@ -2284,6 +2284,28 @@ async def view_story(story_id: str, request: Request):
     
     return {"viewed": True}
 
+@api_router.delete("/stories/{story_id}")
+async def delete_story(story_id: str, request: Request):
+    """Delete a story (only creator can delete)"""
+    user = await require_auth(request)
+    
+    # Find the story
+    story = await db.stories.find_one({"story_id": story_id}, {"_id": 0})
+    if not story:
+        raise HTTPException(status_code=404, detail="Story non trouvée")
+    
+    # Check ownership
+    if story.get("user_id") != user.user_id:
+        raise HTTPException(status_code=403, detail="Vous ne pouvez supprimer que vos propres stories")
+    
+    # Delete the story
+    await db.stories.delete_one({"story_id": story_id})
+    
+    # Delete views
+    await db.story_views.delete_many({"story_id": story_id})
+    
+    return {"success": True, "message": "Story supprimée"}
+
 # ==================== REELS ROUTES ====================
 
 @api_router.get("/reels")
@@ -2498,6 +2520,28 @@ async def create_conversation(request: Request):
     
     return conversation
 
+@api_router.delete("/conversations/{conversation_id}")
+async def delete_conversation(conversation_id: str, request: Request):
+    """Delete a conversation and all its messages"""
+    user = await require_auth(request)
+    
+    # Find the conversation
+    conversation = await db.conversations.find_one(
+        {"conversation_id": conversation_id, "participants": user.user_id},
+        {"_id": 0}
+    )
+    
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation non trouvée")
+    
+    # Delete all messages in the conversation
+    await db.messages.delete_many({"conversation_id": conversation_id})
+    
+    # Delete the conversation
+    await db.conversations.delete_one({"conversation_id": conversation_id})
+    
+    return {"success": True, "message": "Conversation supprimée"}
+
 @api_router.post("/messages")
 async def send_message(message_data: MessageCreate, request: Request):
     user = await require_auth(request)
@@ -2680,11 +2724,11 @@ async def get_products(category: Optional[str] = None, limit: int = 20, skip: in
             {
                 "product_id": "prod_demo_1",
                 "title": "Paréo traditionnel tahitien",
-                "description": "Magnifique paréo fait main avec motifs traditionnels",
+                "description": "Magnifique paréo fait main avec motifs traditionnels polynésiens",
                 "price": 4500,
                 "currency": "XPF",
                 "category": "Mode",
-                "images": ["https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800"],
+                "images": ["https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800"],
                 "is_available": True,
                 "location": "Papeete",
                 "created_at": datetime.now(timezone.utc).isoformat(),
@@ -5721,6 +5765,26 @@ async def close_pulse_marker(marker_id: str, request: Request):
         return await pulse.close_marker(marker_id, user.user_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.delete("/pulse/markers/{marker_id}")
+async def delete_pulse_marker(marker_id: str, request: Request):
+    """Delete a marker (only creator can delete)"""
+    user = await require_auth(request)
+    
+    # Find the marker
+    marker = await db.markers.find_one({"marker_id": marker_id}, {"_id": 0})
+    if not marker:
+        raise HTTPException(status_code=404, detail="Marqueur non trouvé")
+    
+    # Check ownership
+    if marker.get("user_id") != user.user_id:
+        raise HTTPException(status_code=403, detail="Vous ne pouvez supprimer que vos propres signalements")
+    
+    # Delete the marker
+    await db.markers.delete_one({"marker_id": marker_id})
+    logger.info(f"User {user.user_id} deleted marker: {marker_id}")
+    
+    return {"success": True, "message": "Signalement supprimé"}
 
 @api_router.get("/pulse/leaderboard")
 async def get_pulse_leaderboard(island: Optional[str] = None):

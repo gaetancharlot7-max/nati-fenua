@@ -53,7 +53,8 @@ export const postsApi = {
 export const storiesApi = {
   getAll: () => api.get('/stories'),
   create: (data) => api.post('/stories', data),
-  view: (storyId) => api.post(`/stories/${storyId}/view`)
+  view: (storyId) => api.post(`/stories/${storyId}/view`),
+  delete: (storyId) => api.delete(`/stories/${storyId}`)
 };
 
 // Reels API
@@ -78,7 +79,8 @@ export const chatApi = {
   sendMessage: (data) => api.post('/messages', data),
   createConversation: (userId) => api.post('/conversations', { user_id: userId }),
   markAsRead: (conversationId) => api.post(`/conversations/${conversationId}/read`),
-  searchUsers: (query) => api.get('/users/search', { params: { q: query, limit: 10 } })
+  searchUsers: (query) => api.get('/users/search', { params: { q: query, limit: 10 } }),
+  deleteConversation: (conversationId) => api.delete(`/conversations/${conversationId}`)
 };
 
 // Marketplace API

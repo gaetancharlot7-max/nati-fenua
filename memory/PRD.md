@@ -5,100 +5,60 @@ Application de réseau social polynésien avec flux RSS réels, webcams en direc
 
 ## Last Update: 9 Avril 2025
 
-### Recent Changes
-- ✅ **Logo personnalisé v2 intégré** - SVG avec "N" stylisé et drapeau polynésien (LandingPage, AuthPage, MainLayout)
-- ✅ **Page MediaPage** pour profils RSS/Médias sans statistiques personnelles  
-- ✅ **Optimisations performance** (Gzip, connection pooling, indexes DB, module Redis)
-- ✅ **Badges messages non lus** avec sons polynésiens (Web Audio API)
-- ✅ **Musique d'ambiance tahitienne** (toggle sur Landing Page)
-- ✅ **Compatibilité iOS/Safari** (Meta tags, Service Worker, fallback LocalStorage)
+### Recent Changes (Session actuelle)
+- ✅ **Logo personnalisé v2 intégré** - SVG avec "N" stylisé et drapeau polynésien
+- ✅ **Slogan turquoise** - "Le seul réseau qui nous ressemble" 
+- ✅ **Landing Page nettoyée** - Retiré musique et "Reels/Vidéos"
+- ✅ **Messagerie améliorée** - Menu 3 points fonctionnel avec suppression de conversation
+- ✅ **Profil corrigé** - Filtrage des posts RSS, clic vers post, navigation
+- ✅ **Stories complètes** - Visualisation modal + suppression pour propriétaire
+- ✅ **Mana corrigé** - Suppression signalement par propriétaire, votes fonctionnels
+- ✅ **Amis corrigé** - Rechargement des compteurs après follow/unfollow
+- ✅ **Image paréo** - Nouvelle image pour le marketplace
 
-## Core Features Implemented
+### Core Features Implemented
+1. **Authentification** - Google OAuth + JWT custom
+2. **Fil d'actualité** - Posts, réactions, commentaires, partage
+3. **Stories** - Création, visualisation 24h, suppression
+4. **Messagerie** - Chat temps réel WebSocket, emojis, images
+5. **Marketplace** - Produits, services, paiements XPF
+6. **Mana (Carte)** - Signalements, webcams, roulottes, woofing
+7. **Système de Boost** - Paiements Stripe en XPF
+8. **Notifications** - Sons polynésiens, badges non-lus
+9. **Admin** - Dashboard modération, analytics
 
-### Authentication
-- ✅ Google OAuth (Production sur Render)
-- ✅ JWT-based custom auth
-- ✅ Password reset via email (Resend)
+### API Endpoints Ajoutés
+- `DELETE /api/conversations/{id}` - Supprimer une conversation
+- `DELETE /api/stories/{id}` - Supprimer une story
+- `DELETE /api/pulse/markers/{id}` - Supprimer un signalement Mana
 
-### Feed & Content
-- ✅ Flux RSS polynésiens (18 sources fiables, 2x/jour, expire après 48h)
-- ✅ Publications utilisateurs avec likes/commentaires
-- ✅ Modération hybride (filtres mots + préparé IA)
+### Technical Stack
+- **Frontend**: React 18, TailwindCSS, Framer Motion, Shadcn/UI
+- **Backend**: FastAPI, Motor (MongoDB async)
+- **Database**: MongoDB Atlas
+- **Auth**: Google OAuth + JWT
+- **Payments**: Stripe (via emergentintegrations)
+- **Hosting**: Render
 
-### Carte Mana
-- ✅ Webcams en direct (liens externes pour iframes bloquées)
-- ✅ Marqueurs sur carte polynésienne
-- ✅ Alertes Mana
-- ✅ **Boost 300 XPF** pour roulottes et bonnes affaires
+### Files Modified This Session
+- `/app/frontend/src/pages/LandingPage.js` - Logo, slogan, nettoyage
+- `/app/frontend/src/pages/ChatPage.js` - Menu suppression conversation
+- `/app/frontend/src/pages/ProfilePage.js` - Filtrage posts, navigation
+- `/app/frontend/src/pages/FeedPage.js` - StoryItem avec modal viewer
+- `/app/frontend/src/pages/ManaPage.js` - Suppression signalements
+- `/app/frontend/src/lib/api.js` - Nouvelles méthodes delete
+- `/app/backend/server.py` - Endpoints delete
 
-### Messagerie
-- ✅ Chat temps réel (WebSockets v2)
-- ✅ Recherche d'utilisateurs par auto-complétion
-- ✅ Indicateurs de frappe et accusés de lecture
-- ✅ **Notifications push** quand message reçu (app fermée)
+### Upcoming Tasks (P1)
+- Configuration clés API production (Stripe Live, Firebase, Resend)
+- Lancement beta privée 50 testeurs
 
-### Administration
-- ✅ Page admin complète (`/admin/login`)
-- ✅ Gestion des posts et marqueurs Mana
+### Future Tasks (P2/P3)
+- Application mobile Expo
+- Stories temporaires améliorées
+- Thème sombre complet
+- Refactoring server.py (>7000 lignes)
 
-### Publicité
-- ✅ Forfaits en XPF via Stripe
-- ✅ Page `/advertising`
-- ✅ Boost marker 300 XPF (24h visibilité)
-
-### Internationalisation
-- ✅ Traductions FR/Tahitien (89 clés)
-- ✅ API `/api/translations/{lang}`
-
-### PWA (Progressive Web App)
-- ✅ Installable sur mobile
-- ✅ Notifications push (Firebase ready)
-- ✅ Service Worker amélioré
-- ✅ Banner demande permission notifications
-
-### Modération
-- ✅ Filtres mots interdits FR/Tahitien
-- ✅ Détection spam automatique
-- ✅ Préparé pour IA (clé API optionnelle)
-
-### Statistiques
-- ✅ Stats utilisateur `/api/users/{id}/statistics`
-- ✅ Stats plateforme `/api/statistics/platform`
-
-### Notifications Push
-- ✅ Firebase Cloud Messaging (GRATUIT)
-- ✅ Notifications messages
-- ✅ Notifications boost roulottes/market
-- ✅ Banner permission automatique
-
-## Technical Stack
-- Frontend: React 18
-- Backend: FastAPI
-- Database: MongoDB Atlas
-- Hosting: Render
-- Auth: Google OAuth + JWT
-- Payments: Stripe (emergentintegrations)
-- Push: Firebase Cloud Messaging
-
-## Variables d'environnement Render
-- `MONGO_URL` - MongoDB Atlas
-- `GOOGLE_CLIENT_ID` - OAuth
-- `GOOGLE_CLIENT_SECRET` - OAuth
-- `STRIPE_API_KEY` - Paiements
-- `FIREBASE_SERVER_KEY` - Push notifications (optionnel)
-- `RESEND_API_KEY` - Emails (optionnel)
-- `MODERATION_AI_KEY` - IA modération (optionnel)
-
-## Backlog (P3)
-- Application mobile Expo (App Store/Play Store)
-- Modération par IA avancée
-
-## Templates Territoires Créés
-- **TEMPLATE_KAMO_NOUVELLE_CALEDONIE.md** : Template complet pour créer "Kamo" (NC)
-  - Régions : Nouméa, Dumbéa, Mont-Dore, Païta, Bourail, Koné, Lifou, Maré, Ouvéa, Île des Pins...
-  - RSS : LNC, NC la 1ère, Caledonia, Outremers 360...
-  - Traductions : Français/Drehu
-  - Même architecture et performances que Nati Fenua
-
-## Last Update
-2026-04-06 - v12: Page Média séparée (sans stats, lien site web) + Template Kamo NC
+### Known Issues
+- Webcams peuvent être bloquées par certains navigateurs (bouton "Ouvrir dans nouvel onglet" disponible)
+- Push notifications et emails attendent les clés API sur Render

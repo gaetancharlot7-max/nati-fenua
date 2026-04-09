@@ -254,6 +254,119 @@ const CommentsSection = ({ post }) => {
   );
 };
 
+// Story Item Component with viewer modal
+const StoryItem = ({ storyGroup, currentUser, onDelete }) => {
+  const [showViewer, setShowViewer] = useState(false);
+  const isOwn = storyGroup.user?.user_id === currentUser?.user_id;
+  
+  return (
+    <>
+      <button 
+        onClick={() => setShowViewer(true)}
+        data-testid={`story-${storyGroup.user?.user_id || storyGroup.story_id}`}
+        className="flex-shrink-0 flex flex-col items-center gap-2"
+      >
+        <div className={`p-[3px] rounded-2xl ${storyGroup.hasLive ? 'bg-gradient-to-r from-red-500 to-[#FF6B35] animate-pulse' : 'story-ring'}`}>
+          <Avatar className="w-16 h-16 rounded-xl border-2 border-white">
+            <AvatarImage src={storyGroup.user?.picture} className="rounded-xl" />
+            <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl">{storyGroup.user?.name?.[0]}</AvatarFallback>
+          </Avatar>
+        </div>
+        <div className="flex items-center gap-1">
+          {storyGroup.hasLive && (
+            <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded">LIVE</span>
+          )}
+          <span className="text-xs text-[#1A1A2E] font-medium truncate w-14 text-center">
+            {isOwn ? 'Votre story' : storyGroup.user?.name}
+          </span>
+        </div>
+      </button>
+      
+      {/* Story Viewer Modal */}
+      <AnimatePresence>
+        {showViewer && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+            onClick={() => setShowViewer(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-md w-full h-[80vh] rounded-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Story Content */}
+              <img 
+                src={storyGroup.media_url || storyGroup.stories?.[0]?.media_url || 'https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=800'}
+                alt="Story"
+                className="w-full h-full object-cover"
+              />
+              
+              {/* Header */}
+              <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/60 to-transparent">
+                {/* Progress bar */}
+                <div className="h-1 bg-white/30 rounded-full mb-4 overflow-hidden">
+                  <motion.div 
+                    className="h-full bg-white rounded-full"
+                    initial={{ width: '0%' }}
+                    animate={{ width: '100%' }}
+                    transition={{ duration: 5 }}
+                    onAnimationComplete={() => setShowViewer(false)}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-10 h-10 border-2 border-white">
+                      <AvatarImage src={storyGroup.user?.picture} />
+                      <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white">{storyGroup.user?.name?.[0]}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-white font-semibold">{storyGroup.user?.name}</p>
+                      <p className="text-white/70 text-xs">Il y a quelques heures</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {isOwn && (
+                      <button
+                        onClick={() => {
+                          onDelete(storyGroup.story_id);
+                          setShowViewer(false);
+                        }}
+                        className="p-2 rounded-full bg-red-500/80 text-white hover:bg-red-600"
+                      >
+                        <X size={20} />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setShowViewer(false)}
+                      className="p-2 rounded-full bg-white/20 text-white hover:bg-white/30"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Caption */}
+              {storyGroup.caption && (
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+                  <p className="text-white">{storyGroup.caption}</p>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+};
+
 // Demo stories (sera remplacé par les vraies données)
 const demoStories = [];
 
@@ -402,26 +515,20 @@ const FeedPage = () => {
 
           {/* Stories List */}
           {stories.map((storyGroup) => (
-            <button 
-              key={storyGroup.user?.user_id} 
-              data-testid={`story-${storyGroup.user?.user_id}`}
-              className="flex-shrink-0 flex flex-col items-center gap-2"
-            >
-              <div className={`p-[3px] rounded-2xl ${storyGroup.hasLive ? 'bg-gradient-to-r from-red-500 to-[#FF6B35] animate-pulse' : 'story-ring'}`}>
-                <Avatar className="w-16 h-16 rounded-xl border-2 border-white">
-                  <AvatarImage src={storyGroup.user?.picture} className="rounded-xl" />
-                  <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl">{storyGroup.user?.name?.[0]}</AvatarFallback>
-                </Avatar>
-              </div>
-              <div className="flex items-center gap-1">
-                {storyGroup.hasLive && (
-                  <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded">LIVE</span>
-                )}
-                <span className="text-xs text-[#1A1A2E] font-medium truncate w-14 text-center">
-                  {storyGroup.user?.name}
-                </span>
-              </div>
-            </button>
+            <StoryItem 
+              key={storyGroup.user?.user_id || storyGroup.story_id} 
+              storyGroup={storyGroup}
+              currentUser={user}
+              onDelete={async (storyId) => {
+                try {
+                  await storiesApi.delete(storyId);
+                  setStories(prev => prev.filter(s => s.story_id !== storyId));
+                  toast.success('Story supprimée');
+                } catch (error) {
+                  toast.error('Erreur lors de la suppression');
+                }
+              }}
+            />
           ))}
         </div>
       </div>
