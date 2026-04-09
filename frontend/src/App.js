@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Toaster } from './components/ui/sonner';
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useState, useEffect } from 'react';
+import SplashScreen from './components/SplashScreen';
 import './App.css';
 
 // Loading component
@@ -158,10 +159,32 @@ function AppContent() {
 }
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+  const [hasSeenSplash, setHasSeenSplash] = useState(false);
+
+  useEffect(() => {
+    // Vérifier si l'utilisateur a déjà vu le splash dans cette session
+    const seen = sessionStorage.getItem('splash_seen');
+    if (seen) {
+      setShowSplash(false);
+      setHasSeenSplash(true);
+    }
+  }, []);
+
+  const handleSplashComplete = () => {
+    sessionStorage.setItem('splash_seen', 'true');
+    setShowSplash(false);
+    setHasSeenSplash(true);
+  };
+
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppContent />
+        {showSplash && !hasSeenSplash ? (
+          <SplashScreen onComplete={handleSplashComplete} />
+        ) : (
+          <AppContent />
+        )}
       </AuthProvider>
     </BrowserRouter>
   );
