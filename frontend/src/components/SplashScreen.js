@@ -105,9 +105,9 @@ const SplashScreen = ({ onComplete }) => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8, duration: 0.5 }}
-              className="text-white/80 text-lg mt-2"
+              className="text-white/90 text-xl mt-3 font-medium italic"
             >
-              Le réseau social polynésien
+              Le seul réseau qui nous ressemble
             </motion.p>
           </motion.div>
 
