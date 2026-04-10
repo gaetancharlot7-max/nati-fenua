@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nati Fenua - Fiche Technique Complète</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f8f9fa;
+            color: #1A1A2E;
+            line-height: 1.6;
+        }
+        
+        .page {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        @media print {
+            .page {
+                box-shadow: none;
+                padding: 20px;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 40px 0;
+            background: linear-gradient(135deg, #FF6B35 0%, #FF1493 50%, #00CED1 100%);
+            border-radius: 20px;
+            margin-bottom: 40px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            font-weight: 800;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header .slogan {
+            font-size: 1.5em;
+            font-style: italic;
+            opacity: 0.95;
+        }
+        
+        .header .version {
+            margin-top: 15px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        /* Sections */
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #FF6B35;
+            border-bottom: 3px solid #FF6B35;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-title .icon {
+            font-size: 1.2em;
+        }
+        
+        /* Cards */
+        .card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-left: 4px solid #FF1493;
+        }
+        
+        .card-title {
+            font-weight: 600;
+            color: #1A1A2E;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #FF6B35, #FF1493);
+            color: white;
+            font-weight: 600;
+        }
+        
+        tr:hover {
+            background: #f5f5f5;
+        }
+        
+        /* Colors */
+        .color-palette {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        
+        .color-box {
+            width: 120px;
+            text-align: center;
+        }
+        
+        .color-sample {
+            height: 80px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        
+        .color-name {
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        
+        .color-hex {
+            font-size: 0.8em;
+            color: #666;
+        }
+        
+        /* Lists */
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        ul li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+        
+        ul li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #00CED1;
+            font-weight: bold;
+        }
+        
+        /* Credentials box */
+        .credentials-box {
+            background: linear-gradient(135deg, #1A1A2E, #16213E);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        .credentials-box h4 {
+            color: #00CED1;
+            margin-bottom: 15px;
+        }
+        
+        .credential-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .credential-item:last-child {
+            border-bottom: none;
+        }
+        
+        .credential-label {
+            color: #aaa;
+        }
+        
+        .credential-value {
+            font-family: 'Courier New', monospace;
+            color: #FFD700;
+            font-weight: 600;
+        }
+        
+        /* Warning box */
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .warning-box .icon {
+            font-size: 1.5em;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            background: #1A1A2E;
+            color: white;
+            border-radius: 15px;
+            margin-top: 40px;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+            opacity: 0.8;
+        }
+        
+        /* Tech stack badges */
+        .tech-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .badge {
+            background: linear-gradient(135deg, #FF6B35, #FF1493);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        
+        .badge.green {
+            background: linear-gradient(135deg, #00CED1, #20B2AA);
+        }
+        
+        .badge.purple {
+            background: linear-gradient(135deg, #9B59B6, #8E44AD);
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>NATI FENUA</h1>
+            <div class="slogan">"Le seul réseau qui nous ressemble"</div>
+            <div class="version">Fiche Technique v1.0 - Avril 2025</div>
+        </div>
+
+        <!-- DESCRIPTION -->
+        <div class="section">
+            <h2 class="section-title"><span class="icon">📱</span> Description de l'Application</h2>
+            
+            <div class="card">
+                <div class="card-title">Qu'est-ce que Nati Fenua ?</div>
+                <p><strong>Nati Fenua</strong> est le premier réseau social 100% polynésien, conçu par et pour les habitants de la Polynésie Française. L'application combine les fonctionnalités des réseaux sociaux modernes avec une identité culturelle forte, mettant en valeur la richesse du Fenua.</p>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Mission</div>
+                <p>Créer un espace numérique où les Polynésiens peuvent se connecter, partager leur quotidien, découvrir les actualités locales, et soutenir l'économie locale à travers un marketplace intégré.</p>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Public Cible</div>
+                <ul>
+                    <li>Résidents de Polynésie Française (toutes îles)</li>
+                    <li>Diaspora polynésienne dans le monde</li>
+                    <li>Touristes et amoureux de la culture polynésienne</li>
+                    <li>Entreprises et artisans locaux</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- FONCTIONNALITÉS -->
+        <div class="section">
+            <h2 class="section-title"><span class="icon">⚡</span> Fonctionnalités Principales</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Module</th>
+                        <th>Description</th>
+                        <th>Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Fil d'Actualité</strong></td>
+                        <td>Posts, photos, réactions, commentaires, partage</td>
+                        <td>✅ Actif</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Stories</strong></td>
+                        <td>Publications temporaires 24h avec visualisation</td>
+                        <td>✅ Actif</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Messagerie</strong></td>
+                        <td>Chat temps réel WebSocket, emojis, images</td>
+                        <td>✅ Actif</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Mana (Carte)</strong></td>
+                        <td>Signalements, webcams live, roulottes, woofing</td>
+                        <td>✅ Actif</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Marketplace</strong></td>
+                        <td>Vente de produits/services en XPF</td>
+                        <td>✅ Actif</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Boost Payant</strong></td>
+                        <td>Mise en avant via Stripe (XPF)</td>
+                        <td>✅ Actif</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Flux RSS</strong></td>
+                        <td>Actualités Tahiti Infos, La Dépêche, TNTV</td>
+                        <td>✅ Actif</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Notifications</strong></td>
+                        <td>Sons polynésiens, badges non-lus</td>
+                        <td>✅ Actif</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Admin Dashboard</strong></td>
+                        <td>Modération, analytics, gestion utilisateurs</td>
+                        <td>✅ Actif</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGE BREAK -->
+        <div class="page-break"></div>
+
+        <!-- CHARTE GRAPHIQUE -->
+        <div class="section">
+            <h2 class="section-title"><span class="icon">🎨</span> Charte Graphique</h2>
+            
+            <div class="card">
+                <div class="card-title">Palette de Couleurs Principales</div>
+                <div class="color-palette">
+                    <div class="color-box">
+                        <div class="color-sample" style="background: #FF6B35;"></div>
+                        <div class="color-name">Orange Corail</div>
+                        <div class="color-hex">#FF6B35</div>
+                    </div>
+                    <div class="color-box">
+                        <div class="color-sample" style="background: #FF1493;"></div>
+                        <div class="color-name">Rose Hibiscus</div>
+                        <div class="color-hex">#FF1493</div>
+                    </div>
+                    <div class="color-box">
+                        <div class="color-sample" style="background: #00CED1;"></div>
+                        <div class="color-name">Turquoise Lagon</div>
+                        <div class="color-hex">#00CED1</div>
+                    </div>
+                    <div class="color-box">
+                        <div class="color-sample" style="background: #1A1A2E;"></div>
+                        <div class="color-name">Nuit Polynésienne</div>
+                        <div class="color-hex">#1A1A2E</div>
+                    </div>
+                    <div class="color-box">
+                        <div class="color-sample" style="background: #FFD700;"></div>
+                        <div class="color-name">Or Soleil</div>
+                        <div class="color-hex">#FFD700</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Dégradé Signature</div>
+                <div style="height: 60px; border-radius: 10px; background: linear-gradient(135deg, #FF6B35 0%, #FF1493 50%, #00CED1 100%); margin: 15px 0;"></div>
+                <p><code>linear-gradient(135deg, #FF6B35 0%, #FF1493 50%, #00CED1 100%)</code></p>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Typographie</div>
+                <table>
+                    <tr>
+                        <td><strong>Police principale</strong></td>
+                        <td>Poppins (Google Fonts)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Titres</strong></td>
+                        <td>Poppins Bold / Extra Bold (700-800)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Corps de texte</strong></td>
+                        <td>Poppins Regular (400)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Taille de base</strong></td>
+                        <td>16px</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Logo</div>
+                <p>Le logo Nati Fenua représente la lettre <strong>"N"</strong> stylisée avec le dégradé signature, accompagnée du <strong>drapeau polynésien</strong> en bas à droite, symbolisant l'ancrage culturel de l'application.</p>
+                <p style="margin-top: 10px;"><strong>Fichier :</strong> <code>/assets/logo_nati_fenua_v2.svg</code></p>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Éléments UI</div>
+                <ul>
+                    <li><strong>Boutons :</strong> Coins arrondis (border-radius: 12-20px)</li>
+                    <li><strong>Cards :</strong> Ombres douces, coins arrondis 15-20px</li>
+                    <li><strong>Icônes :</strong> Lucide React (style ligne)</li>
+                    <li><strong>Animations :</strong> Framer Motion (transitions fluides)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- PAGE BREAK -->
+        <div class="page-break"></div>
+
+        <!-- IDENTITÉ -->
+        <div class="section">
+            <h2 class="section-title"><span class="icon">🌺</span> Identité de Marque</h2>
+            
+            <div class="card">
+                <div class="card-title">Nom</div>
+                <p><strong>Nati Fenua</strong> - En tahitien, signifie "Né de la Terre" ou "Enfant du Pays"</p>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Slogan</div>
+                <p style="font-size: 1.4em; font-style: italic; color: #00CED1; text-align: center; padding: 20px 0;">
+                    "Le seul réseau qui nous ressemble"
+                </p>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Valeurs</div>
+                <ul>
+                    <li><strong>Authenticité</strong> - Contenu local et véridique</li>
+                    <li><strong>Communauté</strong> - Liens entre Polynésiens du monde</li>
+                    <li><strong>Culture</strong> - Valorisation des traditions</li>
+                    <li><strong>Économie locale</strong> - Soutien aux artisans et commerces</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Ton de Communication</div>
+                <ul>
+                    <li>Chaleureux et accueillant</li>
+                    <li>Utilisation de mots tahitiens (Ia ora na, Mauruuru, Mana...)</li>
+                    <li>Inclusif et bienveillant</li>
+                    <li>Moderne mais respectueux des traditions</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- STACK TECHNIQUE -->
+        <div class="section">
+            <h2 class="section-title"><span class="icon">🛠️</span> Stack Technique</h2>
+            
+            <div class="card">
+                <div class="card-title">Frontend</div>
+                <div class="tech-badges">
+                    <span class="badge">React 18</span>
+                    <span class="badge">TailwindCSS</span>
+                    <span class="badge">Framer Motion</span>
+                    <span class="badge">Shadcn/UI</span>
+                    <span class="badge">Leaflet Maps</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Backend</div>
+                <div class="tech-badges">
+                    <span class="badge green">FastAPI (Python)</span>
+                    <span class="badge green">Motor (MongoDB Async)</span>
+                    <span class="badge green">WebSockets</span>
+                    <span class="badge green">JWT Auth</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Services Externes</div>
+                <div class="tech-badges">
+                    <span class="badge purple">MongoDB Atlas</span>
+                    <span class="badge purple">Google OAuth</span>
+                    <span class="badge purple">Stripe Payments</span>
+                    <span class="badge purple">Render (Hosting)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE BREAK -->
+        <div class="page-break"></div>
+
+        <!-- ACCÈS & CREDENTIALS -->
+        <div class="section">
+            <h2 class="section-title"><span class="icon">🔐</span> Accès & Identifiants</h2>
+            
+            <div class="warning-box">
+                <span class="icon">⚠️</span>
+                <div><strong>CONFIDENTIEL</strong> - Ces informations sont strictement confidentielles. Ne pas partager.</div>
+            </div>
+            
+            <div class="credentials-box">
+                <h4>🌐 URLs de Production</h4>
+                <div class="credential-item">
+                    <span class="credential-label">Frontend</span>
+                    <span class="credential-value">https://nati-fenua-frontend.onrender.com</span>
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Backend API</span>
+                    <span class="credential-value">https://nati-fenua-backend.onrender.com/api</span>
+                </div>
+            </div>
+            
+            <div class="credentials-box">
+                <h4>👤 Compte Administrateur</h4>
+                <div class="credential-item">
+                    <span class="credential-label">URL Admin</span>
+                    <span class="credential-value">/admin/login</span>
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Email</span>
+                    <span class="credential-value">admin@natifenua.pf</span>
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Mot de passe</span>
+                    <span class="credential-value">NatiFenua2025!</span>
+                </div>
+            </div>
+            
+            <div class="credentials-box">
+                <h4>🔧 Render Dashboard</h4>
+                <div class="credential-item">
+                    <span class="credential-label">URL</span>
+                    <span class="credential-value">https://dashboard.render.com</span>
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Projet Frontend</span>
+                    <span class="credential-value">nati-fenua-frontend</span>
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Projet Backend</span>
+                    <span class="credential-value">nati-fenua-backend</span>
+                </div>
+            </div>
+            
+            <div class="credentials-box">
+                <h4>🗄️ MongoDB Atlas</h4>
+                <div class="credential-item">
+                    <span class="credential-label">Cluster</span>
+                    <span class="credential-value">nati-fenua-cluster</span>
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Database</span>
+                    <span class="credential-value">nati_fenua_db</span>
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Connection String</span>
+                    <span class="credential-value">(Voir variables Render)</span>
+                </div>
+            </div>
+            
+            <div class="credentials-box">
+                <h4>🔑 Google OAuth</h4>
+                <div class="credential-item">
+                    <span class="credential-label">Console</span>
+                    <span class="credential-value">https://console.cloud.google.com</span>
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Client ID</span>
+                    <span class="credential-value">(Voir variables Render)</span>
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Redirect URI</span>
+                    <span class="credential-value">https://nati-fenua-backend.onrender.com/api/auth/google/callback</span>
+                </div>
+            </div>
+            
+            <div class="credentials-box">
+                <h4>💳 Stripe (Paiements)</h4>
+                <div class="credential-item">
+                    <span class="credential-label">Dashboard</span>
+                    <span class="credential-value">https://dashboard.stripe.com</span>
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Mode</span>
+                    <span class="credential-value">Test (passer en Live pour production)</span>
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Clé API</span>
+                    <span class="credential-value">(Voir variables Render STRIPE_SECRET_KEY)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE BREAK -->
+        <div class="page-break"></div>
+
+        <!-- INTERFACE ADMIN -->
+        <div class="section">
+            <h2 class="section-title"><span class="icon">⚙️</span> Interface Administration</h2>
+            
+            <div class="card">
+                <div class="card-title">Accès à l'Admin</div>
+                <p>URL : <code>https://nati-fenua-frontend.onrender.com/admin/login</code></p>
+                <p>Credentials : <code>admin@natifenua.pf</code> / <code>NatiFenua2025!</code></p>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Modules Admin Disponibles</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Module</th>
+                            <th>Route</th>
+                            <th>Fonction</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Dashboard</strong></td>
+                            <td>/admin</td>
+                            <td>Vue d'ensemble, statistiques globales</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Modération</strong></td>
+                            <td>/admin/moderation</td>
+                            <td>Gestion des contenus signalés</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Analytics</strong></td>
+                            <td>/admin/analytics</td>
+                            <td>Statistiques détaillées, graphiques</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Monitoring</strong></td>
+                            <td>/admin/monitoring</td>
+                            <td>Santé système, performances</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Auto-Publish</strong></td>
+                            <td>/admin/auto-publish</td>
+                            <td>Gestion des flux RSS automatiques</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Actions Administrateur</div>
+                <ul>
+                    <li>Bannir/Débannir des utilisateurs</li>
+                    <li>Supprimer des posts inappropriés</li>
+                    <li>Gérer les signalements</li>
+                    <li>Voir les statistiques en temps réel</li>
+                    <li>Configurer les flux RSS</li>
+                    <li>Monitorer les performances système</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- API ENDPOINTS -->
+        <div class="section">
+            <h2 class="section-title"><span class="icon">🔌</span> Endpoints API Principaux</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Méthode</th>
+                        <th>Endpoint</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/auth/google</td>
+                        <td>Connexion Google OAuth</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/feed</td>
+                        <td>Récupérer le fil d'actualité</td>
+                    </tr>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/posts</td>
+                        <td>Créer une publication</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/conversations</td>
+                        <td>Liste des conversations</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/pulse/markers</td>
+                        <td>Marqueurs Mana (carte)</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/marketplace/products</td>
+                        <td>Produits du marketplace</td>
+                    </tr>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/boost/create-session</td>
+                        <td>Créer une session de boost Stripe</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/stories</td>
+                        <td>Récupérer les stories</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <p><strong>NATI FENUA</strong></p>
+            <p>"Le seul réseau qui nous ressemble"</p>
+            <p style="margin-top: 15px; font-size: 0.9em;">Document généré le 10 Avril 2025</p>
+            <p style="font-size: 0.8em;">© 2025 Nati Fenua - Tous droits réservés</p>
+        </div>
+    </div>
+</body>
+</html>
