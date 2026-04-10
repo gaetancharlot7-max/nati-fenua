@@ -2359,9 +2359,17 @@ async def get_reels(limit: int = 20, skip: int = 0):
 
 # ==================== LIVE STREAMING ROUTES ====================
 
+# Global setting for live feature
+LIVE_FEATURE_ENABLED = True
+
 @api_router.get("/lives")
 async def get_active_lives():
     """Get active lives with caching and fallback demo data"""
+    # Check if live feature is enabled
+    settings = await db.app_settings.find_one({"setting_id": "live_settings"}, {"_id": 0})
+    if settings and not settings.get("live_enabled", True):
+        return []  # Return empty if lives are disabled
+    
     cache_key = "active_lives"
     
     # Try cache first
@@ -2392,6 +2400,96 @@ async def get_active_lives():
     # Cache for 30 seconds (lives change frequently)
     await cache.set(cache_key, lives, ttl=30)
     return lives
+
+@api_router.get("/lives/replays")
+async def get_live_replays():
+    """Get live replays from the last 48 hours"""
+    cutoff_time = datetime.now(timezone.utc) - timedelta(hours=48)
+    
+    replays = await db.lives.find({
+        "status": "ended",
+        "ended_at": {"$gte": cutoff_time.isoformat()}
+    }, {"_id": 0}).sort("ended_at", -1).to_list(100)
+    
+    for replay in replays:
+        user = await db.users.find_one({"user_id": replay["user_id"]}, {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "is_verified": 1})
+        replay["user"] = user
+    
+    return replays
+
+@api_router.get("/admin/lives/settings")
+async def get_live_settings(request: Request):
+    """Get live feature settings (admin only)"""
+    await verify_admin_token(request)
+    
+    settings = await db.app_settings.find_one({"setting_id": "live_settings"}, {"_id": 0})
+    if not settings:
+        settings = {
+            "setting_id": "live_settings",
+            "live_enabled": True,
+            "max_duration_minutes": 120,
+            "replay_retention_hours": 48
+        }
+        await db.app_settings.insert_one(settings)
+    
+    return settings
+
+@api_router.post("/admin/lives/toggle")
+async def toggle_live_feature(request: Request):
+    """Toggle live feature on/off (admin only)"""
+    await verify_admin_token(request)
+    
+    settings = await db.app_settings.find_one({"setting_id": "live_settings"}, {"_id": 0})
+    current_status = settings.get("live_enabled", True) if settings else True
+    new_status = not current_status
+    
+    await db.app_settings.update_one(
+        {"setting_id": "live_settings"},
+        {"$set": {"live_enabled": new_status}},
+        upsert=True
+    )
+    
+    # Clear cache
+    await cache.delete("active_lives")
+    
+    logger.info(f"Live feature toggled to: {new_status}")
+    return {"live_enabled": new_status, "message": f"Lives {'activés' if new_status else 'désactivés'}"}
+
+@api_router.get("/admin/lives/replays")
+async def get_admin_live_replays(request: Request):
+    """Get all live replays for admin (last 48h)"""
+    await verify_admin_token(request)
+    
+    cutoff_time = datetime.now(timezone.utc) - timedelta(hours=48)
+    
+    replays = await db.lives.find({
+        "status": "ended",
+        "ended_at": {"$gte": cutoff_time.isoformat()}
+    }, {"_id": 0}).sort("ended_at", -1).to_list(200)
+    
+    for replay in replays:
+        user = await db.users.find_one({"user_id": replay["user_id"]}, {"_id": 0, "user_id": 1, "name": 1, "picture": 1})
+        replay["user"] = user
+        
+        # Calculate time remaining before deletion
+        ended_at = datetime.fromisoformat(replay["ended_at"].replace('Z', '+00:00')) if isinstance(replay.get("ended_at"), str) else replay.get("ended_at")
+        if ended_at:
+            expires_at = ended_at + timedelta(hours=48)
+            replay["expires_at"] = expires_at.isoformat()
+            replay["hours_remaining"] = max(0, (expires_at - datetime.now(timezone.utc)).total_seconds() / 3600)
+    
+    return replays
+
+@api_router.delete("/admin/lives/{live_id}")
+async def delete_live_replay(live_id: str, request: Request):
+    """Delete a live replay (admin only)"""
+    await verify_admin_token(request)
+    
+    result = await db.lives.delete_one({"live_id": live_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Live non trouvé")
+    
+    return {"success": True, "message": "Replay supprimé"}
 
 @api_router.post("/lives")
 async def start_live(live_data: LiveStreamCreate, request: Request):

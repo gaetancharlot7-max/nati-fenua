@@ -47,6 +47,11 @@ const AdminDashboardPage = () => {
     feed_ad_frequency: 5,
     min_ad_budget: 10
   });
+  const [liveSettings, setLiveSettings] = useState({
+    live_enabled: true,
+    replay_retention_hours: 48
+  });
+  const [liveReplays, setLiveReplays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -75,6 +80,10 @@ const AdminDashboardPage = () => {
       setModerationSettings(response.data.moderation_settings || moderationSettings);
       setAdsSettings(response.data.ads_settings || adsSettings);
       setStorageStats(response.data.storage_stats || null);
+      
+      // Load live settings and replays
+      await loadLiveSettings();
+      await loadLiveReplays();
     } catch (error) {
       if (error.response?.status === 401) {
         localStorage.removeItem('admin_token');
@@ -84,6 +93,45 @@ const AdminDashboardPage = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLiveSettings = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/admin/lives/settings`, getAuthHeaders());
+      setLiveSettings(response.data);
+    } catch (error) {
+      console.error('Error loading live settings:', error);
+    }
+  };
+
+  const loadLiveReplays = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/admin/lives/replays`, getAuthHeaders());
+      setLiveReplays(response.data);
+    } catch (error) {
+      console.error('Error loading live replays:', error);
+    }
+  };
+
+  const toggleLiveFeature = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/api/admin/lives/toggle`, {}, getAuthHeaders());
+      setLiveSettings(prev => ({ ...prev, live_enabled: response.data.live_enabled }));
+      toast.success(response.data.message);
+    } catch (error) {
+      toast.error('Erreur lors du changement de statut des Lives');
+    }
+  };
+
+  const deleteLiveReplay = async (liveId) => {
+    if (!window.confirm('Supprimer ce replay ?')) return;
+    try {
+      await axios.delete(`${API_URL}/api/admin/lives/${liveId}`, getAuthHeaders());
+      setLiveReplays(prev => prev.filter(r => r.live_id !== liveId));
+      toast.success('Replay supprimé');
+    } catch (error) {
+      toast.error('Erreur lors de la suppression');
     }
   };
 
@@ -530,40 +578,192 @@ const AdminDashboardPage = () => {
 
         {/* Lives Tab */}
         {activeTab === 'lives' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {lives.map((live) => (
-              <div key={live.live_id} className="bg-[#16213E] rounded-2xl border border-white/10 overflow-hidden">
-                <div className="aspect-video bg-gradient-to-br from-red-500/20 to-orange-500/20 relative">
-                  {live.thumbnail_url && (
-                    <img src={live.thumbnail_url} alt={live.title} className="w-full h-full object-cover" />
+          <div className="space-y-6">
+            {/* Live Feature Toggle */}
+            <div className="bg-[#16213E] rounded-2xl border border-white/10 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-bold flex items-center gap-2">
+                    <Radio size={24} className="text-[#FF6B35]" />
+                    Contrôle des Lives
+                  </h2>
+                  <p className="text-white/50 text-sm mt-1">
+                    Activez ou désactivez la fonctionnalité Live pour tous les utilisateurs
+                  </p>
+                </div>
+                <button
+                  onClick={toggleLiveFeature}
+                  className={`relative w-16 h-8 rounded-full transition-colors ${
+                    liveSettings.live_enabled ? 'bg-green-500' : 'bg-red-500'
+                  }`}
+                >
+                  <span className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-transform ${
+                    liveSettings.live_enabled ? 'translate-x-9' : 'translate-x-1'
+                  }`}></span>
+                </button>
+              </div>
+              
+              <div className={`p-4 rounded-xl ${liveSettings.live_enabled ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
+                <div className="flex items-center gap-3">
+                  {liveSettings.live_enabled ? (
+                    <>
+                      <CheckCircle className="text-green-400" size={24} />
+                      <div>
+                        <p className="font-semibold text-green-400">Lives ACTIVÉS</p>
+                        <p className="text-sm text-white/60">Les utilisateurs peuvent diffuser en direct</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="text-red-400" size={24} />
+                      <div>
+                        <p className="font-semibold text-red-400">Lives DÉSACTIVÉS</p>
+                        <p className="text-sm text-white/60">La diffusion en direct est temporairement bloquée</p>
+                      </div>
+                    </>
                   )}
-                  <div className="absolute top-3 left-3 px-2 py-1 bg-red-500 text-white text-xs font-bold rounded flex items-center gap-1">
-                    <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                    LIVE
-                  </div>
-                  <div className="absolute top-3 right-3 px-2 py-1 bg-black/50 text-white text-xs rounded flex items-center gap-1">
-                    <Eye size={12} />
-                    {live.viewer_count}
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold mb-2">{live.title}</h3>
-                  <p className="text-white/50 text-sm mb-4">Par {live.user?.name}</p>
-                  <Button
-                    size="sm"
-                    onClick={() => handleEndLive(live.live_id)}
-                    className="w-full bg-red-500 hover:bg-red-600"
-                  >
-                    Arrêter le live
-                  </Button>
                 </div>
               </div>
-            ))}
-            {lives.length === 0 && (
-              <div className="col-span-full text-center py-12 text-white/50">
-                Aucun live en cours
+            </div>
+
+            {/* Active Lives */}
+            <div className="bg-[#16213E] rounded-2xl border border-white/10 p-6">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                Lives en cours ({lives.length})
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {lives.map((live) => (
+                  <div key={live.live_id} className="bg-[#1A1A2E] rounded-xl border border-white/10 overflow-hidden">
+                    <div className="aspect-video bg-gradient-to-br from-red-500/20 to-orange-500/20 relative">
+                      {live.thumbnail_url && (
+                        <img src={live.thumbnail_url} alt={live.title} className="w-full h-full object-cover" />
+                      )}
+                      <div className="absolute top-3 left-3 px-2 py-1 bg-red-500 text-white text-xs font-bold rounded flex items-center gap-1">
+                        <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                        LIVE
+                      </div>
+                      <div className="absolute top-3 right-3 px-2 py-1 bg-black/50 text-white text-xs rounded flex items-center gap-1">
+                        <Eye size={12} />
+                        {live.viewer_count}
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-semibold mb-2 truncate">{live.title}</h3>
+                      <p className="text-white/50 text-sm mb-4">Par {live.user?.name}</p>
+                      <Button
+                        size="sm"
+                        onClick={() => handleEndLive(live.live_id)}
+                        className="w-full bg-red-500 hover:bg-red-600"
+                      >
+                        Arrêter le live
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {lives.length === 0 && (
+                  <div className="col-span-full text-center py-8 text-white/50">
+                    Aucun live en cours
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+
+            {/* Live Replays (48h) */}
+            <div className="bg-[#16213E] rounded-2xl border border-white/10 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <Video size={24} className="text-[#00CED1]" />
+                  Replays des dernières 48h ({liveReplays.length})
+                </h2>
+                <Button
+                  size="sm"
+                  onClick={loadLiveReplays}
+                  variant="outline"
+                  className="border-white/20 text-white hover:bg-white/10"
+                >
+                  <RefreshCw size={14} className="mr-2" />
+                  Rafraîchir
+                </Button>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="text-left py-3 px-4 text-white/60 font-medium">Titre</th>
+                      <th className="text-left py-3 px-4 text-white/60 font-medium">Streamer</th>
+                      <th className="text-left py-3 px-4 text-white/60 font-medium">Durée</th>
+                      <th className="text-left py-3 px-4 text-white/60 font-medium">Spectateurs</th>
+                      <th className="text-left py-3 px-4 text-white/60 font-medium">Expire dans</th>
+                      <th className="text-left py-3 px-4 text-white/60 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {liveReplays.map((replay) => (
+                      <tr key={replay.live_id} className="border-b border-white/5 hover:bg-white/5">
+                        <td className="py-3 px-4">
+                          <span className="font-medium">{replay.title || 'Sans titre'}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <img 
+                              src={replay.user?.picture || `https://ui-avatars.com/api/?name=${replay.user?.name || 'U'}`}
+                              alt=""
+                              className="w-8 h-8 rounded-full"
+                            />
+                            <span className="text-white/70">{replay.user?.name || 'Inconnu'}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-white/60">
+                          {replay.duration_minutes ? `${replay.duration_minutes} min` : '-'}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="flex items-center gap-1 text-white/60">
+                            <Eye size={14} />
+                            {replay.viewer_count || 0}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            replay.hours_remaining < 6 ? 'bg-red-500/20 text-red-400' :
+                            replay.hours_remaining < 24 ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-green-500/20 text-green-400'
+                          }`}>
+                            {replay.hours_remaining ? `${Math.round(replay.hours_remaining)}h` : '-'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-white/20 text-white hover:bg-white/10"
+                              onClick={() => window.open(replay.replay_url || '#', '_blank')}
+                            >
+                              <Eye size={14} />
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="bg-red-500/20 hover:bg-red-500/40 text-red-400"
+                              onClick={() => deleteLiveReplay(replay.live_id)}
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {liveReplays.length === 0 && (
+                  <div className="text-center py-8 text-white/50">
+                    Aucun replay dans les dernières 48h
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
