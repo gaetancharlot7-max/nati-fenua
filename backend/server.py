@@ -4086,15 +4086,15 @@ import hashlib
 import secrets
 
 # Admin credentials (should be in env in production)
-ADMIN_EMAIL = "admin@fenuasocial.com"
+ADMIN_EMAIL = "admin@natifenua.pf"
 ADMIN_PASSWORD_HASH = None  # Will be set on first access or via env
 
 async def get_or_create_admin():
     """Get or create admin account"""
     admin = await db.admin_users.find_one({"email": ADMIN_EMAIL}, {"_id": 0})
     if not admin:
-        # Create default admin with password "FenuaAdmin2024!"
-        default_password = "FenuaAdmin2024!"
+        # Create default admin with password "NatiFenua2025!"
+        default_password = "NatiFenua2025!"
         password_hash = hashlib.sha256(default_password.encode()).hexdigest()
         admin = {
             "admin_id": f"admin_{uuid.uuid4().hex[:12]}",
@@ -4104,7 +4104,39 @@ async def get_or_create_admin():
         }
         await db.admin_users.insert_one(admin)
         logger.info(f"Created default admin account: {ADMIN_EMAIL}")
+    else:
+        # Update existing admin with new credentials if email changed
+        if admin["email"] != ADMIN_EMAIL:
+            default_password = "NatiFenua2025!"
+            password_hash = hashlib.sha256(default_password.encode()).hexdigest()
+            await db.admin_users.update_one(
+                {"admin_id": admin["admin_id"]},
+                {"$set": {"email": ADMIN_EMAIL, "password_hash": password_hash}}
+            )
+            admin["email"] = ADMIN_EMAIL
+            admin["password_hash"] = password_hash
+            logger.info(f"Updated admin account to: {ADMIN_EMAIL}")
     return admin
+
+@api_router.get("/admin/reset-credentials")
+async def reset_admin_credentials():
+    """Reset admin credentials to default (use once then remove in production)"""
+    default_password = "NatiFenua2025!"
+    password_hash = hashlib.sha256(default_password.encode()).hexdigest()
+    
+    # Delete old admin accounts
+    await db.admin_users.delete_many({})
+    
+    # Create new admin
+    admin = {
+        "admin_id": f"admin_{uuid.uuid4().hex[:12]}",
+        "email": ADMIN_EMAIL,
+        "password_hash": password_hash,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.admin_users.insert_one(admin)
+    
+    return {"success": True, "message": f"Admin reset to {ADMIN_EMAIL} / NatiFenua2025!"}
 
 async def verify_admin_token(request: Request):
     """Verify admin token from Authorization header"""
