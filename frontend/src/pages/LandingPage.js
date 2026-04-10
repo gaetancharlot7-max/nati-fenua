@@ -616,8 +616,17 @@ const LandingPage = () => {
               </div>
             </div>
             
+            <div className="flex items-center gap-6">
+              <Link to="/legal" className="text-white/50 text-sm hover:text-white transition-colors">
+                Mentions légales
+              </Link>
+              <Link to="/admin/login" className="text-white/30 text-xs hover:text-white/60 transition-colors">
+                Admin
+              </Link>
+            </div>
+            
             <p className="text-white/50 text-sm">
-              © 2026 Nati Fenua. Fait avec ❤️ à Tahiti
+              © 2025 Nati Fenua. Fait avec ❤️ à Tahiti
             </p>
           </div>
         </div>
