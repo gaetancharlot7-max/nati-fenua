@@ -57,8 +57,12 @@ const AuthCallback = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1A1A2E] to-[#16213E]">
       <div className="text-center">
-        <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] rounded-2xl flex items-center justify-center animate-pulse">
-          <span className="text-4xl font-serif text-white">N</span>
+        <div className="w-20 h-20 mx-auto mb-6 animate-pulse">
+          <img 
+            src="/assets/logo_nati_fenua_v2.svg" 
+            alt="Nati Fenua"
+            className="w-full h-full drop-shadow-xl"
+          />
         </div>
         <div className="w-12 h-12 border-4 border-[#00CED1] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
         <p className="text-white font-medium text-lg">Connexion en cours...</p>

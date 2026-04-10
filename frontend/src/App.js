@@ -8,10 +8,12 @@ import './App.css';
 const PageLoader = () => (
   <div className="min-h-screen bg-[#1A1A2E] flex items-center justify-center">
     <div className="text-center">
-      <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#FF6B35] via-[#FF1493] to-[#00CED1] p-0.5 animate-pulse">
-        <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
-          <span className="text-2xl font-black bg-gradient-to-r from-[#FF6B35] via-[#FF1493] to-[#00CED1] bg-clip-text text-transparent">N</span>
-        </div>
+      <div className="w-16 h-16 mx-auto mb-4 animate-pulse">
+        <img 
+          src="/assets/logo_nati_fenua_v2.svg" 
+          alt="Nati Fenua"
+          className="w-full h-full drop-shadow-xl"
+        />
       </div>
       <p className="text-white/60 text-sm">Chargement...</p>
     </div>
