@@ -168,45 +168,15 @@ WEBCAMS = [
     # === TAHITI ===
     {
         "id": "webcam_tahiti_papeete",
-        "name": "Tahiti - Port de Papeete",
+        "name": "Papeete - Port",
         "island": "tahiti",
         "lat": -17.5350,
         "lng": -149.5696,
-        "video_url": "https://www.windy.com/fr/-Webcams/France/Polyn%C3%A9sie-fran%C3%A7aise/Papeete/webcams/1515199127",
+        "video_url": "https://www.windy.com/webcams/1515199127",
         "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1515199127/day",
         "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1515199127/day",
-        "external_url": "https://www.windy.com/fr/-Webcams/France/Polyn%C3%A9sie-fran%C3%A7aise/Papeete/webcams/1515199127",
+        "external_url": "https://www.windy.com/webcams/1515199127",
         "thumbnail": "https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=400",
-        "is_live": True,
-        "source": "Windy",
-        "type": "iframe"
-    },
-    {
-        "id": "webcam_tahiti_moorea_view",
-        "name": "Tahiti - Vue sur Moorea (Arue)",
-        "island": "tahiti",
-        "lat": -17.5200,
-        "lng": -149.5000,
-        "video_url": "https://www.windy.com/en/-Webcams/France/French-Polynesia/Arue/webcams/1366567855",
-        "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1366567855/day",
-        "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1366567855/day",
-        "external_url": "https://www.windy.com/en/-Webcams/France/French-Polynesia/Arue/webcams/1366567855",
-        "thumbnail": "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400",
-        "is_live": True,
-        "source": "Windy",
-        "type": "iframe"
-    },
-    {
-        "id": "webcam_tahiti_papara_surf",
-        "name": "Papara - Taharuu Beach Surf",
-        "island": "tahiti",
-        "lat": -17.7500,
-        "lng": -149.5167,
-        "video_url": "https://www.windy.com/fr/-Webcams/France/Polyn%C3%A9sie-fran%C3%A7aise/Papara/webcams/1366568190",
-        "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1366568190/day",
-        "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1366568190/day",
-        "external_url": "https://www.windy.com/fr/-Webcams/France/Polyn%C3%A9sie-fran%C3%A7aise/Papara/webcams/1366568190",
-        "thumbnail": "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=400",
         "is_live": True,
         "source": "Windy",
         "type": "iframe"
@@ -217,18 +187,48 @@ WEBCAMS = [
         "island": "tahiti",
         "lat": -17.5537,
         "lng": -149.6071,
-        "video_url": "https://www.vision-environnement.com/livecams/webcam.php?webcam=faaa",
-        "embed_url": "https://www.vision-environnement.com/livecams/webcam.php?webcam=faaa",
-        "iframe_url": "https://www.vision-environnement.com/livecams/webcam.php?webcam=faaa",
-        "external_url": "https://www.vision-environnement.com/livecams/webcam.php?webcam=faaa",
+        "video_url": "https://www.windy.com/webcams/1193101765",
+        "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1193101765/day",
+        "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1193101765/day",
+        "external_url": "https://www.windy.com/webcams/1193101765",
         "thumbnail": "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400",
         "is_live": True,
-        "source": "Vision Environnement",
-        "type": "external"
+        "source": "Windy",
+        "type": "iframe"
     },
     {
-        "id": "webcam_teahupoo_surf",
-        "name": "Teahupo'o - Spot Olympique JO 2024",
+        "id": "webcam_tahiti_arue",
+        "name": "Arue - Vue sur Moorea",
+        "island": "tahiti",
+        "lat": -17.5200,
+        "lng": -149.5000,
+        "video_url": "https://www.windy.com/webcams/1366567855",
+        "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1366567855/day",
+        "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1366567855/day",
+        "external_url": "https://www.windy.com/webcams/1366567855",
+        "thumbnail": "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400",
+        "is_live": True,
+        "source": "Windy",
+        "type": "iframe"
+    },
+    {
+        "id": "webcam_tahiti_papara",
+        "name": "Papara - Taharuu Beach",
+        "island": "tahiti",
+        "lat": -17.7500,
+        "lng": -149.5167,
+        "video_url": "https://www.windy.com/webcams/1366568190",
+        "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1366568190/day",
+        "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1366568190/day",
+        "external_url": "https://www.windy.com/webcams/1366568190",
+        "thumbnail": "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=400",
+        "is_live": True,
+        "source": "Windy",
+        "type": "iframe"
+    },
+    {
+        "id": "webcam_teahupoo",
+        "name": "Teahupo'o - Spot de Surf",
         "island": "tahiti",
         "lat": -17.8686,
         "lng": -149.2561,
@@ -244,15 +244,15 @@ WEBCAMS = [
     
     # === MOOREA ===
     {
-        "id": "webcam_moorea_temae",
-        "name": "Moorea - Plage de Temae",
+        "id": "webcam_moorea_ferry",
+        "name": "Moorea - Ferry Tahiti-Moorea",
         "island": "moorea",
         "lat": -17.4903,
         "lng": -149.7620,
-        "video_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise.html",
-        "embed_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise.html",
-        "iframe_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise.html",
-        "external_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise.html",
+        "video_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise/iles-du-vent/tahiti/ferry-tahiti-and-moorea-islands.html",
+        "embed_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise/iles-du-vent/tahiti/ferry-tahiti-and-moorea-islands.html",
+        "iframe_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise/iles-du-vent/tahiti/ferry-tahiti-and-moorea-islands.html",
+        "external_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise/iles-du-vent/tahiti/ferry-tahiti-and-moorea-islands.html",
         "thumbnail": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400",
         "is_live": True,
         "source": "SkylineWebcams",
@@ -261,40 +261,40 @@ WEBCAMS = [
     
     # === BORA BORA ===
     {
-        "id": "webcam_borabora_matira",
-        "name": "Bora Bora - Plage de Matira",
-        "island": "bora-bora",
-        "lat": -16.5282,
-        "lng": -151.7486,
-        "video_url": "https://www.windy.com/fr/-Webcams/France/Polyn%C3%A9sie-fran%C3%A7aise/Bora-Bora/webcams/1342115287",
-        "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1342115287/day",
-        "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1342115287/day",
-        "external_url": "https://www.windy.com/fr/-Webcams/France/Polyn%C3%A9sie-fran%C3%A7aise/Bora-Bora/webcams/1342115287",
-        "thumbnail": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400",
-        "is_live": True,
-        "source": "Windy",
-        "type": "iframe"
-    },
-    {
-        "id": "webcam_borabora_lagon",
+        "id": "webcam_borabora_1",
         "name": "Bora Bora - Vue Lagon",
         "island": "bora-bora",
         "lat": -16.5004,
         "lng": -151.7415,
-        "video_url": "https://www.windy.com/fr/-Webcams/France/Polyn%C3%A9sie-fran%C3%A7aise/Bora-Bora/webcams/1342115286",
+        "video_url": "https://www.windy.com/webcams/1342115286",
         "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1342115286/day",
         "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1342115286/day",
-        "external_url": "https://www.windy.com/fr/-Webcams/France/Polyn%C3%A9sie-fran%C3%A7aise/Bora-Bora/webcams/1342115286",
+        "external_url": "https://www.windy.com/webcams/1342115286",
         "thumbnail": "https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?w=400",
         "is_live": True,
         "source": "Windy",
         "type": "iframe"
     },
-    
-    # === RAIATEA ===
     {
-        "id": "webcam_raiatea_port",
-        "name": "Raiatea - Port d'Uturoa",
+        "id": "webcam_borabora_2",
+        "name": "Bora Bora - Plage",
+        "island": "bora-bora",
+        "lat": -16.5282,
+        "lng": -151.7486,
+        "video_url": "https://www.windy.com/webcams/1342115287",
+        "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1342115287/day",
+        "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1342115287/day",
+        "external_url": "https://www.windy.com/webcams/1342115287",
+        "thumbnail": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400",
+        "is_live": True,
+        "source": "Windy",
+        "type": "iframe"
+    },
+    
+    # === AUTRES ÎLES (liens vers portails webcam) ===
+    {
+        "id": "webcam_raiatea",
+        "name": "Raiatea - Îles Sous-le-Vent",
         "island": "raiatea",
         "lat": -16.7333,
         "lng": -151.4417,
@@ -307,90 +307,35 @@ WEBCAMS = [
         "source": "WorldCam",
         "type": "external"
     },
-    
-    # === HUAHINE ===
     {
-        "id": "webcam_huahine_fare",
-        "name": "Huahine - Village de Fare",
+        "id": "webcam_huahine",
+        "name": "Huahine - Îles Sous-le-Vent",
         "island": "huahine",
         "lat": -16.7083,
         "lng": -151.0333,
-        "video_url": "https://liveworldwebcams.com/fr/category/oceania/french-polynesia/",
-        "embed_url": "https://liveworldwebcams.com/fr/category/oceania/french-polynesia/",
-        "iframe_url": "https://liveworldwebcams.com/fr/category/oceania/french-polynesia/",
-        "external_url": "https://liveworldwebcams.com/fr/category/oceania/french-polynesia/",
+        "video_url": "https://www.toutesleswebcams.com/webcams-pacifique.html",
+        "embed_url": "https://www.toutesleswebcams.com/webcams-pacifique.html",
+        "iframe_url": "https://www.toutesleswebcams.com/webcams-pacifique.html",
+        "external_url": "https://www.toutesleswebcams.com/webcams-pacifique.html",
         "thumbnail": "https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=400",
         "is_live": True,
-        "source": "LiveWorldWebcams",
+        "source": "ToutesLesWebcams",
         "type": "external"
     },
-    
-    # === TUAMOTU ===
     {
-        "id": "webcam_rangiroa_tiputa",
-        "name": "Rangiroa - Passe de Tiputa",
+        "id": "webcam_rangiroa",
+        "name": "Rangiroa - Tuamotu",
         "island": "tuamotu",
         "lat": -14.9667,
         "lng": -147.6333,
-        "video_url": "https://worldviewstream.com/fr/category/french-polynesia-fr/tahiti-fr/",
-        "embed_url": "https://worldviewstream.com/fr/category/french-polynesia-fr/tahiti-fr/",
-        "iframe_url": "https://worldviewstream.com/fr/category/french-polynesia-fr/tahiti-fr/",
-        "external_url": "https://worldviewstream.com/fr/category/french-polynesia-fr/tahiti-fr/",
+        "video_url": "https://www.cruisingearth.com/port-webcams/pacific-ocean/papeete-tahiti-french-polynesia/",
+        "embed_url": "https://www.cruisingearth.com/port-webcams/pacific-ocean/papeete-tahiti-french-polynesia/",
+        "iframe_url": "https://www.cruisingearth.com/port-webcams/pacific-ocean/papeete-tahiti-french-polynesia/",
+        "external_url": "https://www.cruisingearth.com/port-webcams/pacific-ocean/papeete-tahiti-french-polynesia/",
         "thumbnail": "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?w=400",
         "is_live": True,
-        "source": "WorldViewStream",
+        "source": "CruisingEarth",
         "type": "external"
-    },
-    
-    # === MARQUISES ===
-    {
-        "id": "webcam_nukuhiva_taiohae",
-        "name": "Nuku Hiva - Baie de Taiohae",
-        "island": "marquises",
-        "lat": -8.9167,
-        "lng": -140.1000,
-        "video_url": "https://www.meteoart.com/oceania/french-polynesia/papeete?page=webcam",
-        "embed_url": "https://www.meteoart.com/oceania/french-polynesia/papeete?page=webcam",
-        "iframe_url": "https://www.meteoart.com/oceania/french-polynesia/papeete?page=webcam",
-        "external_url": "https://www.meteoart.com/oceania/french-polynesia/papeete?page=webcam",
-        "thumbnail": "https://images.unsplash.com/photo-1540202404-a2f29016b523?w=400",
-        "is_live": True,
-        "source": "MeteoArt",
-        "type": "external"
-    },
-    
-    # === AUSTRALES ===
-    {
-        "id": "webcam_rurutu",
-        "name": "Rurutu - Vue sur le lagon",
-        "island": "australes",
-        "lat": -22.4500,
-        "lng": -151.3500,
-        "video_url": "https://www.windy.com/fr/-Webcams/France/Polyn%C3%A9sie-fran%C3%A7aise/Papara/webcams/1366568190",
-        "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1366568190/day",
-        "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1366568190/day",
-        "external_url": "https://www.windy.com/fr/-Webcams/France/Polyn%C3%A9sie-fran%C3%A7aise/Papara/webcams/1366568190",
-        "thumbnail": "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=400",
-        "is_live": True,
-        "source": "Windy",
-        "type": "iframe"
-    },
-    
-    # === GAMBIER ===
-    {
-        "id": "webcam_mangareva",
-        "name": "Mangareva - Rikitea",
-        "island": "gambier",
-        "lat": -23.1167,
-        "lng": -134.9667,
-        "video_url": "https://www.windy.com/fr/-Webcams/France/Polyn%C3%A9sie-fran%C3%A7aise/Bora-Bora/webcams/1342115287",
-        "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1342115287/day",
-        "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1342115287/day",
-        "external_url": "https://www.windy.com/fr/-Webcams/France/Polyn%C3%A9sie-fran%C3%A7aise/Bora-Bora/webcams/1342115287",
-        "thumbnail": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400",
-        "is_live": True,
-        "source": "Windy",
-        "type": "iframe"
     }
 ]
 
