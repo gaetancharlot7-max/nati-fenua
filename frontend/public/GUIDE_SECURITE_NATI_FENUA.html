@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nati Fenua - Guide de Sécurité</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            line-height: 1.7;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 60px 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 20px;
+            margin-bottom: 40px;
+            border: 1px solid #00CED1;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #FF6B35, #FF1493, #00CED1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .header p { color: #888; }
+        
+        .section {
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 25px;
+            border: 1px solid #333;
+        }
+        
+        .section-title {
+            font-size: 1.4em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .section-title .icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+        }
+        
+        .icon-green { background: rgba(0, 206, 209, 0.2); }
+        .icon-red { background: rgba(255, 107, 53, 0.2); }
+        .icon-purple { background: rgba(255, 20, 147, 0.2); }
+        .icon-yellow { background: rgba(255, 215, 0, 0.2); }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .status-item {
+            background: #0d0d14;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-left: 3px solid;
+        }
+        
+        .status-item.active { border-color: #00CED1; }
+        .status-item.warning { border-color: #ffc107; }
+        .status-item.inactive { border-color: #dc3545; }
+        
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+        
+        .badge-active { background: rgba(0, 206, 209, 0.2); color: #00CED1; }
+        .badge-warning { background: rgba(255, 193, 7, 0.2); color: #ffc107; }
+        .badge-inactive { background: rgba(220, 53, 69, 0.2); color: #dc3545; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+        
+        th {
+            background: #0d0d14;
+            color: #00CED1;
+            font-weight: 600;
+        }
+        
+        code {
+            background: #0d0d14;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #00CED1;
+        }
+        
+        .checklist {
+            list-style: none;
+        }
+        
+        .checklist li {
+            padding: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .check { color: #00CED1; }
+        .cross { color: #dc3545; }
+        .warning-icon { color: #ffc107; }
+        
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        
+        .alert-success { background: rgba(0, 206, 209, 0.1); border: 1px solid #00CED1; }
+        .alert-warning { background: rgba(255, 193, 7, 0.1); border: 1px solid #ffc107; }
+        .alert-danger { background: rgba(220, 53, 69, 0.1); border: 1px solid #dc3545; }
+        
+        .priority-high { color: #dc3545; font-weight: 600; }
+        .priority-medium { color: #ffc107; }
+        .priority-low { color: #00CED1; }
+        
+        .action-box {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border: 1px solid #00CED1;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .action-box h4 { color: #00CED1; margin-bottom: 10px; }
+        
+        pre {
+            background: #0d0d14;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔒 Guide de Sécurité</h1>
+            <p>Nati Fenua - Protection de la plateforme</p>
+        </div>
+
+        <!-- ÉTAT ACTUEL -->
+        <div class="section">
+            <h2 class="section-title">
+                <span class="icon icon-green">✓</span>
+                Sécurités DÉJÀ EN PLACE
+            </h2>
+            
+            <div class="status-grid">
+                <div class="status-item active">
+                    <span>🔐</span>
+                    <div>
+                        <strong>Mots de passe Bcrypt</strong>
+                        <p style="font-size: 0.85em; color: #888;">Hashage sécurisé des mots de passe</p>
+                    </div>
+                    <span class="status-badge badge-active">ACTIF</span>
+                </div>
+                
+                <div class="status-item active">
+                    <span>🎫</span>
+                    <div>
+                        <strong>JWT Tokens</strong>
+                        <p style="font-size: 0.85em; color: #888;">Authentification sécurisée</p>
+                    </div>
+                    <span class="status-badge badge-active">ACTIF</span>
+                </div>
+                
+                <div class="status-item active">
+                    <span>🍪</span>
+                    <div>
+                        <strong>Cookies HttpOnly + Secure</strong>
+                        <p style="font-size: 0.85em; color: #888;">Protection contre le vol de session</p>
+                    </div>
+                    <span class="status-badge badge-active">ACTIF</span>
+                </div>
+                
+                <div class="status-item active">
+                    <span>🚦</span>
+                    <div>
+                        <strong>Rate Limiting</strong>
+                        <p style="font-size: 0.85em; color: #888;">Protection contre les attaques brute force</p>
+                    </div>
+                    <span class="status-badge badge-active">ACTIF</span>
+                </div>
+                
+                <div class="status-item active">
+                    <span>🧹</span>
+                    <div>
+                        <strong>Sanitization XSS</strong>
+                        <p style="font-size: 0.85em; color: #888;">Nettoyage des entrées utilisateur</p>
+                    </div>
+                    <span class="status-badge badge-active">ACTIF</span>
+                </div>
+                
+                <div class="status-item active">
+                    <span>🌐</span>
+                    <div>
+                        <strong>CORS Configuration</strong>
+                        <p style="font-size: 0.85em; color: #888;">Restrictions d'origine</p>
+                    </div>
+                    <span class="status-badge badge-active">ACTIF</span>
+                </div>
+                
+                <div class="status-item active">
+                    <span>📁</span>
+                    <div>
+                        <strong>Validation fichiers</strong>
+                        <p style="font-size: 0.85em; color: #888;">Types et tailles limités</p>
+                    </div>
+                    <span class="status-badge badge-active">ACTIF</span>
+                </div>
+                
+                <div class="status-item active">
+                    <span>🔒</span>
+                    <div>
+                        <strong>HTTPS forcé</strong>
+                        <p style="font-size: 0.85em; color: #888;">Chiffrement des communications</p>
+                    </div>
+                    <span class="status-badge badge-active">ACTIF</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAIEMENTS STRIPE -->
+        <div class="section">
+            <h2 class="section-title">
+                <span class="icon icon-purple">💳</span>
+                Sécurité des Paiements (Stripe)
+            </h2>
+            
+            <div class="alert alert-success">
+                <strong>✅ Stripe gère la sécurité des paiements</strong><br>
+                Les données de carte bancaire ne transitent JAMAIS par votre serveur.
+            </div>
+            
+            <table>
+                <tr>
+                    <th>Protection</th>
+                    <th>Description</th>
+                    <th>Statut</th>
+                </tr>
+                <tr>
+                    <td>PCI DSS Niveau 1</td>
+                    <td>Stripe est certifié au plus haut niveau</td>
+                    <td><span class="check">✓ Actif</span></td>
+                </tr>
+                <tr>
+                    <td>3D Secure</td>
+                    <td>Vérification bancaire supplémentaire</td>
+                    <td><span class="check">✓ Actif</span></td>
+                </tr>
+                <tr>
+                    <td>Tokenisation</td>
+                    <td>Cartes remplacées par des tokens</td>
+                    <td><span class="check">✓ Actif</span></td>
+                </tr>
+                <tr>
+                    <td>Radar (Anti-fraude)</td>
+                    <td>Détection IA des transactions suspectes</td>
+                    <td><span class="check">✓ Actif</span></td>
+                </tr>
+                <tr>
+                    <td>Webhooks signés</td>
+                    <td>Vérification des événements Stripe</td>
+                    <td><span class="check">✓ Actif</span></td>
+                </tr>
+            </table>
+            
+            <div class="action-box">
+                <h4>🔧 Action recommandée pour la production</h4>
+                <p>Passez en mode <strong>LIVE</strong> sur Stripe :</p>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li>Allez sur <code>dashboard.stripe.com</code></li>
+                    <li>Activez votre compte (vérification d'identité)</li>
+                    <li>Copiez les clés LIVE (commencent par <code>sk_live_</code>)</li>
+                    <li>Mettez à jour sur Render → Environment Variables</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- RECOMMANDATIONS -->
+        <div class="section">
+            <h2 class="section-title">
+                <span class="icon icon-yellow">⚠️</span>
+                Recommandations IMPORTANTES
+            </h2>
+            
+            <table>
+                <tr>
+                    <th>Action</th>
+                    <th>Priorité</th>
+                    <th>Comment faire</th>
+                </tr>
+                <tr>
+                    <td><strong>Activer Cloudflare</strong></td>
+                    <td><span class="priority-high">HAUTE</span></td>
+                    <td>Protection DDoS + WAF gratuit</td>
+                </tr>
+                <tr>
+                    <td><strong>Changer JWT_SECRET</strong></td>
+                    <td><span class="priority-high">HAUTE</span></td>
+                    <td>Générer une clé de 64+ caractères</td>
+                </tr>
+                <tr>
+                    <td><strong>Backup MongoDB</strong></td>
+                    <td><span class="priority-high">HAUTE</span></td>
+                    <td>Activer sur MongoDB Atlas</td>
+                </tr>
+                <tr>
+                    <td><strong>2FA Admin</strong></td>
+                    <td><span class="priority-medium">MOYENNE</span></td>
+                    <td>Ajouter authentification 2 facteurs</td>
+                </tr>
+                <tr>
+                    <td><strong>Logs de sécurité</strong></td>
+                    <td><span class="priority-medium">MOYENNE</span></td>
+                    <td>Configurer alertes sur connexions suspectes</td>
+                </tr>
+                <tr>
+                    <td><strong>Politique de mots de passe</strong></td>
+                    <td><span class="priority-low">BASSE</span></td>
+                    <td>Forcer 8+ caractères, majuscules, chiffres</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- CLOUDFLARE -->
+        <div class="section">
+            <h2 class="section-title">
+                <span class="icon icon-green">🛡️</span>
+                Configuration Cloudflare (GRATUIT)
+            </h2>
+            
+            <p>Cloudflare offre une protection gratuite contre les attaques :</p>
+            
+            <div class="action-box">
+                <h4>📋 Étapes de configuration</h4>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li>Créez un compte sur <code>cloudflare.com</code></li>
+                    <li>Ajoutez votre domaine</li>
+                    <li>Changez les DNS chez votre registrar</li>
+                    <li>Activez les protections :
+                        <ul style="margin-left: 20px; margin-top: 5px;">
+                            <li>✅ DDoS Protection (automatique)</li>
+                            <li>✅ WAF (Web Application Firewall)</li>
+                            <li>✅ Bot Fight Mode</li>
+                            <li>✅ Rate Limiting</li>
+                            <li>✅ SSL/TLS Full (Strict)</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+            
+            <table>
+                <tr>
+                    <th>Protection</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>DDoS</td>
+                    <td>Bloque les attaques par déni de service</td>
+                </tr>
+                <tr>
+                    <td>WAF</td>
+                    <td>Bloque les injections SQL, XSS, etc.</td>
+                </tr>
+                <tr>
+                    <td>Bot Protection</td>
+                    <td>Bloque les scrapers et bots malveillants</td>
+                </tr>
+                <tr>
+                    <td>Rate Limiting</td>
+                    <td>Limite les requêtes par IP</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- VARIABLES RENDER -->
+        <div class="section">
+            <h2 class="section-title">
+                <span class="icon icon-red">🔑</span>
+                Variables d'environnement sécurisées (Render)
+            </h2>
+            
+            <div class="alert alert-warning">
+                <strong>⚠️ Ne JAMAIS mettre ces valeurs dans le code !</strong><br>
+                Utilisez toujours les variables d'environnement Render.
+            </div>
+            
+            <table>
+                <tr>
+                    <th>Variable</th>
+                    <th>Usage</th>
+                    <th>Exemple sécurisé</th>
+                </tr>
+                <tr>
+                    <td><code>JWT_SECRET</code></td>
+                    <td>Signature des tokens</td>
+                    <td>Générer avec : <code>openssl rand -hex 64</code></td>
+                </tr>
+                <tr>
+                    <td><code>MONGO_URL</code></td>
+                    <td>Base de données</td>
+                    <td><code>mongodb+srv://user:pass@cluster...</code></td>
+                </tr>
+                <tr>
+                    <td><code>STRIPE_SECRET_KEY</code></td>
+                    <td>Paiements</td>
+                    <td><code>sk_live_...</code></td>
+                </tr>
+                <tr>
+                    <td><code>GOOGLE_CLIENT_SECRET</code></td>
+                    <td>OAuth</td>
+                    <td>Depuis Google Cloud Console</td>
+                </tr>
+            </table>
+            
+            <div class="action-box">
+                <h4>🔧 Générer un JWT_SECRET sécurisé</h4>
+                <pre>openssl rand -hex 64</pre>
+                <p style="margin-top: 10px; color: #888;">Copiez le résultat dans Render → Environment Variables</p>
+            </div>
+        </div>
+
+        <!-- CHECKLIST FINALE -->
+        <div class="section">
+            <h2 class="section-title">
+                <span class="icon icon-green">✅</span>
+                Checklist de Sécurité Finale
+            </h2>
+            
+            <ul class="checklist">
+                <li><span class="check">✓</span> Mots de passe hashés (bcrypt)</li>
+                <li><span class="check">✓</span> Tokens JWT sécurisés</li>
+                <li><span class="check">✓</span> Cookies HttpOnly + Secure</li>
+                <li><span class="check">✓</span> Rate Limiting actif</li>
+                <li><span class="check">✓</span> HTTPS forcé</li>
+                <li><span class="check">✓</span> CORS configuré</li>
+                <li><span class="check">✓</span> Sanitization XSS</li>
+                <li><span class="check">✓</span> Validation des uploads</li>
+                <li><span class="check">✓</span> Stripe pour les paiements</li>
+                <li><span class="warning-icon">⚠</span> Cloudflare (à configurer)</li>
+                <li><span class="warning-icon">⚠</span> JWT_SECRET unique (à vérifier)</li>
+                <li><span class="warning-icon">⚠</span> Backups MongoDB (à activer)</li>
+            </ul>
+        </div>
+
+        <!-- CONTACTS D'URGENCE -->
+        <div class="section">
+            <h2 class="section-title">
+                <span class="icon icon-red">🚨</span>
+                En cas d'incident de sécurité
+            </h2>
+            
+            <ol style="margin-left: 20px;">
+                <li><strong>Identifiez</strong> le type d'attaque (logs Render)</li>
+                <li><strong>Bloquez</strong> les IPs suspectes (Cloudflare)</li>
+                <li><strong>Changez</strong> tous les mots de passe et secrets</li>
+                <li><strong>Contactez</strong> Stripe si paiements compromis</li>
+                <li><strong>Informez</strong> les utilisateurs si données volées (RGPD)</li>
+            </ol>
+            
+            <div class="alert alert-danger" style="margin-top: 20px;">
+                <strong>📞 Contacts d'urgence :</strong><br>
+                • Stripe : support.stripe.com<br>
+                • MongoDB Atlas : support via dashboard<br>
+                • Render : support@render.com<br>
+                • Cloudflare : support via dashboard
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px; color: #666;">
+            <p>Document généré le 10 Avril 2025</p>
+            <p>© 2025 Nati Fenua - Guide de Sécurité</p>
+        </div>
+    </div>
+</body>
+</html>
