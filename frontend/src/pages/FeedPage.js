@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X, ChevronLeft, ChevronRight, Flag, Youtube, Link2, ExternalLink, WifiOff, Languages, Loader2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X, ChevronLeft, ChevronRight, Flag, Youtube, Link2, ExternalLink, WifiOff, Languages, Loader2, Download, Smartphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
@@ -14,6 +14,84 @@ import { ReportModal, BlockUserModal } from '../components/ReportModal';
 import { PostSkeleton, StoriesRowSkeleton, FeedSkeleton } from '../components/SkeletonLoader';
 import { LazyImage, LazyVideo, ConnectionStatus, useNetworkQuality } from '../components/LazyImage';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
+
+// PWA Install Banner Component for Feed
+const PWAInstallBannerCompact = () => {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showBanner, setShowBanner] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    const installed = window.matchMedia('(display-mode: standalone)').matches;
+    const bannerDismissed = localStorage.getItem('pwa_feed_banner_dismissed');
+    
+    if (installed || bannerDismissed) return;
+
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    setIsIOS(iOS);
+
+    if (iOS) {
+      setShowBanner(true);
+    } else {
+      const handler = (e) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+        setShowBanner(true);
+      };
+      window.addEventListener('beforeinstallprompt', handler);
+      return () => window.removeEventListener('beforeinstallprompt', handler);
+    }
+  }, []);
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') setShowBanner(false);
+      setDeferredPrompt(null);
+    }
+  };
+
+  const handleDismiss = () => {
+    setShowBanner(false);
+    localStorage.setItem('pwa_feed_banner_dismissed', 'true');
+  };
+
+  if (!showBanner) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] rounded-2xl p-4 mb-4 shadow-lg"
+    >
+      <div className="flex items-center gap-3">
+        <div className="flex-shrink-0 w-12 h-12 bg-white rounded-xl flex items-center justify-center">
+          <Smartphone size={24} className="text-[#FF6B35]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-white font-bold text-sm">Installer Nati Fenua</p>
+          <p className="text-white/80 text-xs">
+            {isIOS ? "Appuyez sur Partager → Écran d'accueil" : "Accès rapide et notifications"}
+          </p>
+        </div>
+        {!isIOS && (
+          <Button
+            onClick={handleInstall}
+            size="sm"
+            className="bg-white text-[#FF6B35] hover:bg-white/90 font-bold px-3 py-1 rounded-full text-xs"
+          >
+            <Download size={14} className="mr-1" />
+            OK
+          </Button>
+        )}
+        <button onClick={handleDismiss} className="text-white/70 hover:text-white">
+          <X size={18} />
+        </button>
+      </div>
+    </motion.div>
+  );
+};
 
 // YouTube Embed Component
 const YouTubeEmbed = ({ videoId, onClick }) => {
@@ -492,6 +570,9 @@ const FeedPage = () => {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 safe-bottom">
+      {/* PWA Install Banner */}
+      <PWAInstallBannerCompact />
+      
       {/* Stories Section */}
       <div className="mb-8">
         <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-4">

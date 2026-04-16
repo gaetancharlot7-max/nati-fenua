@@ -1,10 +1,119 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowRight, Users, ShoppingBag, Play, Heart, MapPin, MessageCircle, Radio, Sparkles, Camera, Film, CheckCircle, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, Users, ShoppingBag, Play, Heart, MapPin, MessageCircle, Radio, Sparkles, Camera, Film, CheckCircle, Loader2, Download, X, Smartphone } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { authApi } from '../lib/api';
+
+// PWA Install Banner Component
+const PWAInstallBanner = ({ onClose }) => {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showBanner, setShowBanner] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    // Vérifier si déjà installé ou si banner déjà fermée
+    const installed = window.matchMedia('(display-mode: standalone)').matches;
+    const bannerDismissed = localStorage.getItem('pwa_banner_dismissed');
+    
+    if (installed || bannerDismissed) {
+      return;
+    }
+
+    // Détecter iOS
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    setIsIOS(iOS);
+
+    if (iOS) {
+      setShowBanner(true);
+    } else {
+      // Pour Android/Desktop
+      const handler = (e) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+        setShowBanner(true);
+      };
+      window.addEventListener('beforeinstallprompt', handler);
+      return () => window.removeEventListener('beforeinstallprompt', handler);
+    }
+  }, []);
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setShowBanner(false);
+      }
+      setDeferredPrompt(null);
+    }
+  };
+
+  const handleDismiss = () => {
+    setShowBanner(false);
+    localStorage.setItem('pwa_banner_dismissed', 'true');
+    if (onClose) onClose();
+  };
+
+  if (!showBanner) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        className="fixed bottom-0 left-0 right-0 z-50 p-4 safe-area-bottom"
+      >
+        <div className="max-w-lg mx-auto bg-gradient-to-r from-[#1A1A2E] to-[#16213E] rounded-2xl shadow-2xl border border-white/10 p-4">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              <img 
+                src="/icons/nati-fenua-64.png" 
+                alt="Nati Fenua" 
+                className="w-14 h-14 rounded-xl shadow-lg"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-white font-bold text-lg mb-1">Installer Nati Fenua</h3>
+              <p className="text-white/70 text-sm mb-3">
+                {isIOS 
+                  ? "Appuyez sur Partager puis 'Sur l'écran d'accueil'"
+                  : "Installez l'app pour un accès rapide et des notifications"
+                }
+              </p>
+              <div className="flex gap-2">
+                {!isIOS && (
+                  <Button
+                    onClick={handleInstall}
+                    className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:opacity-90 text-white px-4 py-2 rounded-full text-sm font-medium"
+                  >
+                    <Download size={16} className="mr-2" />
+                    Installer
+                  </Button>
+                )}
+                <Button
+                  onClick={handleDismiss}
+                  variant="ghost"
+                  className="text-white/60 hover:text-white hover:bg-white/10 px-4 py-2 rounded-full text-sm"
+                >
+                  Plus tard
+                </Button>
+              </div>
+            </div>
+            <button
+              onClick={handleDismiss}
+              className="text-white/40 hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
 
 // Nati Fenua Logo Component - Logo personnalisé SVG
 const NatiFenuaLogo = ({ size = 'lg' }) => {
@@ -631,6 +740,9 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
+      
+      {/* PWA Install Banner */}
+      <PWAInstallBanner />
     </div>
   );
 };
