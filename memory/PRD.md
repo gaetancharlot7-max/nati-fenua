@@ -1,64 +1,89 @@
 # Nati Fenua - Product Requirements Document
 
-## Original Problem Statement
-Application de réseau social polynésien avec flux RSS réels, webcams en direct, authentification Google OAuth, messagerie temps réel, système publicitaire en Francs Pacifiques (XPF), et notifications push.
+## Vision
+Nati Fenua est le réseau social de la Polynésie Française, connectant la communauté tahitienne à travers des fonctionnalités locales uniques.
 
-## Last Update: 9 Avril 2025
+## Architecture Technique
+- **Frontend**: React 18 + TailwindCSS
+- **Backend**: FastAPI (Python)
+- **Base de données**: MongoDB Atlas
+- **Déploiement**: Render (géré par l'utilisateur via ZIP/PowerShell)
+- **PWA**: Manifest.json + Service Worker
 
-### Recent Changes (Session actuelle)
-- ✅ **Logo personnalisé v2 intégré** - SVG avec "N" stylisé et drapeau polynésien
-- ✅ **Slogan turquoise** - "Le seul réseau qui nous ressemble" 
-- ✅ **Landing Page nettoyée** - Retiré musique et "Reels/Vidéos"
-- ✅ **Messagerie améliorée** - Menu 3 points fonctionnel avec suppression de conversation
-- ✅ **Profil corrigé** - Filtrage des posts RSS, clic vers post, navigation
-- ✅ **Stories complètes** - Visualisation modal + suppression pour propriétaire
-- ✅ **Mana corrigé** - Suppression signalement par propriétaire, votes fonctionnels
-- ✅ **Amis corrigé** - Rechargement des compteurs après follow/unfollow
-- ✅ **Image paréo** - Nouvelle image pour le marketplace
+## Fonctionnalités Implémentées
 
-### Core Features Implemented
-1. **Authentification** - Google OAuth + JWT custom
-2. **Fil d'actualité** - Posts, réactions, commentaires, partage
-3. **Stories** - Création, visualisation 24h, suppression
-4. **Messagerie** - Chat temps réel WebSocket, emojis, images
-5. **Marketplace** - Produits, services, paiements XPF
-6. **Mana (Carte)** - Signalements, webcams, roulottes, woofing
-7. **Système de Boost** - Paiements Stripe en XPF
-8. **Notifications** - Sons polynésiens, badges non-lus
-9. **Admin** - Dashboard modération, analytics
+### Core Social
+- ✅ Authentification (JWT + Google OAuth)
+- ✅ Posts avec images
+- ✅ Stories éphémères
+- ✅ Messagerie privée
+- ✅ Profils utilisateurs
+- ✅ Tagging d'utilisateurs dans les posts
 
-### API Endpoints Ajoutés
-- `DELETE /api/conversations/{id}` - Supprimer une conversation
-- `DELETE /api/stories/{id}` - Supprimer une story
-- `DELETE /api/pulse/markers/{id}` - Supprimer un signalement Mana
+### Carte Mana (Fenua Pulse)
+- ✅ Marqueurs d'événements avec visibilité (Public/Amis/Privé)
+- ✅ Webcams en direct
+- ✅ Suppression de marqueurs
+- ✅ Compteurs de confirmations
 
-### Technical Stack
-- **Frontend**: React 18, TailwindCSS, Framer Motion, Shadcn/UI
-- **Backend**: FastAPI, Motor (MongoDB async)
-- **Database**: MongoDB Atlas
-- **Auth**: Google OAuth + JWT
-- **Payments**: Stripe (via emergentintegrations)
-- **Hosting**: Render
+### Marketplace
+- ✅ Annonces avec images Unsplash
+- ✅ Catégories de produits
 
-### Files Modified This Session
-- `/app/frontend/src/pages/LandingPage.js` - Logo, slogan, nettoyage
-- `/app/frontend/src/pages/ChatPage.js` - Menu suppression conversation
-- `/app/frontend/src/pages/ProfilePage.js` - Filtrage posts, navigation
-- `/app/frontend/src/pages/FeedPage.js` - StoryItem avec modal viewer
-- `/app/frontend/src/pages/ManaPage.js` - Suppression signalements
-- `/app/frontend/src/lib/api.js` - Nouvelles méthodes delete
-- `/app/backend/server.py` - Endpoints delete
+### PWA
+- ✅ Bannière d'installation persistante (Landing + Feed)
+- ✅ Icônes générées avec drapeau polynésien (Playwright)
+- ✅ Service Worker
 
-### Upcoming Tasks (P1)
-- Configuration clés API production (Stripe Live, Firebase, Resend)
-- Lancement beta privée 50 testeurs
+## Intégrations Tierces
+- Stripe (Paiements) - Clé utilisateur
+- Google OAuth - Clé utilisateur
+- Firebase (Push) - En attente
 
-### Future Tasks (P2/P3)
-- Application mobile Expo
-- Stories temporaires améliorées
-- Thème sombre complet
-- Refactoring server.py (>7000 lignes)
+## Changelog récent
 
-### Known Issues
-- Webcams peuvent être bloquées par certains navigateurs (bouton "Ouvrir dans nouvel onglet" disponible)
-- Push notifications et emails attendent les clés API sur Render
+### 2024-04-16
+- ✅ Génération des icônes PWA avec Playwright (fix du drapeau base64)
+- ✅ Toutes les tailles d'icônes : 16, 32, 48, 64, 128, 152, 167, 180, 192, 256, 384, 512px
+- ✅ Favicon.ico et apple-touch-icon.png
+
+### Sessions précédentes
+- ✅ Guide de sécurité (GUIDE_SECURITE_NATI_FENUA.html)
+- ✅ Fix CSS iOS Safari (100vh → -webkit-fill-available)
+- ✅ Images Marketplace Unsplash
+- ✅ Tagging utilisateurs (tagged_users dans posts)
+- ✅ Bannière PWA persistante
+- ✅ Mana : visibilité des marqueurs
+- ✅ Mana : compteurs webcams à 0
+- ✅ Mana : endpoint suppression vérifié
+
+## Backlog Prioritisé
+
+### P1 - Haute priorité
+- [ ] Valider fonctionnement Mana en production (retours utilisateurs)
+
+### P2 - Moyenne priorité
+- [ ] 2FA Admin (TOTP)
+- [ ] Notifications push Firebase
+
+### P3 - Basse priorité
+- [ ] Thème sombre complet
+- [ ] Page "À propos"
+
+### P4 - Futur
+- [ ] Application mobile native (Expo)
+- [ ] Publication App Store / Play Store
+
+## Fichiers Clés
+- `/app/backend/server.py` - API principale
+- `/app/backend/fenua_pulse.py` - Logique carte Mana
+- `/app/frontend/src/pages/ManaPage.js` - Interface carte
+- `/app/frontend/src/pages/CreatePostPage.js` - Création de posts
+- `/app/frontend/public/manifest.json` - Configuration PWA
+- `/app/frontend/public/assets/logo_nati_fenua_v2.svg` - Logo source
+
+## Credentials de test
+- Admin: `admin@natifenua.pf` / `NatiFenua2025!`
+
+## Notes de déploiement
+L'utilisateur déploie manuellement via ZIP téléchargé depuis l'environnement de preview, puis git push vers Render. Le bouton "Save to Github" n'est pas utilisé.
