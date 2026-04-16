@@ -6,18 +6,17 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { authApi } from '../lib/api';
 
-// PWA Install Banner Component
+// PWA Install Banner Component - VERSION VISIBLE
 const PWAInstallBanner = ({ onClose }) => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showBanner, setShowBanner] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
-    // Vérifier si déjà installé ou si banner déjà fermée
+    // Vérifier si déjà installé
     const installed = window.matchMedia('(display-mode: standalone)').matches;
-    const bannerDismissed = localStorage.getItem('pwa_banner_dismissed');
     
-    if (installed || bannerDismissed) {
+    if (installed) {
       return;
     }
 
@@ -25,14 +24,14 @@ const PWAInstallBanner = ({ onClose }) => {
     const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     setIsIOS(iOS);
 
-    if (iOS) {
-      setShowBanner(true);
-    } else {
+    // Toujours afficher la bannière (sauf si déjà installé)
+    setShowBanner(true);
+
+    if (!iOS) {
       // Pour Android/Desktop
       const handler = (e) => {
         e.preventDefault();
         setDeferredPrompt(e);
-        setShowBanner(true);
       };
       window.addEventListener('beforeinstallprompt', handler);
       return () => window.removeEventListener('beforeinstallprompt', handler);
@@ -45,6 +44,7 @@ const PWAInstallBanner = ({ onClose }) => {
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
         setShowBanner(false);
+        localStorage.setItem('pwa_installed', 'true');
       }
       setDeferredPrompt(null);
     }
@@ -52,8 +52,7 @@ const PWAInstallBanner = ({ onClose }) => {
 
   const handleDismiss = () => {
     setShowBanner(false);
-    localStorage.setItem('pwa_banner_dismissed', 'true');
-    if (onClose) onClose();
+    // Ne pas sauvegarder le dismiss - réapparaîtra à la prochaine visite
   };
 
   if (!showBanner) return null;
@@ -66,37 +65,44 @@ const PWAInstallBanner = ({ onClose }) => {
         exit={{ y: 100, opacity: 0 }}
         className="fixed bottom-0 left-0 right-0 z-50 p-4 safe-area-bottom"
       >
-        <div className="max-w-lg mx-auto bg-gradient-to-r from-[#1A1A2E] to-[#16213E] rounded-2xl shadow-2xl border border-white/10 p-4">
+        <div className="max-w-lg mx-auto bg-gradient-to-r from-[#1A1A2E] to-[#16213E] rounded-2xl shadow-2xl border border-white/10 p-5">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0">
               <img 
-                src="/icons/nati-fenua-64.png" 
+                src="/icons/nati-fenua-192.png" 
                 alt="Nati Fenua" 
-                className="w-14 h-14 rounded-xl shadow-lg"
+                className="w-16 h-16 rounded-2xl shadow-lg border-2 border-white/20"
               />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-white font-bold text-lg mb-1">Installer Nati Fenua</h3>
+              <h3 className="text-white font-bold text-lg mb-1 flex items-center gap-2">
+                <Smartphone size={20} className="text-[#FF6B35]" />
+                Installer Nati Fenua
+              </h3>
               <p className="text-white/70 text-sm mb-3">
                 {isIOS 
-                  ? "Appuyez sur Partager puis 'Sur l'écran d'accueil'"
-                  : "Installez l'app pour un accès rapide et des notifications"
+                  ? "Appuyez sur le bouton Partager ⬆️ puis 'Sur l'écran d'accueil'"
+                  : "Accès rapide depuis votre écran d'accueil + notifications"
                 }
               </p>
               <div className="flex gap-2">
-                {!isIOS && (
+                {!isIOS ? (
                   <Button
                     onClick={handleInstall}
-                    className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:opacity-90 text-white px-4 py-2 rounded-full text-sm font-medium"
+                    className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:opacity-90 text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-lg"
                   >
-                    <Download size={16} className="mr-2" />
-                    Installer
+                    <Download size={18} className="mr-2" />
+                    Installer maintenant
                   </Button>
+                ) : (
+                  <div className="bg-white/10 rounded-xl px-4 py-2 text-white/80 text-xs">
+                    <strong>iPhone :</strong> Partager → Sur l'écran d'accueil
+                  </div>
                 )}
                 <Button
                   onClick={handleDismiss}
                   variant="ghost"
-                  className="text-white/60 hover:text-white hover:bg-white/10 px-4 py-2 rounded-full text-sm"
+                  className="text-white/50 hover:text-white hover:bg-white/10 px-4 py-2 rounded-full text-sm"
                 >
                   Plus tard
                 </Button>
@@ -104,9 +110,9 @@ const PWAInstallBanner = ({ onClose }) => {
             </div>
             <button
               onClick={handleDismiss}
-              className="text-white/40 hover:text-white transition-colors"
+              className="text-white/30 hover:text-white transition-colors"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
         </div>

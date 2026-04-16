@@ -15,7 +15,7 @@ import { PostSkeleton, StoriesRowSkeleton, FeedSkeleton } from '../components/Sk
 import { LazyImage, LazyVideo, ConnectionStatus, useNetworkQuality } from '../components/LazyImage';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 
-// PWA Install Banner Component for Feed
+// PWA Install Banner Component for Feed - VERSION VISIBLE
 const PWAInstallBannerCompact = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showBanner, setShowBanner] = useState(false);
@@ -23,20 +23,20 @@ const PWAInstallBannerCompact = () => {
 
   useEffect(() => {
     const installed = window.matchMedia('(display-mode: standalone)').matches;
-    const bannerDismissed = localStorage.getItem('pwa_feed_banner_dismissed');
     
-    if (installed || bannerDismissed) return;
+    // Afficher seulement si pas déjà installé
+    if (installed) return;
 
     const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     setIsIOS(iOS);
+    
+    // Toujours afficher au premier chargement du Feed
+    setShowBanner(true);
 
-    if (iOS) {
-      setShowBanner(true);
-    } else {
+    if (!iOS) {
       const handler = (e) => {
         e.preventDefault();
         setDeferredPrompt(e);
-        setShowBanner(true);
       };
       window.addEventListener('beforeinstallprompt', handler);
       return () => window.removeEventListener('beforeinstallprompt', handler);
@@ -47,45 +47,62 @@ const PWAInstallBannerCompact = () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') setShowBanner(false);
+      if (outcome === 'accepted') {
+        setShowBanner(false);
+        localStorage.setItem('pwa_installed', 'true');
+      }
       setDeferredPrompt(null);
     }
   };
 
   const handleDismiss = () => {
     setShowBanner(false);
-    localStorage.setItem('pwa_feed_banner_dismissed', 'true');
+    // Sauvegarder le dismiss pour cette session seulement
+    sessionStorage.setItem('pwa_feed_banner_dismissed', 'true');
   };
 
+  // Vérifier si déjà fermé cette session
+  if (sessionStorage.getItem('pwa_feed_banner_dismissed')) return null;
   if (!showBanner) return null;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] rounded-2xl p-4 mb-4 shadow-lg"
+      className="bg-gradient-to-r from-[#1A1A2E] to-[#16213E] rounded-2xl p-4 mb-4 shadow-xl border border-white/10"
     >
-      <div className="flex items-center gap-3">
-        <div className="flex-shrink-0 w-12 h-12 bg-white rounded-xl flex items-center justify-center">
-          <Smartphone size={24} className="text-[#FF6B35]" />
+      <div className="flex items-center gap-4">
+        <div className="flex-shrink-0">
+          <img 
+            src="/icons/nati-fenua-64.png" 
+            alt="Nati Fenua" 
+            className="w-14 h-14 rounded-xl shadow-lg border border-white/20"
+          />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-white font-bold text-sm">Installer Nati Fenua</p>
-          <p className="text-white/80 text-xs">
-            {isIOS ? "Appuyez sur Partager → Écran d'accueil" : "Accès rapide et notifications"}
+          <p className="text-white font-bold text-base flex items-center gap-2">
+            <Smartphone size={18} className="text-[#FF6B35]" />
+            Installer l'application
+          </p>
+          <p className="text-white/70 text-xs mt-0.5">
+            {isIOS ? "Partager → Sur l'écran d'accueil" : "Accès rapide + Notifications push"}
           </p>
         </div>
-        {!isIOS && (
+        {!isIOS ? (
           <Button
             onClick={handleInstall}
             size="sm"
-            className="bg-white text-[#FF6B35] hover:bg-white/90 font-bold px-3 py-1 rounded-full text-xs"
+            className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white hover:opacity-90 font-bold px-4 py-2 rounded-full text-sm shadow-lg"
           >
-            <Download size={14} className="mr-1" />
-            OK
+            <Download size={16} className="mr-1" />
+            Installer
           </Button>
+        ) : (
+          <div className="text-white/60 text-xs bg-white/10 px-3 py-1.5 rounded-full">
+            ⬆️ Partager
+          </div>
         )}
-        <button onClick={handleDismiss} className="text-white/70 hover:text-white">
+        <button onClick={handleDismiss} className="text-white/40 hover:text-white ml-1">
           <X size={18} />
         </button>
       </div>
