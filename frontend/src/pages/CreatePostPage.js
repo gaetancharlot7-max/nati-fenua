@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Image, Film, Camera, MapPin, X, Upload, Sparkles, Hash, ImagePlus, Shield, Navigation, Loader2, Link2, Youtube, Newspaper } from 'lucide-react';
+import { Image, Film, Camera, MapPin, X, Upload, Sparkles, Hash, ImagePlus, Shield, Navigation, Loader2, Link2, Youtube, Newspaper, UserPlus, Search } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
-import { postsApi, storiesApi, uploadApi } from '../lib/api';
+import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
+import { postsApi, storiesApi, uploadApi, usersApi } from '../lib/api';
 import { toast } from 'sonner';
 import { PrivacySelector, PrivacyPolicyModal } from '../components/PrivacySettings';
 
@@ -21,7 +22,8 @@ const CreatePostPage = () => {
     privacy: 'public',
     coordinates: null,
     external_link: '',
-    link_type: null
+    link_type: null,
+    tagged_users: []
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -35,12 +37,61 @@ const CreatePostPage = () => {
   const [gettingLocation, setGettingLocation] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [linkPreview, setLinkPreview] = useState(null);
+  // Tag users state
+  const [showTagSearch, setShowTagSearch] = useState(false);
+  const [tagSearchQuery, setTagSearchQuery] = useState('');
+  const [tagSearchResults, setTagSearchResults] = useState([]);
+  const [taggedUsers, setTaggedUsers] = useState([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
 
   useEffect(() => {
     if (!privacyAccepted) {
       setShowPrivacyPolicy(true);
     }
   }, []);
+
+  // Search users for tagging
+  useEffect(() => {
+    const searchUsers = async () => {
+      if (tagSearchQuery.length < 2) {
+        setTagSearchResults([]);
+        return;
+      }
+      setSearchingUsers(true);
+      try {
+        const response = await usersApi.search(tagSearchQuery);
+        // Filter out already tagged users
+        const filtered = (response.data || []).filter(
+          u => !taggedUsers.find(t => t.user_id === u.user_id)
+        );
+        setTagSearchResults(filtered.slice(0, 5));
+      } catch (error) {
+        console.error('Error searching users:', error);
+      } finally {
+        setSearchingUsers(false);
+      }
+    };
+    const debounce = setTimeout(searchUsers, 300);
+    return () => clearTimeout(debounce);
+  }, [tagSearchQuery, taggedUsers]);
+
+  const addTaggedUser = (user) => {
+    setTaggedUsers(prev => [...prev, user]);
+    setFormData(prev => ({
+      ...prev,
+      tagged_users: [...prev.tagged_users, user.user_id]
+    }));
+    setTagSearchQuery('');
+    setTagSearchResults([]);
+  };
+
+  const removeTaggedUser = (userId) => {
+    setTaggedUsers(prev => prev.filter(u => u.user_id !== userId));
+    setFormData(prev => ({
+      ...prev,
+      tagged_users: prev.tagged_users.filter(id => id !== userId)
+    }));
+  };
 
   // Get current location
   const getCurrentLocation = () => {
@@ -524,6 +575,91 @@ const CreatePostPage = () => {
                 <Hash size={12} />
                 Utilisez des hashtags pour plus de visibilité
               </p>
+            </div>
+          )}
+
+          {/* Tag People */}
+          {postType !== 'story' && (
+            <div className="space-y-3">
+              <Label className="text-[#1A1A2E] flex items-center gap-2">
+                <UserPlus size={16} />
+                Identifier des personnes
+              </Label>
+              
+              {/* Tagged Users Display */}
+              {taggedUsers.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {taggedUsers.map(user => (
+                    <div
+                      key={user.user_id}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-[#00899B]/10 rounded-full"
+                    >
+                      <Avatar className="w-5 h-5">
+                        <AvatarImage src={user.picture} />
+                        <AvatarFallback className="text-[8px] bg-[#00899B] text-white">
+                          {user.name?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm text-[#00899B] font-medium">{user.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeTaggedUser(user.user_id)}
+                        className="text-[#00899B] hover:text-red-500"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <Input
+                  data-testid="tag-search-input"
+                  placeholder="Rechercher un ami à identifier..."
+                  value={tagSearchQuery}
+                  onChange={(e) => setTagSearchQuery(e.target.value)}
+                  onFocus={() => setShowTagSearch(true)}
+                  className="pl-11 py-5 rounded-xl"
+                />
+                {searchingUsers && (
+                  <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" size={18} />
+                )}
+              </div>
+              
+              {/* Search Results Dropdown */}
+              {showTagSearch && tagSearchResults.length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                  {tagSearchResults.map(user => (
+                    <button
+                      key={user.user_id}
+                      type="button"
+                      onClick={() => addTaggedUser(user)}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <Avatar className="w-10 h-10 border-2 border-[#00899B]/20">
+                        <AvatarImage src={user.picture} />
+                        <AvatarFallback className="bg-[#00899B] text-white">
+                          {user.name?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-[#1A1A2E] truncate">{user.name}</p>
+                        {user.location && (
+                          <p className="text-xs text-gray-500 truncate">{user.location}</p>
+                        )}
+                      </div>
+                      <UserPlus size={18} className="text-[#00899B]" />
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {showTagSearch && tagSearchQuery.length >= 2 && tagSearchResults.length === 0 && !searchingUsers && (
+                <p className="text-sm text-gray-500 text-center py-2">Aucun utilisateur trouvé</p>
+              )}
             </div>
           )}
 

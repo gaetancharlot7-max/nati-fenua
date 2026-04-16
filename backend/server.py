@@ -355,6 +355,7 @@ class PostBase(BaseModel):
     coordinates: Optional[dict] = None  # {"lat": float, "lng": float}
     external_link: Optional[str] = None  # YouTube, article URLs
     link_type: Optional[str] = None  # youtube, article, tiktok, etc.
+    tagged_users: List[str] = Field(default_factory=list)  # List of user_ids tagged in the post
     likes_count: int = 0
     comments_count: int = 0
     shares_count: int = 0
@@ -372,6 +373,7 @@ class PostCreate(BaseModel):
     coordinates: Optional[dict] = None  # {"lat": float, "lng": float}
     external_link: Optional[str] = None  # YouTube, article URLs
     link_type: Optional[str] = None  # youtube, article, tiktok, etc.
+    tagged_users: List[str] = Field(default_factory=list)  # List of user_ids to tag
 
 class StoryBase(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -1921,7 +1923,8 @@ async def create_post(post_data: PostCreate, request: Request):
         location=post_data.location,
         coordinates=post_data.coordinates,
         external_link=post_data.external_link,
-        link_type=post_data.link_type
+        link_type=post_data.link_type,
+        tagged_users=post_data.tagged_users or []
     )
     post_dict = post.model_dump()
     post_dict["created_at"] = post_dict["created_at"].isoformat()
@@ -1932,6 +1935,16 @@ async def create_post(post_data: PostCreate, request: Request):
     
     # Notify followers about new post
     await notify_followers_new_post(user.user_id, post.post_id, post_data.content_type)
+    
+    # Notify tagged users
+    for tagged_user_id in (post_data.tagged_users or []):
+        if tagged_user_id != user.user_id:
+            await create_notification(
+                tagged_user_id,
+                "tag",
+                f"{user.name} vous a identifié(e) dans une publication",
+                {"post_id": post.post_id, "from_user_id": user.user_id}
+            )
     
     post_dict.pop("_id", None)
     return post_dict

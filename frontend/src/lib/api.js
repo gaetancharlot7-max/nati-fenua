@@ -111,7 +111,8 @@ export const usersApi = {
   getPosts: (userId, params) => api.get(`/users/${userId}/posts`, { params }),
   follow: (userId) => api.post(`/users/${userId}/follow`),
   updateProfile: (data) => api.put('/users/profile', data),
-  searchUsers: (query) => api.get('/users/search', { params: { q: query } })
+  searchUsers: (query) => api.get('/users/search', { params: { q: query } }),
+  search: (query) => api.get('/search/users', { params: { q: query, limit: 10 } })
 };
 
 // Search API
