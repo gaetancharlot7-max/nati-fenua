@@ -931,6 +931,7 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
   const [location, setLocation] = useState(userLocation);
   const [loading, setLoading] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [visibility, setVisibility] = useState('public'); // public, friends, private
 
   useEffect(() => {
     if (isOpen && !location) {
@@ -970,7 +971,8 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
         lat: location.lat,
         lng: location.lng,
         title,
-        description
+        description,
+        extra_data: { visibility }
       });
       
       toast.success('Signalement créé ! +5 Mana');
@@ -989,6 +991,7 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
     setSelectedType(null);
     setTitle('');
     setDescription('');
+    setVisibility('public');
   };
 
   if (!isOpen) return null;
@@ -1086,6 +1089,57 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
                     className="rounded-xl resize-none"
                     rows={3}
                   />
+                </div>
+
+                {/* Visibility */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block flex items-center gap-2">
+                    <Users size={16} />
+                    Qui peut voir ce signalement ?
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setVisibility('public')}
+                      className={`p-3 rounded-xl border-2 transition-colors flex flex-col items-center gap-1 ${
+                        visibility === 'public' 
+                          ? 'border-[#FF6B35] bg-[#FF6B35]/10' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="text-xl">🌍</span>
+                      <span className="text-xs font-medium">Public</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVisibility('friends')}
+                      className={`p-3 rounded-xl border-2 transition-colors flex flex-col items-center gap-1 ${
+                        visibility === 'friends' 
+                          ? 'border-[#00CED1] bg-[#00CED1]/10' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="text-xl">👥</span>
+                      <span className="text-xs font-medium">Amis</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVisibility('private')}
+                      className={`p-3 rounded-xl border-2 transition-colors flex flex-col items-center gap-1 ${
+                        visibility === 'private' 
+                          ? 'border-gray-500 bg-gray-100' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="text-xl">🔒</span>
+                      <span className="text-xs font-medium">Moi seul</span>
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {visibility === 'public' && "Tout le monde peut voir ce signalement"}
+                    {visibility === 'friends' && "Seuls vos amis peuvent voir ce signalement"}
+                    {visibility === 'private' && "Vous seul pouvez voir ce signalement"}
+                  </p>
                 </div>
               </div>
             )}

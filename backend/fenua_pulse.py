@@ -443,6 +443,7 @@ class FenuaPulseService:
             "denied_by": [],
             "is_verified": False,
             "is_active": True,
+            "visibility": extra_data.get("visibility", "public") if extra_data else "public",  # public, friends, private
             "extra_data": extra_data or {},
             "created_at": datetime.now(timezone.utc).isoformat(),
             "expires_at": expires_at.isoformat()
@@ -556,7 +557,9 @@ class FenuaPulseService:
                 "is_webcam": True,
                 "is_verified": True,
                 "is_active": True,
-                "confirmations": 999,
+                "confirmations": 0,  # Réel - pas de confirmations pour webcams
+                "denied_by": [],
+                "likes_count": 0,
                 "user": {
                     "user_id": "system_webcam",
                     "name": "Webcam Officielle",
