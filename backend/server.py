@@ -5914,8 +5914,8 @@ async def delete_pulse_marker(marker_id: str, request: Request):
     """Delete a marker (only creator can delete)"""
     user = await require_auth(request)
     
-    # Find the marker
-    marker = await db.markers.find_one({"marker_id": marker_id}, {"_id": 0})
+    # Find the marker in pulse_markers collection (where markers are created)
+    marker = await db.pulse_markers.find_one({"marker_id": marker_id}, {"_id": 0})
     if not marker:
         raise HTTPException(status_code=404, detail="Marqueur non trouvé")
     
@@ -5923,8 +5923,13 @@ async def delete_pulse_marker(marker_id: str, request: Request):
     if marker.get("user_id") != user.user_id:
         raise HTTPException(status_code=403, detail="Vous ne pouvez supprimer que vos propres signalements")
     
-    # Delete the marker
-    await db.markers.delete_one({"marker_id": marker_id})
+    # Delete the marker from pulse_markers collection
+    await db.pulse_markers.delete_one({"marker_id": marker_id})
+    
+    # Invalidate cache
+    await redis_cache.delete_pattern(f"{CacheKeys.MARKERS}*")
+    await markers_cache.clear()
+    
     logger.info(f"User {user.user_id} deleted marker: {marker_id}")
     
     return {"success": True, "message": "Signalement supprimé"}
@@ -5934,8 +5939,8 @@ async def like_pulse_marker(marker_id: str, request: Request):
     """Like a marker"""
     user = await require_auth(request)
     
-    # Find the marker
-    marker = await db.markers.find_one({"marker_id": marker_id}, {"_id": 0})
+    # Find the marker in pulse_markers collection
+    marker = await db.pulse_markers.find_one({"marker_id": marker_id}, {"_id": 0})
     if not marker:
         raise HTTPException(status_code=404, detail="Marqueur non trouvé")
     
@@ -5945,7 +5950,7 @@ async def like_pulse_marker(marker_id: str, request: Request):
         raise HTTPException(status_code=400, detail="Vous avez déjà liké ce signalement")
     
     # Add like
-    await db.markers.update_one(
+    await db.pulse_markers.update_one(
         {"marker_id": marker_id},
         {
             "$addToSet": {"liked_by": user.user_id},
@@ -5962,8 +5967,8 @@ async def report_pulse_marker(marker_id: str, request: Request):
     body = await request.json()
     reason = body.get("reason", "Non spécifié")
     
-    # Find the marker
-    marker = await db.markers.find_one({"marker_id": marker_id}, {"_id": 0})
+    # Find the marker in pulse_markers collection
+    marker = await db.pulse_markers.find_one({"marker_id": marker_id}, {"_id": 0})
     if not marker:
         raise HTTPException(status_code=404, detail="Marqueur non trouvé")
     
@@ -5980,7 +5985,7 @@ async def report_pulse_marker(marker_id: str, request: Request):
     await db.marker_reports.insert_one(report)
     
     # Increment report count on marker
-    await db.markers.update_one(
+    await db.pulse_markers.update_one(
         {"marker_id": marker_id},
         {"$inc": {"reports_count": 1}}
     )

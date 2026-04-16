@@ -35,6 +35,48 @@ body {
   min-height: 100vh;
   min-height: -webkit-fill-available; /* iOS Safari fix */
   min-height: 100dvh; /* Modern browsers dynamic viewport */
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode body */
+.dark body,
+html.dark body {
+  background: linear-gradient(180deg, #1A1A2E 0%, #16213E 100%) !important;
+  color: #FEFEFE;
+}
+
+/* Dark mode for main containers */
+.dark .bg-white {
+  background-color: #16213E !important;
+}
+
+.dark .bg-gray-50,
+.dark .bg-gray-100 {
+  background-color: #1A1A2E !important;
+}
+
+.dark .text-gray-900,
+.dark .text-gray-800 {
+  color: #FEFEFE !important;
+}
+
+.dark .text-gray-700,
+.dark .text-gray-600 {
+  color: #E0E0E0 !important;
+}
+
+.dark .text-gray-500 {
+  color: #A0A0A0 !important;
+}
+
+.dark .border-gray-200,
+.dark .border-gray-100 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-gray-100:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
 h1, h2, h3 {

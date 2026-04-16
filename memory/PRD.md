@@ -23,7 +23,7 @@ Nati Fenua est le réseau social de la Polynésie Française, connectant la comm
 ### Carte Mana (Fenua Pulse)
 - ✅ Marqueurs d'événements avec visibilité (Public/Amis/Privé)
 - ✅ Webcams en direct
-- ✅ Suppression de marqueurs
+- ✅ Suppression de marqueurs (CORRIGÉ - collection pulse_markers)
 - ✅ Compteurs de confirmations
 
 ### Marketplace
@@ -35,27 +35,31 @@ Nati Fenua est le réseau social de la Polynésie Française, connectant la comm
 - ✅ Icônes générées avec drapeau polynésien (Playwright)
 - ✅ Service Worker
 
+### UI/UX
+- ✅ Thème sombre (ThemeContext + page /settings)
+- ✅ Toggle Clair/Sombre/Auto dans les paramètres
+
 ## Intégrations Tierces
 - Stripe (Paiements) - Clé utilisateur
 - Google OAuth - Clé utilisateur
-- Firebase (Push) - En attente
+- Firebase (Push) - En attente des clés
 
 ## Changelog récent
 
-### 2024-04-16
+### 2024-04-16 (Session actuelle)
 - ✅ Génération des icônes PWA avec Playwright (fix du drapeau base64)
-- ✅ Toutes les tailles d'icônes : 16, 32, 48, 64, 128, 152, 167, 180, 192, 256, 384, 512px
-- ✅ Favicon.ico et apple-touch-icon.png
+- ✅ Correction du bug "Marqueur non trouvé" sur Mana
+  - Changé `db.markers` → `db.pulse_markers` dans server.py
+- ✅ Implémentation du thème sombre complet
+  - ThemeContext.js avec persistance
+  - Page /settings avec sélecteur de thème
+  - MainLayout adapté
+  - Styles CSS globaux dark mode
 
 ### Sessions précédentes
-- ✅ Guide de sécurité (GUIDE_SECURITE_NATI_FENUA.html)
-- ✅ Fix CSS iOS Safari (100vh → -webkit-fill-available)
-- ✅ Images Marketplace Unsplash
-- ✅ Tagging utilisateurs (tagged_users dans posts)
-- ✅ Bannière PWA persistante
-- ✅ Mana : visibilité des marqueurs
-- ✅ Mana : compteurs webcams à 0
-- ✅ Mana : endpoint suppression vérifié
+- Guide de sécurité, fix iOS Safari, images Marketplace
+- Tagging utilisateurs, Bannière PWA
+- Mana : visibilité marqueurs, compteurs webcams
 
 ## Backlog Prioritisé
 
@@ -63,12 +67,12 @@ Nati Fenua est le réseau social de la Polynésie Française, connectant la comm
 - [ ] Valider fonctionnement Mana en production (retours utilisateurs)
 
 ### P2 - Moyenne priorité
+- [ ] Notifications push Firebase (requiert clés API)
 - [ ] 2FA Admin (TOTP)
-- [ ] Notifications push Firebase
 
 ### P3 - Basse priorité
-- [ ] Thème sombre complet
 - [ ] Page "À propos"
+- [ ] Amélioration thème sombre sur toutes les pages
 
 ### P4 - Futur
 - [ ] Application mobile native (Expo)
@@ -77,10 +81,9 @@ Nati Fenua est le réseau social de la Polynésie Française, connectant la comm
 ## Fichiers Clés
 - `/app/backend/server.py` - API principale
 - `/app/backend/fenua_pulse.py` - Logique carte Mana
-- `/app/frontend/src/pages/ManaPage.js` - Interface carte
-- `/app/frontend/src/pages/CreatePostPage.js` - Création de posts
+- `/app/frontend/src/contexts/ThemeContext.js` - Gestion du thème
+- `/app/frontend/src/pages/SettingsPage.js` - Page paramètres
 - `/app/frontend/public/manifest.json` - Configuration PWA
-- `/app/frontend/public/assets/logo_nati_fenua_v2.svg` - Logo source
 
 ## Credentials de test
 - Admin: `admin@natifenua.pf` / `NatiFenua2025!`

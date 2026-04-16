@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from './components/ui/sonner';
 import { Suspense, lazy } from 'react';
 import './App.css';
@@ -56,6 +57,7 @@ const AdminAutoPublishPage = lazy(() => import('./pages/AdminAutoPublishPage'));
 const ManaPage = lazy(() => import('./pages/ManaPage'));
 const VendorDashboardPage = lazy(() => import('./pages/VendorDashboardPage'));
 const LiveViewPage = lazy(() => import('./pages/LiveViewPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 // Components (loaded immediately as they're small)
 import CookieBanner from './components/CookieBanner';
@@ -136,6 +138,8 @@ function AppContent() {
         <Route path="/settings/security" element={<ProtectedRoute><MainLayout><SecuritySettingsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/settings/notifications" element={<ProtectedRoute><MainLayout><NotificationSettingsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/settings/privacy" element={<ProtectedRoute><MainLayout><GDPRSettingsPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/settings/gdpr" element={<ProtectedRoute><MainLayout><GDPRSettingsPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><MainLayout><SettingsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/advertising" element={<ProtectedRoute><MainLayout><AdvertisingPage /></MainLayout></ProtectedRoute>} />
         <Route path="/payment/success" element={<PaymentSuccessPage />} />
         <Route path="/payment/cancel" element={<PaymentCancelPage />} />
@@ -162,9 +166,11 @@ function AppContent() {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

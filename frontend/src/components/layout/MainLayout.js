@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone, Shield, Settings, LogOut, ChevronUp, MapPin, Truck, Music, Volume2, VolumeX } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import NotificationBell from '../NotificationBell';
 import { useUnreadMessages } from '../../hooks/useUnreadMessages';
@@ -30,6 +31,7 @@ const MainLayout = ({ children, hideNav = false }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { isDark } = useTheme();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
   const { unreadCount } = useUnreadMessages();
@@ -60,19 +62,19 @@ const MainLayout = ({ children, hideNav = false }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FFF5E6] to-white">
+    <div className={`min-h-screen ${isDark ? 'bg-gradient-to-b from-[#1A1A2E] to-[#16213E]' : 'bg-gradient-to-b from-[#FFF5E6] to-white'}`}>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-72 flex-col bg-white/80 backdrop-blur-xl border-r border-gray-100 z-40">
+      <aside className={`hidden lg:flex fixed left-0 top-0 bottom-0 w-72 flex-col ${isDark ? 'bg-[#1A1A2E]/95 border-white/10' : 'bg-white/80 border-gray-100'} backdrop-blur-xl border-r z-40`}>
         {/* Logo */}
-        <div className="p-6 border-b border-gray-100">
+        <div className={`p-6 border-b ${isDark ? 'border-white/10' : 'border-gray-100'}`}>
           <Link to="/feed" className="flex items-center gap-3">
             <NatiFenuaLogo size="md" />
             <div>
               <h1 className="text-2xl font-black">
                 <span className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] bg-clip-text text-transparent">Nati</span>
-                <span className="text-[#1A1A2E]"> Fenua</span>
+                <span className={isDark ? 'text-white' : 'text-[#1A1A2E]'}> Fenua</span>
               </h1>
-              <p className="text-xs text-gray-400 font-medium">Polynésie Française</p>
+              <p className={`text-xs font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Polynésie Française</p>
             </div>
           </Link>
         </div>
@@ -105,7 +107,7 @@ const MainLayout = ({ children, hideNav = false }) => {
                 className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
                   isActive 
                     ? 'bg-gradient-to-r from-[#FF6B35]/10 to-[#00CED1]/10 text-[#FF6B35] font-semibold' 
-                    : 'text-[#1A1A2E] hover:bg-gray-100'
+                    : isDark ? 'text-white hover:bg-white/10' : 'text-[#1A1A2E] hover:bg-gray-100'
                 }`}
               >
                 <Icon size={24} strokeWidth={isActive ? 2 : 1.5} />
@@ -120,14 +122,14 @@ const MainLayout = ({ children, hideNav = false }) => {
           })}
           
           {/* Chat link */}
-          <div className="pt-4 border-t border-gray-100 mt-4">
+          <div className={`pt-4 border-t mt-4 ${isDark ? 'border-white/10' : 'border-gray-100'}`}>
             <Link
               to="/chat"
               data-testid="nav-chat"
               className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
                 location.pathname === '/chat' 
                   ? 'bg-gradient-to-r from-[#FF6B35]/10 to-[#00CED1]/10 text-[#FF6B35] font-semibold' 
-                  : 'text-[#1A1A2E] hover:bg-gray-100'
+                  : isDark ? 'text-white hover:bg-white/10' : 'text-[#1A1A2E] hover:bg-gray-100'
               }`}
             >
               <div className="relative">

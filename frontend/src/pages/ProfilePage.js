@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Settings, Grid3X3, Bookmark, ShoppingBag, MapPin, LogOut, MessageCircle } from 'lucide-react';
+import { Settings, Grid3X3, Bookmark, ShoppingBag, MapPin, LogOut, MessageCircle, Cog } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
@@ -117,6 +117,15 @@ const ProfilePage = () => {
                   >
                     <Settings size={18} className="mr-2" />
                     Modifier
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    data-testid="settings-btn"
+                    onClick={() => navigate('/settings')}
+                    className="rounded-full"
+                  >
+                    <Cog size={18} className="mr-2" />
+                    Parametres
                   </Button>
                   <Button 
                     variant="outline"
