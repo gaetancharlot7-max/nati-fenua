@@ -12,33 +12,33 @@
   "categories": ["social", "lifestyle", "news"],
   "icons": [
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "/icons/nati-fenua-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/nati-fenua-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/nati-fenua-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "/icons/nati-fenua-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icons/icon.svg",
+      "src": "/icons/icon-nati-fenua.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/hui-fenua-playstore-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/logo-flag-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
       "purpose": "any"
     }
   ],
@@ -57,21 +57,21 @@
       "short_name": "Créer",
       "description": "Créer une nouvelle publication",
       "url": "/create",
-      "icons": [{ "src": "/icons/icon-512x512.png", "sizes": "512x512" }]
+      "icons": [{ "src": "/icons/nati-fenua-512.png", "sizes": "512x512" }]
     },
     {
       "name": "Messages",
       "short_name": "Chat",
       "description": "Voir vos messages",
       "url": "/chat",
-      "icons": [{ "src": "/icons/icon-512x512.png", "sizes": "512x512" }]
+      "icons": [{ "src": "/icons/nati-fenua-512.png", "sizes": "512x512" }]
     },
     {
       "name": "Carte Mana",
       "short_name": "Mana",
       "description": "Voir les webcams et événements",
       "url": "/mana",
-      "icons": [{ "src": "/icons/icon-512x512.png", "sizes": "512x512" }]
+      "icons": [{ "src": "/icons/nati-fenua-512.png", "sizes": "512x512" }]
     }
   ],
   "related_applications": [],
