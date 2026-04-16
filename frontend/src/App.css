@@ -1,3 +1,41 @@
+/* iOS Safari Compatibility Fixes */
+html, body {
+  height: 100%;
+  height: -webkit-fill-available;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fix iOS touch issues */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* Fix iOS input zoom */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* iOS safe area support */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+
 /* Fenua Social Custom Styles */
 
 /* Bottom Navigation for Mobile */

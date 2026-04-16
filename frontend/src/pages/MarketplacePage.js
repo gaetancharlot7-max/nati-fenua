@@ -253,7 +253,7 @@ const iconMap = {
   briefcase: Briefcase
 };
 
-// Demo products
+// Demo products with authentic Polynesian images
 const demoProducts = [
   {
     product_id: 'prod1',
@@ -261,9 +261,10 @@ const demoProducts = [
     price: 45000,
     currency: 'XPF',
     category: 'perles',
-    images: ['https://images.unsplash.com/photo-1760969485983-c7b370a1532f?w=400'],
+    description: 'Magnifique collier de perles noires de Tahiti, qualité AAA. Chaque perle est soigneusement sélectionnée pour son lustre exceptionnel.',
+    images: ['https://images.unsplash.com/photo-1760969485983-c7b370a1532f?w=800&q=80'],
     location: 'Papeete',
-    seller: { name: 'Perles Manava', picture: 'https://ui-avatars.com/api/?name=PM&background=00899B&color=fff' }
+    seller: { user_id: 'seller1', name: 'Perles Manava', picture: 'https://ui-avatars.com/api/?name=PM&background=00899B&color=fff' }
   },
   {
     product_id: 'prod2',
@@ -271,66 +272,106 @@ const demoProducts = [
     price: 2500,
     currency: 'XPF',
     category: 'monoi',
-    images: ['https://images.unsplash.com/photo-1690228987673-f6e104fa653c?w=400'],
+    description: 'Huile de monoï traditionnelle avec fleurs de tiare macérées. Parfum envoûtant de Polynésie pour le corps et les cheveux.',
+    images: ['https://images.unsplash.com/photo-1620651546004-fec141c54129?w=800&q=80'],
     location: 'Moorea',
-    seller: { name: 'Hei Poa', picture: 'https://ui-avatars.com/api/?name=HP&background=E97C07&color=fff' }
+    seller: { user_id: 'seller2', name: 'Hei Poa', picture: 'https://ui-avatars.com/api/?name=HP&background=E97C07&color=fff' }
   },
   {
     product_id: 'prod3',
-    title: 'Paréo traditionnel Tapa',
+    title: 'Paréo traditionnel fleuri',
     price: 8000,
     currency: 'XPF',
     category: 'vetements',
-    images: ['https://images.unsplash.com/photo-1746511299666-5ba663a2a5df?w=400'],
+    description: 'Paréo 100% coton avec motifs floraux tropicaux. Fabriqué localement à Tahiti. Parfait pour la plage ou en robe de soirée.',
+    images: ['https://images.unsplash.com/photo-1451928803901-7357a9e01215?w=800&q=80'],
     location: 'Tahiti',
-    seller: { name: 'Hinano Shop', picture: 'https://ui-avatars.com/api/?name=HS&background=64A7A1&color=fff' }
+    seller: { user_id: 'seller3', name: 'Hinano Shop', picture: 'https://ui-avatars.com/api/?name=HS&background=64A7A1&color=fff' }
   },
   {
     product_id: 'prod4',
-    title: 'Fruits tropicaux frais',
-    price: 1500,
+    title: 'Panier fruits tropicaux',
+    price: 3500,
     currency: 'XPF',
     category: 'alimentaire',
-    images: ['https://images.unsplash.com/photo-1663018084454-86fd8150f950?w=400'],
+    description: 'Assortiment de fruits frais du fenua: ananas Victoria, mangues, papayes et fruits de la passion. Cueillis le matin même.',
+    images: ['https://images.unsplash.com/photo-1602374095260-43ae531a5a09?w=800&q=80'],
     location: 'Raiatea',
-    seller: { name: 'Mahana Fruits', picture: 'https://ui-avatars.com/api/?name=MF&background=00899B&color=fff' }
+    seller: { user_id: 'seller4', name: 'Mahana Fruits', picture: 'https://ui-avatars.com/api/?name=MF&background=00899B&color=fff' }
+  },
+  {
+    product_id: 'prod5',
+    title: 'Ukulélé artisanal tahitien',
+    price: 25000,
+    currency: 'XPF',
+    category: 'artisanat',
+    description: 'Ukulélé fabriqué à la main par un artisan de Huahine. Bois local de tamanu sculpté avec motifs polynésiens.',
+    images: ['https://images.unsplash.com/photo-1681352415035-244e5520c569?w=800&q=80'],
+    location: 'Huahine',
+    seller: { user_id: 'seller5', name: 'Artisan Teva', picture: 'https://ui-avatars.com/api/?name=AT&background=FF6B35&color=fff' }
+  },
+  {
+    product_id: 'prod6',
+    title: 'Panier tressé traditionnel',
+    price: 4500,
+    currency: 'XPF',
+    category: 'artisanat',
+    description: 'Panier en pandanus tressé main par les mamies de Rurutu. Idéal pour le marché ou la décoration.',
+    images: ['https://images.unsplash.com/photo-1768902406144-a348c559c73c?w=800&q=80'],
+    location: 'Rurutu',
+    seller: { user_id: 'seller6', name: 'Tressage Rurutu', picture: 'https://ui-avatars.com/api/?name=TR&background=00CED1&color=fff' }
   }
 ];
 
-// Demo services
+// Demo services with authentic images
 const demoServices = [
   {
     service_id: 'svc1',
     title: 'Excursion Lagon Privée',
     price_range: '15 000 - 30 000 XPF',
     category: 'tourisme',
-    images: ['https://images.unsplash.com/photo-1703549068359-49d854524ddd?w=400'],
+    description: 'Journée complète en pirogue privée avec snorkeling, pique-nique sur motu et observation des raies et requins.',
+    images: ['https://images.unsplash.com/photo-1691113199480-216712861ee0?w=800&q=80'],
     location: 'Bora Bora',
     rating: 4.9,
     reviews_count: 128,
-    provider: { name: 'Bora Tours', picture: 'https://ui-avatars.com/api/?name=BT&background=00899B&color=fff' }
+    provider: { user_id: 'prov1', name: 'Bora Tours', picture: 'https://ui-avatars.com/api/?name=BT&background=00899B&color=fff' }
   },
   {
     service_id: 'svc2',
     title: 'Massage Polynésien Traditionnel',
     price_range: '8 000 - 12 000 XPF',
     category: 'beaute',
-    images: ['https://images.unsplash.com/photo-1690228987673-f6e104fa653c?w=400'],
+    description: 'Massage taurumi avec huile de monoï tiède. 60 à 90 minutes de détente absolue dans un cadre paradisiaque.',
+    images: ['https://images.unsplash.com/photo-1596269391479-09d99abf88a8?w=800&q=80'],
     location: 'Moorea',
     rating: 4.8,
     reviews_count: 89,
-    provider: { name: 'Spa Manea', picture: 'https://ui-avatars.com/api/?name=SM&background=E97C07&color=fff' }
+    provider: { user_id: 'prov2', name: 'Spa Manea', picture: 'https://ui-avatars.com/api/?name=SM&background=E97C07&color=fff' }
   },
   {
     service_id: 'svc3',
     title: 'Cours de Ori Tahiti',
     price_range: '3 000 XPF / séance',
     category: 'cours',
-    images: ['https://images.unsplash.com/photo-1746511299666-5ba663a2a5df?w=400'],
+    description: 'Apprenez les danses traditionnelles tahitiennes avec une danseuse professionnelle du Heiva. Tous niveaux acceptés.',
+    images: ['https://images.unsplash.com/photo-1621155222854-50763377718e?w=800&q=80'],
     location: 'Papeete',
     rating: 5.0,
     reviews_count: 45,
-    provider: { name: 'Heiva Dance', picture: 'https://ui-avatars.com/api/?name=HD&background=64A7A1&color=fff' }
+    provider: { user_id: 'prov3', name: 'Heiva Dance', picture: 'https://ui-avatars.com/api/?name=HD&background=64A7A1&color=fff' }
+  },
+  {
+    service_id: 'svc4',
+    title: 'Location Ukulélé + Cours',
+    price_range: '5 000 XPF / semaine',
+    category: 'cours',
+    description: 'Location de ukulélé avec cours de base inclus. Apprenez les classiques polynésiens en une semaine.',
+    images: ['https://images.unsplash.com/photo-1624247079844-d306e0157dbb?w=800&q=80'],
+    location: 'Papeete',
+    rating: 4.7,
+    reviews_count: 32,
+    provider: { user_id: 'prov4', name: 'Music Fenua', picture: 'https://ui-avatars.com/api/?name=MF&background=FF6B35&color=fff' }
   }
 ];
 

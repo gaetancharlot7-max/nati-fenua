@@ -4,9 +4,9 @@ import { Toaster } from './components/ui/sonner';
 import { Suspense, lazy } from 'react';
 import './App.css';
 
-// Loading component
+// Loading component - iOS compatible
 const PageLoader = () => (
-  <div className="min-h-screen bg-[#1A1A2E] flex items-center justify-center">
+  <div className="fixed inset-0 bg-[#1A1A2E] flex items-center justify-center" style={{ minHeight: '-webkit-fill-available' }}>
     <div className="text-center">
       <div className="w-16 h-16 mx-auto mb-4 animate-pulse">
         <img 
