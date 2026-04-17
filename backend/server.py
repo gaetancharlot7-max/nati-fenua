@@ -7523,7 +7523,8 @@ async def websocket_chat_v2(websocket: WebSocket, user_id: str):
 # ==================== PUSH NOTIFICATION REGISTRATION ====================
 
 class DeviceTokenRequest(BaseModel):
-    device_token: str
+    device_token: str = None
+    fcm_token: str = None  # Alternative field name
     platform: str = "web"  # web, ios, android
 
 @api_router.post("/notifications/register-device")
@@ -7532,14 +7533,22 @@ async def register_device_token(request: Request, data: DeviceTokenRequest):
     try:
         user = await require_auth(request)
         
+        # Support both field names
+        token = data.fcm_token or data.device_token
+        if not token:
+            raise HTTPException(status_code=400, detail="Token requis")
+        
         # Add token to user's device_tokens array
         await db.users.update_one(
             {"user_id": user.user_id},
             {
-                "$addToSet": {"device_tokens": data.device_token},
+                "$addToSet": {"device_tokens": token},
                 "$set": {"last_device_platform": data.platform}
             }
         )
+        
+        # Subscribe to 'all_users' topic for broadcasts
+        push_service.subscribe_to_topic([token], "all_users")
         
         return {"status": "success", "message": "Token enregistré"}
     except Exception as e:
@@ -7547,20 +7556,58 @@ async def register_device_token(request: Request, data: DeviceTokenRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@api_router.delete("/notifications/unregister-device")
-async def unregister_device_token(request: Request, device_token: str):
-    """Unregister a device token"""
+@api_router.post("/notifications/register-token")
+async def register_fcm_token(request: Request):
+    """Register an FCM token for push notifications (alternative endpoint)"""
     try:
         user = await require_auth(request)
+        body = await request.json()
+        
+        token = body.get("fcm_token") or body.get("token")
+        if not token:
+            raise HTTPException(status_code=400, detail="Token FCM requis")
+        
+        # Add token to user's device_tokens array
+        await db.users.update_one(
+            {"user_id": user.user_id},
+            {
+                "$addToSet": {"device_tokens": token},
+                "$set": {"push_enabled": True}
+            }
+        )
+        
+        # Subscribe to 'all_users' topic for broadcasts
+        push_service.subscribe_to_topic([token], "all_users")
+        
+        logger.info(f"FCM token registered for user {user.user_id}")
+        return {"status": "success", "message": "Notifications activées"}
+    except Exception as e:
+        logger.error(f"Error registering FCM token: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/notifications/unregister-token")
+async def unregister_fcm_token(request: Request):
+    """Unregister an FCM token"""
+    try:
+        user = await require_auth(request)
+        body = await request.json()
+        
+        token = body.get("fcm_token") or body.get("token")
+        if not token:
+            raise HTTPException(status_code=400, detail="Token FCM requis")
         
         await db.users.update_one(
             {"user_id": user.user_id},
-            {"$pull": {"device_tokens": device_token}}
+            {"$pull": {"device_tokens": token}}
         )
         
-        return {"status": "success", "message": "Token supprimé"}
+        # Unsubscribe from topics
+        push_service.unsubscribe_from_topic([token], "all_users")
+        
+        return {"status": "success", "message": "Notifications désactivées"}
     except Exception as e:
-        logger.error(f"Error unregistering device token: {e}")
+        logger.error(f"Error unregistering FCM token: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

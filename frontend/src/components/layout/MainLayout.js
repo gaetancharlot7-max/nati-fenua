@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import NotificationBell from '../NotificationBell';
+import NotificationPrompt from '../NotificationPrompt';
 import { useUnreadMessages } from '../../hooks/useUnreadMessages';
 import soundManager from '../../lib/soundManager';
 
@@ -432,6 +433,9 @@ const MainLayout = ({ children, hideNav = false }) => {
           </div>
         </motion.nav>
       )}
+      
+      {/* Notification Prompt */}
+      <NotificationPrompt />
     </div>
   );
 };
