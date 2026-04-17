@@ -90,7 +90,10 @@ export const marketplaceApi = {
   createProduct: (data) => api.post('/marketplace/products', data),
   getServices: (params) => api.get('/marketplace/services', { params }),
   createService: (data) => api.post('/marketplace/services', data),
-  getCategories: () => api.get('/marketplace/categories')
+  getCategories: () => api.get('/marketplace/categories'),
+  likeProduct: (productId) => api.post(`/marketplace/products/${productId}/like`),
+  likeService: (serviceId) => api.post(`/marketplace/services/${serviceId}/like`),
+  getFavorites: () => api.get('/marketplace/favorites')
 };
 
 // Ads API

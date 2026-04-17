@@ -2979,6 +2979,108 @@ async def create_product(product_data: ProductCreate, request: Request):
     product_dict.pop("_id", None)
     return product_dict
 
+
+@api_router.post("/marketplace/products/{product_id}/like")
+async def like_product(product_id: str, request: Request):
+    """Like/unlike a product"""
+    user = await require_auth(request)
+    
+    # Check if already liked
+    existing = await db.product_likes.find_one({
+        "product_id": product_id, 
+        "user_id": user.user_id
+    }, {"_id": 0})
+    
+    if existing:
+        # Unlike
+        await db.product_likes.delete_one({
+            "product_id": product_id, 
+            "user_id": user.user_id
+        })
+        await db.products.update_one(
+            {"product_id": product_id}, 
+            {"$inc": {"likes_count": -1}}
+        )
+        return {"liked": False}
+    else:
+        # Like
+        await db.product_likes.insert_one({
+            "product_id": product_id,
+            "user_id": user.user_id,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        await db.products.update_one(
+            {"product_id": product_id}, 
+            {"$inc": {"likes_count": 1}}
+        )
+        return {"liked": True}
+
+
+@api_router.post("/marketplace/services/{service_id}/like")
+async def like_service(service_id: str, request: Request):
+    """Like/unlike a service"""
+    user = await require_auth(request)
+    
+    existing = await db.service_likes.find_one({
+        "service_id": service_id, 
+        "user_id": user.user_id
+    }, {"_id": 0})
+    
+    if existing:
+        await db.service_likes.delete_one({
+            "service_id": service_id, 
+            "user_id": user.user_id
+        })
+        await db.services.update_one(
+            {"service_id": service_id}, 
+            {"$inc": {"likes_count": -1}}
+        )
+        return {"liked": False}
+    else:
+        await db.service_likes.insert_one({
+            "service_id": service_id,
+            "user_id": user.user_id,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        await db.services.update_one(
+            {"service_id": service_id}, 
+            {"$inc": {"likes_count": 1}}
+        )
+        return {"liked": True}
+
+
+@api_router.get("/marketplace/favorites")
+async def get_favorites(request: Request):
+    """Get user's favorite products and services"""
+    user = await require_auth(request)
+    
+    # Get liked products
+    product_likes = await db.product_likes.find(
+        {"user_id": user.user_id}, 
+        {"product_id": 1, "_id": 0}
+    ).to_list(100)
+    product_ids = [l["product_id"] for l in product_likes]
+    
+    products = await db.products.find(
+        {"product_id": {"$in": product_ids}},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Get liked services
+    service_likes = await db.service_likes.find(
+        {"user_id": user.user_id}, 
+        {"service_id": 1, "_id": 0}
+    ).to_list(100)
+    service_ids = [l["service_id"] for l in service_likes]
+    
+    services = await db.services.find(
+        {"service_id": {"$in": service_ids}},
+        {"_id": 0}
+    ).to_list(100)
+    
+    return {"products": products, "services": services}
+
+
 @api_router.get("/marketplace/services")
 async def get_services(category: Optional[str] = None, limit: int = 20, skip: int = 0):
     """Get marketplace services (optimized)"""

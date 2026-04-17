@@ -40,18 +40,28 @@ const ProfilePage = () => {
     try {
       if (isOwnProfile && user) {
         setProfileUser(user);
-        const postsRes = await postsApi.getAll({ user_id: user.user_id });
-        if (postsRes.data.length > 0) setPosts(postsRes.data);
+        // Use dedicated endpoint for user's posts
+        const postsRes = await usersApi.getPosts(user.user_id);
+        if (postsRes.data && postsRes.data.length > 0) {
+          setPosts(postsRes.data);
+        } else {
+          setPosts([]); // Clear demo posts if user has no posts
+        }
       } else if (userId) {
         const [userRes, postsRes] = await Promise.all([
           usersApi.getProfile(userId),
           usersApi.getPosts(userId)
         ]);
         setProfileUser(userRes.data);
-        if (postsRes.data.length > 0) setPosts(postsRes.data);
+        if (postsRes.data && postsRes.data.length > 0) {
+          setPosts(postsRes.data);
+        } else {
+          setPosts([]);
+        }
       }
     } catch (error) {
       console.error('Error loading profile:', error);
+      setPosts([]);
     } finally {
       setLoading(false);
     }

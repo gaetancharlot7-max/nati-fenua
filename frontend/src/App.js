@@ -58,6 +58,7 @@ const ManaPage = lazy(() => import('./pages/ManaPage'));
 const VendorDashboardPage = lazy(() => import('./pages/VendorDashboardPage'));
 const LiveViewPage = lazy(() => import('./pages/LiveViewPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const PostDetailPage = lazy(() => import('./pages/PostDetailPage'));
 
 // Components (loaded immediately as they're small)
 import CookieBanner from './components/CookieBanner';
@@ -128,6 +129,7 @@ function AppContent() {
         <Route path="/profile/:userId" element={<ProtectedRoute><MainLayout><ProfilePage /></MainLayout></ProtectedRoute>} />
         <Route path="/media/:mediaId" element={<ProtectedRoute><MainLayout><MediaPage /></MainLayout></ProtectedRoute>} />
         <Route path="/create" element={<ProtectedRoute><MainLayout><CreatePostPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/post/:postId" element={<ProtectedRoute><MainLayout><PostDetailPage /></MainLayout></ProtectedRoute>} />
         <Route path="/create-product" element={<ProtectedRoute><MainLayout><CreateProductPage /></MainLayout></ProtectedRoute>} />
         <Route path="/business" element={<ProtectedRoute><MainLayout><BusinessDashboard /></MainLayout></ProtectedRoute>} />
         <Route path="/search" element={<ProtectedRoute><MainLayout><SearchPage /></MainLayout></ProtectedRoute>} />

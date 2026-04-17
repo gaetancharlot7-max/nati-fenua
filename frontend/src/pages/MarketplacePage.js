@@ -14,7 +14,7 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../lib/api';
 
 // Product Detail Modal Component
-const ProductDetailModal = ({ product, onClose, onReport, onContact, onBoost, currentUserId }) => {
+const ProductDetailModal = ({ product, onClose, onReport, onContact, onBoost, currentUserId, onLike, isLiked }) => {
   if (!product) return null;
   
   const isOwner = product.seller?.user_id === currentUserId || product.user_id === currentUserId;
@@ -54,8 +54,16 @@ const ProductDetailModal = ({ product, onClose, onReport, onContact, onBoost, cu
           >
             <X size={20} />
           </button>
-          <button className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center" style={{ left: product.is_boosted ? '120px' : '16px' }}>
-            <Heart size={20} />
+          <button 
+            onClick={() => onLike(product.product_id)}
+            data-testid={`like-product-${product.product_id}`}
+            className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center transition-transform hover:scale-110" 
+            style={{ left: product.is_boosted ? '120px' : '16px' }}
+          >
+            <Heart 
+              size={20} 
+              className={isLiked ? 'text-red-500 fill-red-500' : 'text-gray-600'}
+            />
           </button>
           <button 
             onClick={() => onReport(product)}
@@ -392,6 +400,8 @@ const MarketplacePage = () => {
   const [reportItem, setReportItem] = useState(null);
   const [showBoostModal, setShowBoostModal] = useState(null);
   const [boostLoading, setBoostLoading] = useState(false);
+  const [likedProducts, setLikedProducts] = useState(new Set());
+  const [likedServices, setLikedServices] = useState(new Set());
 
   useEffect(() => {
     loadMarketplace();
@@ -441,6 +451,58 @@ const MarketplacePage = () => {
     setSelectedService(null);
   };
 
+  // Handle like product
+  const handleLikeProduct = async (productId) => {
+    if (!user) {
+      toast.error('Connectez-vous pour aimer un produit');
+      navigate('/auth');
+      return;
+    }
+    
+    try {
+      const response = await marketplaceApi.likeProduct(productId);
+      if (response.data.liked) {
+        setLikedProducts(prev => new Set([...prev, productId]));
+        toast.success('Ajouté aux favoris');
+      } else {
+        setLikedProducts(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(productId);
+          return newSet;
+        });
+        toast.success('Retiré des favoris');
+      }
+    } catch (error) {
+      toast.error('Erreur lors de l\'ajout aux favoris');
+    }
+  };
+
+  // Handle like service
+  const handleLikeService = async (serviceId) => {
+    if (!user) {
+      toast.error('Connectez-vous pour aimer un service');
+      navigate('/auth');
+      return;
+    }
+    
+    try {
+      const response = await marketplaceApi.likeService(serviceId);
+      if (response.data.liked) {
+        setLikedServices(prev => new Set([...prev, serviceId]));
+        toast.success('Ajouté aux favoris');
+      } else {
+        setLikedServices(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(serviceId);
+          return newSet;
+        });
+        toast.success('Retiré des favoris');
+      }
+    } catch (error) {
+      toast.error('Erreur lors de l\'ajout aux favoris');
+    }
+  };
+
   // Handle Boost Product - 300 XPF for 2 days at top of list
   const handleBoostProduct = (product) => {
     if (!user) {
@@ -483,6 +545,24 @@ const MarketplacePage = () => {
   };
 
   const currentCategories = activeTab === 'products' ? categories.products : categories.services;
+
+  // Filter products by category and search
+  const filteredProducts = products.filter(product => {
+    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+    const matchesSearch = !searchQuery || 
+      product.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  // Filter services by category and search
+  const filteredServices = services.filter(service => {
+    const matchesCategory = selectedCategory === 'all' || service.category === selectedCategory;
+    const matchesSearch = !searchQuery || 
+      service.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      service.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 safe-bottom">
@@ -562,7 +642,11 @@ const MarketplacePage = () => {
         {/* Products Grid */}
         <TabsContent value="products">
           <div className="marketplace-grid">
-            {products.map((product, index) => (
+            {filteredProducts.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-gray-500">
+                Aucun produit trouvé pour cette catégorie
+              </div>
+            ) : filteredProducts.map((product, index) => (
               <motion.div
                 key={product.product_id}
                 initial={{ opacity: 0, y: 20 }}
@@ -593,11 +677,13 @@ const MarketplacePage = () => {
             ))}
           </div>
         </TabsContent>
-
-        {/* Services Grid */}
         <TabsContent value="services">
           <div className="marketplace-grid">
-            {services.map((service, index) => (
+            {filteredServices.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-gray-500">
+                Aucun service trouvé pour cette catégorie
+              </div>
+            ) : filteredServices.map((service, index) => (
               <motion.div
                 key={service.service_id}
                 initial={{ opacity: 0, y: 20 }}
@@ -654,6 +740,8 @@ const MarketplacePage = () => {
             onContact={handleContactSeller}
             onBoost={handleBoostProduct}
             currentUserId={user?.user_id}
+            onLike={handleLikeProduct}
+            isLiked={likedProducts.has(selectedProduct.product_id)}
           />
         )}
       </AnimatePresence>
