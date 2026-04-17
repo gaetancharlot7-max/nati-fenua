@@ -1520,9 +1520,9 @@ async def get_posts(request: Request, limit: int = 20, skip: int = 0):
         return cached
     
     # Calculate how many of each type to fetch
-    # Goal: ~60% user posts, ~40% RSS posts
-    user_posts_limit = int(limit * 0.6) + 5
-    rss_posts_limit = int(limit * 0.4) + 5
+    # Priority: 70% user posts, 30% RSS posts (user posts prioritized)
+    user_posts_limit = int(limit * 0.7) + 5
+    rss_posts_limit = int(limit * 0.3) + 5
     
     # Fetch REAL user posts only (exclude auto-generated bot posts)
     user_posts_pipeline = [
@@ -1608,16 +1608,35 @@ async def get_posts(request: Request, limit: int = 20, skip: int = 0):
         db.posts.aggregate(rss_posts_pipeline).to_list(rss_posts_limit)
     )
     
-    # Smart mixing: interleave user posts and RSS randomly
+    # Smart mixing: prioritize user posts, then RSS
     mixed_posts = []
-    all_posts = [(p, 'user') for p in user_posts] + [(p, 'rss') for p in rss_posts]
     
-    # Shuffle for random presentation
-    random.shuffle(all_posts)
+    # Sort by created_at to get most recent first
+    user_posts_sorted = sorted(user_posts, key=lambda x: x.get('created_at', ''), reverse=True)
+    rss_posts_sorted = sorted(rss_posts, key=lambda x: x.get('created_at', ''), reverse=True)
     
-    # Take up to limit
-    for post, _ in all_posts[:limit]:
-        mixed_posts.append(post)
+    # Interleave: 2-3 user posts, then 1 RSS post (prioritizing users)
+    u_idx, r_idx = 0, 0
+    while len(mixed_posts) < limit and (u_idx < len(user_posts_sorted) or r_idx < len(rss_posts_sorted)):
+        # Add 2-3 user posts
+        for _ in range(3 if len(mixed_posts) < limit // 2 else 2):
+            if u_idx < len(user_posts_sorted) and len(mixed_posts) < limit:
+                mixed_posts.append(user_posts_sorted[u_idx])
+                u_idx += 1
+        
+        # Add 1 RSS post
+        if r_idx < len(rss_posts_sorted) and len(mixed_posts) < limit:
+            mixed_posts.append(rss_posts_sorted[r_idx])
+            r_idx += 1
+    
+    # Fill remaining with whatever is left
+    while len(mixed_posts) < limit and u_idx < len(user_posts_sorted):
+        mixed_posts.append(user_posts_sorted[u_idx])
+        u_idx += 1
+    
+    while len(mixed_posts) < limit and r_idx < len(rss_posts_sorted):
+        mixed_posts.append(rss_posts_sorted[r_idx])
+        r_idx += 1
     
     # Cache for 2 minutes
     await cache.set(cache_key, mixed_posts, ttl=120)
