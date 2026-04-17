@@ -64,6 +64,7 @@ const PostDetailPage = lazy(() => import('./pages/PostDetailPage'));
 import CookieBanner from './components/CookieBanner';
 import MainLayout from './components/layout/MainLayout';
 import NotificationBanner from './components/NotificationBanner';
+import OfflineIndicator from './components/OfflineIndicator';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -100,8 +101,10 @@ function AppContent() {
   const isLegalPage = location.pathname.startsWith('/legal');
 
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
+    <>
+      <OfflineIndicator />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
@@ -162,6 +165,7 @@ function AppContent() {
       {/* Toast notifications */}
       <Toaster position="top-center" richColors />
     </Suspense>
+    </>
   );
 }
 
