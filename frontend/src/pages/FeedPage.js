@@ -20,6 +20,7 @@ const PWAInstallBannerCompact = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showBanner, setShowBanner] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   useEffect(() => {
     const installed = window.matchMedia('(display-mode: standalone)').matches;
@@ -52,11 +53,15 @@ const PWAInstallBannerCompact = () => {
         localStorage.setItem('pwa_installed', 'true');
       }
       setDeferredPrompt(null);
+    } else {
+      // Si pas de prompt natif, afficher les instructions manuelles
+      setShowInstructions(true);
     }
   };
 
   const handleDismiss = () => {
     setShowBanner(false);
+    setShowInstructions(false);
     // Sauvegarder le dismiss pour cette session seulement
     sessionStorage.setItem('pwa_feed_banner_dismissed', 'true');
   };
@@ -64,6 +69,31 @@ const PWAInstallBannerCompact = () => {
   // Vérifier si déjà fermé cette session
   if (sessionStorage.getItem('pwa_feed_banner_dismissed')) return null;
   if (!showBanner) return null;
+
+  // Instructions manuelles
+  if (showInstructions) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-[#1A1A2E] to-[#16213E] rounded-2xl p-4 mb-4 shadow-xl border border-white/10"
+      >
+        <div className="flex items-start gap-3">
+          <Download size={24} className="text-[#FF6B35] flex-shrink-0 mt-1" />
+          <div className="flex-1">
+            <p className="text-white font-bold text-sm mb-2">Comment installer ?</p>
+            <div className="text-white/70 text-xs space-y-1">
+              <p><strong>Chrome :</strong> Menu (⋮) → Installer</p>
+              <p><strong>Safari :</strong> Partager → Sur l'écran d'accueil</p>
+            </div>
+          </div>
+          <button onClick={handleDismiss} className="text-white/40 hover:text-white">
+            <X size={18} />
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

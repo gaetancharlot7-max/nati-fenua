@@ -11,6 +11,7 @@ const PWAInstallBanner = ({ onClose }) => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showBanner, setShowBanner] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   useEffect(() => {
     // Vérifier si déjà installé
@@ -47,6 +48,9 @@ const PWAInstallBanner = ({ onClose }) => {
         localStorage.setItem('pwa_installed', 'true');
       }
       setDeferredPrompt(null);
+    } else {
+      // Si pas de prompt natif, afficher les instructions manuelles
+      setShowInstructions(true);
     }
   };
 
@@ -56,6 +60,56 @@ const PWAInstallBanner = ({ onClose }) => {
   };
 
   if (!showBanner) return null;
+
+  // Instructions manuelles pour Chrome/Edge/Firefox desktop
+  if (showInstructions) {
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 100, opacity: 0 }}
+          className="fixed bottom-0 left-0 right-0 z-50 p-4 safe-area-bottom"
+        >
+          <div className="max-w-lg mx-auto bg-gradient-to-r from-[#1A1A2E] to-[#16213E] rounded-2xl shadow-2xl border border-white/10 p-5">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <img 
+                  src="/icons/nati-fenua-192.png" 
+                  alt="Nati Fenua" 
+                  className="w-16 h-16 rounded-2xl shadow-lg border-2 border-white/20"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-white font-bold text-lg mb-2 flex items-center gap-2">
+                  <Download size={20} className="text-[#FF6B35]" />
+                  Comment installer ?
+                </h3>
+                <div className="text-white/70 text-sm space-y-2 mb-3">
+                  <p><strong>Chrome/Edge :</strong> Menu (⋮) → "Installer Nati Fenua"</p>
+                  <p><strong>Firefox :</strong> Barre d'adresse → icône maison (+)</p>
+                  <p><strong>Safari :</strong> Partager → "Sur l'écran d'accueil"</p>
+                </div>
+                <Button
+                  onClick={() => setShowInstructions(false)}
+                  variant="ghost"
+                  className="text-white/70 hover:text-white hover:bg-white/10 px-4 py-2 rounded-full text-sm"
+                >
+                  Compris !
+                </Button>
+              </div>
+              <button
+                onClick={handleDismiss}
+                className="text-white/30 hover:text-white transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
 
   return (
     <AnimatePresence>
