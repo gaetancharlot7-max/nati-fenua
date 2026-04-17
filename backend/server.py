@@ -3279,16 +3279,69 @@ async def search_users_for_chat(q: str = "", limit: int = 10):
     return users
 
 @api_router.get("/users/{user_id}")
-async def get_user_profile(user_id: str):
+async def get_user_profile(user_id: str, request: Request):
+    """Get user profile with privacy handling"""
     user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    # Check if profile is private
+    profile_visibility = user.get("profile_visibility", {})
+    is_private = profile_visibility.get("is_private", False)
+    
+    # Get current user if authenticated
+    current_user = await get_current_user(request)
+    is_own_profile = current_user and current_user.user_id == user_id
+    
+    # Check if they are friends
+    is_friend = False
+    if current_user and not is_own_profile:
+        get_app_services()
+        friendship_status = await friend_request_service.get_friendship_status(current_user.user_id, user_id)
+        is_friend = friendship_status.get("status") == "friends"
+    
+    # Add privacy info to response
+    user["is_private"] = is_private
+    user["is_friend"] = is_friend
+    user["can_view_content"] = is_own_profile or is_friend or not is_private
+    
+    # If private and not friend, hide sensitive data
+    if is_private and not is_own_profile and not is_friend:
+        user["bio"] = None
+        user["location"] = None
+        user["posts_count"] = 0
+        user["friends_count"] = 0
+        user["privacy_message"] = "Ce compte est privé"
+    
     return user
 
 @api_router.get("/users/{user_id}/posts")
-async def get_user_posts(user_id: str, limit: int = 20):
+async def get_user_posts(user_id: str, request: Request, limit: int = 20):
+    """Get user posts with privacy check"""
+    # Check profile privacy
+    target_user = await db.users.find_one({"user_id": user_id}, {"profile_visibility": 1})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    profile_visibility = target_user.get("profile_visibility", {})
+    is_private = profile_visibility.get("is_private", False)
+    
+    # Get current user
+    current_user = await get_current_user(request)
+    is_own_profile = current_user and current_user.user_id == user_id
+    
+    # Check friendship if private
+    if is_private and not is_own_profile:
+        if not current_user:
+            return {"error": "private", "message": "Ce compte est privé", "posts": []}
+        
+        get_app_services()
+        friendship_status = await friend_request_service.get_friendship_status(current_user.user_id, user_id)
+        if friendship_status.get("status") != "friends":
+            return {"error": "private", "message": "Ce compte est privé", "posts": []}
+    
     posts = await db.posts.find({"user_id": user_id}, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
-    return posts
+    return {"posts": posts}
 
 @api_router.post("/users/{user_id}/follow")
 async def follow_user(user_id: str, request: Request):
@@ -3322,8 +3375,30 @@ async def follow_user(user_id: str, request: Request):
 
 
 @api_router.get("/users/{user_id}/followers")
-async def get_user_followers(user_id: str, limit: int = 50, skip: int = 0):
-    """Get list of users who follow this user"""
+async def get_user_followers(user_id: str, request: Request, limit: int = 50, skip: int = 0):
+    """Get list of users who follow this user - with privacy check"""
+    # Check profile privacy
+    target_user = await db.users.find_one({"user_id": user_id}, {"profile_visibility": 1})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    profile_visibility = target_user.get("profile_visibility", {})
+    is_private = profile_visibility.get("is_private", False)
+    
+    # Get current user
+    current_user = await get_current_user(request)
+    is_own_profile = current_user and current_user.user_id == user_id
+    
+    # Check friendship if private
+    if is_private and not is_own_profile:
+        if not current_user:
+            return {"error": "private", "message": "Ce compte est privé", "followers": []}
+        
+        get_app_services()
+        friendship_status = await friend_request_service.get_friendship_status(current_user.user_id, user_id)
+        if friendship_status.get("status") != "friends":
+            return {"error": "private", "message": "Ce compte est privé", "followers": []}
+    
     # Get follower IDs
     follows = await db.follows.find(
         {"following_id": user_id},
@@ -3345,8 +3420,30 @@ async def get_user_followers(user_id: str, limit: int = 50, skip: int = 0):
 
 
 @api_router.get("/users/{user_id}/following")
-async def get_user_following(user_id: str, limit: int = 50, skip: int = 0):
-    """Get list of users this user follows"""
+async def get_user_following(user_id: str, request: Request, limit: int = 50, skip: int = 0):
+    """Get list of users this user follows - with privacy check"""
+    # Check profile privacy
+    target_user = await db.users.find_one({"user_id": user_id}, {"profile_visibility": 1})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    profile_visibility = target_user.get("profile_visibility", {})
+    is_private = profile_visibility.get("is_private", False)
+    
+    # Get current user
+    current_user = await get_current_user(request)
+    is_own_profile = current_user and current_user.user_id == user_id
+    
+    # Check friendship if private
+    if is_private and not is_own_profile:
+        if not current_user:
+            return {"error": "private", "message": "Ce compte est privé", "following": []}
+        
+        get_app_services()
+        friendship_status = await friend_request_service.get_friendship_status(current_user.user_id, user_id)
+        if friendship_status.get("status") != "friends":
+            return {"error": "private", "message": "Ce compte est privé", "following": []}
+    
     # Get following IDs
     follows = await db.follows.find(
         {"follower_id": user_id},

@@ -41,10 +41,12 @@ const ProfilePage = () => {
         setProfileUser(user);
         // Use dedicated endpoint for user's posts
         const postsRes = await usersApi.getPosts(user.user_id);
-        if (postsRes.data && postsRes.data.length > 0) {
+        if (postsRes.data?.posts) {
+          setPosts(postsRes.data.posts);
+        } else if (postsRes.data && Array.isArray(postsRes.data)) {
           setPosts(postsRes.data);
         } else {
-          setPosts([]); // Clear demo posts if user has no posts
+          setPosts([]);
         }
       } else if (userId) {
         const [userRes, postsRes] = await Promise.all([
@@ -52,7 +54,13 @@ const ProfilePage = () => {
           usersApi.getPosts(userId)
         ]);
         setProfileUser(userRes.data);
-        if (postsRes.data && postsRes.data.length > 0) {
+        
+        // Handle private profile
+        if (postsRes.data?.error === 'private') {
+          setPosts([]);
+        } else if (postsRes.data?.posts) {
+          setPosts(postsRes.data.posts);
+        } else if (postsRes.data && Array.isArray(postsRes.data)) {
           setPosts(postsRes.data);
         } else {
           setPosts([]);
@@ -254,11 +262,40 @@ const ProfilePage = () => {
                 </span>
               </div>
             )}
+
+            {/* Private Account Badge */}
+            {displayUser?.is_private && !isOwnProfile && !displayUser?.is_friend && (
+              <div className="mt-3">
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-sm font-medium">
+                  <Settings size={14} />
+                  Compte privé
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </motion.div>
 
-      {/* Content Tabs */}
+      {/* Private Profile Message */}
+      {displayUser?.is_private && !isOwnProfile && !displayUser?.is_friend && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-3xl p-8 shadow-sm text-center mb-6"
+        >
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+            <Settings size={32} className="text-gray-400" />
+          </div>
+          <h3 className="text-xl font-bold text-[#1A1A2E] mb-2">Ce compte est privé</h3>
+          <p className="text-gray-500 mb-4">
+            Envoyez une demande d'ami pour voir les publications, photos et la liste d'amis de {displayUser?.name}.
+          </p>
+          <FriendButton userId={userId} size="lg" />
+        </motion.div>
+      )}
+
+      {/* Content Tabs - Only show if profile is accessible */}
+      {(isOwnProfile || displayUser?.can_view_content || displayUser?.is_friend || !displayUser?.is_private) && (
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full justify-center bg-white rounded-full p-1 mb-6 shadow-sm">
           <TabsTrigger 
@@ -329,6 +366,7 @@ const ProfilePage = () => {
           </div>
         </TabsContent>
       </Tabs>
+      )}
 
       {/* Followers Modal */}
       <AnimatePresence>
