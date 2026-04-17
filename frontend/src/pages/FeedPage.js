@@ -757,6 +757,16 @@ const FeedPage = () => {
                         Média
                       </span>
                     )}
+                    {post.is_auto_published && !post.is_rss_article && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-600 font-medium">
+                        Bot
+                      </span>
+                    )}
+                    {post.user?.is_bot && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-medium">
+                        Auto
+                      </span>
+                    )}
                   </div>
                   {post.location && !(post.feed_type === 'rss' || post.is_rss_article) && (
                     <p className="text-xs text-gray-500 flex items-center gap-1">
