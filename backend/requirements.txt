@@ -43,9 +43,8 @@ slowapi>=0.1.9
 # Email (Resend)
 resend>=0.7.0
 
-# Firebase Admin SDK (Push Notifications)
-# Version 5.4.0 avoids Rust/fastuuid compilation issues on Render
-firebase-admin==5.4.0
+# Firebase Push Notifications (using HTTP API - no SDK needed)
+# PyJWT already included for auth, used for Firebase JWT generation
 
 # Payments (Stripe via Emergent) - Install with: pip install emergentintegrations --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
 --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
