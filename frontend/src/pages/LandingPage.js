@@ -50,7 +50,7 @@ const PWAInstallBanner = ({ onClose }) => {
       setDeferredPrompt(null);
     } else {
       // Rediriger vers l'application en production
-      window.open('https://nati-fenua.onrender.com', '_blank');
+      window.open('https://nati-fenua.com', '_blank');
     }
   };
 
