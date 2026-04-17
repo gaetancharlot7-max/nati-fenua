@@ -1499,31 +1499,37 @@ async def facebook_callback(request: Request, response: Response, code: str = No
 
 @api_router.get("/posts", response_model=List[dict])
 async def get_posts(request: Request, limit: int = 20, skip: int = 0):
-    """Get posts - only real user posts (auto-publisher disabled)"""
+    """Get posts with smart feed algorithm - mix of user posts and RSS articles"""
+    import random
     
     # Get current user for personalization (optional)
     current_user = await get_current_user(request)
     user_id = current_user.user_id if current_user else None
     
     # Cache key based on pagination
-    cache_key = f"user_feed:{limit}:{skip}:{user_id or 'anon'}"
+    cache_key = f"smart_feed:{limit}:{skip}:{user_id or 'anon'}"
     
     # Try cache first (shorter TTL for fresh content)
     cached = await cache.get(cache_key)
     if cached:
         return cached
     
-    # Fetch ONLY real user posts (no RSS, no auto-published, no bot posts)
-    posts_pipeline = [
+    # Calculate how many of each type to fetch
+    # Goal: ~60% user posts, ~40% RSS posts
+    user_posts_limit = int(limit * 0.6) + 5
+    rss_posts_limit = int(limit * 0.4) + 5
+    
+    # Fetch REAL user posts only (exclude auto-generated bot posts)
+    user_posts_pipeline = [
         {"$match": {
             "moderation_status": {"$ne": "rejected"},
             "is_rss_article": {"$ne": True},
             "is_auto_published": {"$ne": True},
-            "post_id": {"$not": {"$regex": "^auto_|^rss_"}}
+            "post_id": {"$not": {"$regex": "^auto_"}}
         }},
         {"$sort": {"created_at": -1}},
-        {"$skip": skip},
-        {"$limit": limit},
+        {"$skip": int(skip * 0.6)},
+        {"$limit": user_posts_limit},
         {"$lookup": {
             "from": "users",
             "localField": "user_id",
@@ -1531,7 +1537,7 @@ async def get_posts(request: Request, limit: int = 20, skip: int = 0):
             "as": "user_data"
         }},
         {"$unwind": {"path": "$user_data", "preserveNullAndEmptyArrays": True}},
-        # Filter out bot users
+        # Exclude bot users
         {"$match": {
             "$or": [
                 {"user_data.is_bot": {"$ne": True}},
@@ -1556,25 +1562,76 @@ async def get_posts(request: Request, limit: int = 20, skip: int = 0):
         {"$project": {"user_data": 0}}
     ]
     
-    posts = await db.posts.aggregate(posts_pipeline).to_list(limit)
+    # Fetch RSS posts (real media articles)
+    rss_posts_pipeline = [
+        {"$match": {
+            "moderation_status": {"$ne": "rejected"},
+            "is_rss_article": True
+        }},
+        {"$sort": {"created_at": -1}},
+        {"$skip": int(skip * 0.4)},
+        {"$limit": rss_posts_limit},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "user_id",
+            "as": "user_data"
+        }},
+        {"$unwind": {"path": "$user_data", "preserveNullAndEmptyArrays": True}},
+        {"$project": {
+            "_id": 0,
+            "user_data._id": 0,
+            "user_data.password_hash": 0,
+            "user_data.email": 0
+        }},
+        {"$addFields": {
+            "user": {
+                "user_id": "$user_data.user_id",
+                "name": "$user_data.name",
+                "picture": "$user_data.picture",
+                "is_verified": "$user_data.is_verified",
+                "is_media": "$user_data.is_media"
+            },
+            "feed_type": "rss"
+        }},
+        {"$project": {"user_data": 0}}
+    ]
+    
+    # Execute both queries in parallel
+    user_posts, rss_posts = await asyncio.gather(
+        db.posts.aggregate(user_posts_pipeline).to_list(user_posts_limit),
+        db.posts.aggregate(rss_posts_pipeline).to_list(rss_posts_limit)
+    )
+    
+    # Smart mixing: interleave user posts and RSS randomly
+    mixed_posts = []
+    all_posts = [(p, 'user') for p in user_posts] + [(p, 'rss') for p in rss_posts]
+    
+    # Shuffle for random presentation
+    random.shuffle(all_posts)
+    
+    # Take up to limit
+    for post, _ in all_posts[:limit]:
+        mixed_posts.append(post)
     
     # Cache for 2 minutes
-    await cache.set(cache_key, posts, ttl=120)
+    await cache.set(cache_key, mixed_posts, ttl=120)
     
-    logger.info(f"Feed: {len(posts)} real user posts returned")
-    return posts
+    logger.info(f"Smart feed: {len(user_posts)} user posts + {len(rss_posts)} RSS posts = {len(mixed_posts)} mixed")
+    return mixed_posts
 
 @api_router.get("/posts/fresh")
 async def get_fresh_posts(request: Request, limit: int = 20, seen_ids: str = ""):
-    """Get fresh posts that user hasn't seen yet - only real user posts
+    """Get fresh posts that user hasn't seen yet - mix of user posts and RSS
     
     Args:
         limit: Number of posts to return
         seen_ids: Comma-separated list of post IDs user has already seen
     
     Returns:
-        Fresh user posts only (no auto-generated or RSS posts)
+        Fresh posts mixed randomly between user posts and RSS
     """
+    import random
     
     # Parse seen IDs
     seen_list = [s.strip() for s in seen_ids.split(",") if s.strip()] if seen_ids else []
@@ -1583,19 +1640,19 @@ async def get_fresh_posts(request: Request, limit: int = 20, seen_ids: str = "")
     current_user = await get_current_user(request)
     user_id = current_user.user_id if current_user else None
     
-    # Build exclusion filter - ONLY real user posts
-    exclusion_filter = {
-        "moderation_status": {"$ne": "rejected"},
-        "is_rss_article": {"$ne": True},
-        "is_auto_published": {"$ne": True},
-        "post_id": {"$not": {"$regex": "^auto_|^rss_"}}
-    }
+    # Build base exclusion filter
+    base_filter = {"moderation_status": {"$ne": "rejected"}}
     if seen_list:
-        exclusion_filter["post_id"] = {"$nin": seen_list}
+        base_filter["post_id"] = {"$nin": seen_list}
     
-    # Fetch fresh user posts only
-    posts_pipeline = [
-        {"$match": exclusion_filter},
+    # Fetch fresh REAL user posts (exclude auto-generated)
+    user_posts_pipeline = [
+        {"$match": {
+            **base_filter,
+            "is_rss_article": {"$ne": True},
+            "is_auto_published": {"$ne": True},
+            "post_id": {"$not": {"$regex": "^auto_"}}
+        }},
         {"$sort": {"created_at": -1}},
         {"$limit": limit},
         {"$lookup": {
@@ -1605,7 +1662,6 @@ async def get_fresh_posts(request: Request, limit: int = 20, seen_ids: str = "")
             "as": "user_data"
         }},
         {"$unwind": {"path": "$user_data", "preserveNullAndEmptyArrays": True}},
-        # Filter out bot users
         {"$match": {
             "$or": [
                 {"user_data.is_bot": {"$ne": True}},
@@ -1625,13 +1681,51 @@ async def get_fresh_posts(request: Request, limit: int = 20, seen_ids: str = "")
         {"$project": {"user_data": 0}}
     ]
     
-    posts = await db.posts.aggregate(posts_pipeline).to_list(limit)
+    # Fetch fresh RSS posts
+    rss_posts_pipeline = [
+        {"$match": {
+            **base_filter,
+            "is_rss_article": True
+        }},
+        {"$sort": {"created_at": -1}},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "user_id",
+            "as": "user_data"
+        }},
+        {"$unwind": {"path": "$user_data", "preserveNullAndEmptyArrays": True}},
+        {"$project": {"_id": 0, "user_data._id": 0, "user_data.password_hash": 0}},
+        {"$addFields": {
+            "user": {
+                "user_id": "$user_data.user_id",
+                "name": "$user_data.name",
+                "picture": "$user_data.picture",
+                "is_verified": "$user_data.is_verified",
+                "is_media": "$user_data.is_media"
+            },
+            "feed_type": "rss"
+        }},
+        {"$project": {"user_data": 0}}
+    ]
+    
+    # Execute in parallel
+    user_posts, rss_posts = await asyncio.gather(
+        db.posts.aggregate(user_posts_pipeline).to_list(limit),
+        db.posts.aggregate(rss_posts_pipeline).to_list(limit)
+    )
+    
+    # Mix randomly
+    all_posts = user_posts + rss_posts
+    random.shuffle(all_posts)
+    mixed = all_posts[:limit]
     
     return {
-        "posts": posts,
-        "has_more": len(posts) == limit,
-        "user_posts_count": len(posts),
-        "rss_posts_count": 0
+        "posts": mixed,
+        "has_more": len(user_posts) == limit or len(rss_posts) == limit,
+        "user_posts_count": len(user_posts),
+        "rss_posts_count": len(rss_posts)
     }
 
 @api_router.get("/posts/nearby")
@@ -7314,26 +7408,23 @@ async def contact_vendor_from_pulse(request: Request):
 
 @app.on_event("startup")
 async def start_auto_publisher():
-    """DISABLED - Auto-publisher is disabled to show only real user posts"""
+    """Start the RSS feed publisher background task - RSS only, no auto-generated posts"""
     import asyncio
     
-    async def cleanup_all_auto_posts():
-        """Delete ALL auto-generated and bot posts - keep only real user posts"""
+    async def cleanup_auto_generated_posts():
+        """Delete ONLY auto-generated posts (with random Unsplash images) - keep RSS articles"""
         try:
-            # Delete ALL auto-generated posts
+            # Delete auto-generated posts (NOT RSS articles)
             result = await db.posts.delete_many({
                 "$or": [
                     {"is_auto_published": True},
-                    {"is_rss_article": True},
                     {"post_id": {"$regex": "^auto_"}},
-                    {"post_id": {"$regex": "^rss_"}},
-                    {"user_id": {"$regex": "_daily$|_tourisme$|_culture$|_nature$|_paradise$|_island$|_dive$|_heritage$|_art$|_sacree$|_vanille$|_perles$|_authentic$|_manta$|_atolls$|_biosphere$"}},
-                    {"feed_type": "rss"}
+                    {"user_id": {"$regex": "_daily$|_tourisme$|_culture$|_nature$|_paradise$|_island$|_dive$|_heritage$|_art$|_sacree$|_vanille$|_perles$|_authentic$|_manta$|_atolls$|_biosphere$"}}
                 ]
             })
             
             if result.deleted_count > 0:
-                logger.info(f"🗑️ AUTO-PUBLISHER DISABLED: Supprimé {result.deleted_count} posts auto-générés/RSS")
+                logger.info(f"🗑️ Supprimé {result.deleted_count} posts auto-générés (images Unsplash)")
                 await feed_cache.clear()
             
             return result.deleted_count
@@ -7341,21 +7432,49 @@ async def start_auto_publisher():
             logger.error(f"Error cleaning auto posts: {e}")
             return 0
     
-    async def initial_cleanup():
-        """Clean up all AI/bot posts on startup - only real user posts remain"""
+    async def cleanup_old_rss_posts():
+        """Delete RSS posts older than 2 days"""
+        try:
+            two_days_ago = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+            
+            result = await db.posts.delete_many({
+                "is_rss_article": True,
+                "created_at": {"$lt": two_days_ago}
+            })
+            
+            if result.deleted_count > 0:
+                logger.info(f"🗑️ Supprimé {result.deleted_count} posts RSS de plus de 2 jours")
+                await feed_cache.clear()
+            
+            return result.deleted_count
+        except Exception as e:
+            logger.error(f"Error cleaning old RSS posts: {e}")
+            return 0
+    
+    async def initial_cleanup_and_rss():
+        """Clean up auto-generated posts and fetch real RSS articles on startup"""
         try:
             await asyncio.sleep(10)  # Wait for DB to be ready
             
-            # Count existing posts before cleanup
+            # First, delete all auto-generated posts (fake posts with Unsplash images)
+            deleted_auto = await cleanup_auto_generated_posts()
+            
+            # Clean up old RSS posts (older than 2 days)
+            deleted_rss = await cleanup_old_rss_posts()
+            
+            # Count remaining posts
             total_posts = await db.posts.count_documents({})
-            logger.info(f"📊 Posts avant nettoyage: {total_posts}")
+            rss_posts = await db.posts.count_documents({"is_rss_article": True})
+            user_posts = total_posts - rss_posts
             
-            # Clean up ALL auto-generated posts
-            deleted = await cleanup_all_auto_posts()
+            logger.info(f"📊 Posts: {user_posts} utilisateurs + {rss_posts} RSS = {total_posts} total")
             
-            # Count after cleanup
-            remaining_posts = await db.posts.count_documents({})
-            logger.info(f"📊 Posts après nettoyage: {remaining_posts} (vrais posts utilisateurs uniquement)")
+            # Fetch fresh RSS articles
+            from rss_feeds import RSSFeedService
+            rss_service = RSSFeedService(db)
+            result = await rss_service.publish_articles_as_posts(max_total_posts=30)
+            await rss_service.close()
+            logger.info(f"📰 RSS refresh: {result}")
             
             # Clear cache
             await feed_cache.clear()
@@ -7363,9 +7482,37 @@ async def start_auto_publisher():
         except Exception as e:
             logger.error(f"Error in initial cleanup: {e}")
     
-    # Run cleanup only - no more auto-publishing
-    asyncio.create_task(initial_cleanup())
-    logger.info("🚀 Auto-publisher DISABLED: Only real user posts will be shown")
+    async def rss_publish_task():
+        """Background task that fetches and publishes RSS articles 2x per day"""
+        while True:
+            try:
+                # Wait 12 hours between refreshes
+                await asyncio.sleep(12 * 3600)
+                
+                logger.info("🔄 Démarrage du rafraîchissement RSS...")
+                
+                # Clean up old RSS posts
+                deleted = await cleanup_old_rss_posts()
+                
+                # Fetch new RSS articles
+                from rss_feeds import RSSFeedService
+                rss_service = RSSFeedService(db)
+                result = await rss_service.publish_articles_as_posts(max_total_posts=30)
+                await rss_service.close()
+                logger.info(f"📰 RSS refresh: {result}")
+                
+                # Clear cache
+                await feed_cache.clear()
+                
+            except Exception as e:
+                logger.error(f"Error in RSS publisher: {e}")
+    
+    # Run initial cleanup and RSS fetch
+    asyncio.create_task(initial_cleanup_and_rss())
+    
+    # Start periodic RSS task
+    asyncio.create_task(rss_publish_task())
+    logger.info("🚀 RSS Publisher started: refresh every 12 hours, auto-generated posts disabled")
 
 
 # ==================== USER STATISTICS ====================
