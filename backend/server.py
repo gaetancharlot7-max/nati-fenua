@@ -1991,6 +1991,92 @@ async def react_to_post(post_id: str, request: Request):
         })
         return {"reacted": True, "reaction": reaction_type}
 
+
+# ==================== PUSH NOTIFICATION HELPERS ====================
+
+async def send_like_notification(post_id: str, liker_id: str, liker_name: str):
+    """Send push notification when someone likes a post"""
+    try:
+        # Get post owner
+        post = await db.posts.find_one({"post_id": post_id}, {"user_id": 1, "_id": 0})
+        if not post:
+            return
+        
+        owner_id = post.get("user_id")
+        # Don't notify yourself
+        if owner_id == liker_id:
+            return
+        
+        # Get owner's device tokens
+        owner = await db.users.find_one(
+            {"user_id": owner_id},
+            {"device_tokens": 1, "_id": 0}
+        )
+        
+        if owner and owner.get("device_tokens"):
+            template = NotificationTemplates.new_like(liker_name or "Quelqu'un", post_id)
+            await push_service.send_to_devices(
+                owner["device_tokens"],
+                template["title"],
+                template["body"],
+                template["data"]
+            )
+    except Exception as e:
+        logger.error(f"Error sending like notification: {e}")
+
+
+async def send_comment_notification(post_id: str, commenter_id: str, commenter_name: str, comment_preview: str):
+    """Send push notification when someone comments on a post"""
+    try:
+        # Get post owner
+        post = await db.posts.find_one({"post_id": post_id}, {"user_id": 1, "_id": 0})
+        if not post:
+            return
+        
+        owner_id = post.get("user_id")
+        # Don't notify yourself
+        if owner_id == commenter_id:
+            return
+        
+        # Get owner's device tokens
+        owner = await db.users.find_one(
+            {"user_id": owner_id},
+            {"device_tokens": 1, "_id": 0}
+        )
+        
+        if owner and owner.get("device_tokens"):
+            name = commenter_name or "Quelqu'un"
+            await push_service.send_to_devices(
+                owner["device_tokens"],
+                f"{name} a commente votre post",
+                comment_preview + "..." if len(comment_preview) >= 50 else comment_preview,
+                {"type": "comment", "postId": post_id}
+            )
+    except Exception as e:
+        logger.error(f"Error sending comment notification: {e}")
+
+
+async def send_follow_notification(followed_id: str, follower_id: str, follower_name: str):
+    """Send push notification when someone follows a user"""
+    try:
+        # Get followed user's device tokens
+        user = await db.users.find_one(
+            {"user_id": followed_id},
+            {"device_tokens": 1, "_id": 0}
+        )
+        
+        if user and user.get("device_tokens"):
+            template = NotificationTemplates.new_follower(follower_name or "Quelqu'un", follower_id)
+            await push_service.send_to_devices(
+                user["device_tokens"],
+                template["title"],
+                template["body"],
+                template["data"]
+            )
+    except Exception as e:
+        logger.error(f"Error sending follow notification: {e}")
+
+
 @api_router.post("/posts/{post_id}/like")
 async def like_post(post_id: str, request: Request):
     user = await require_auth(request)
@@ -2010,6 +2096,10 @@ async def like_post(post_id: str, request: Request):
         }
         await db.likes.insert_one(like)
         await db.posts.update_one({"post_id": post_id}, {"$inc": {"likes_count": 1}})
+        
+        # Send push notification to post owner (async, don't wait)
+        asyncio.create_task(send_like_notification(post_id, user.user_id, user.display_name))
+        
         return {"liked": True}
 
 @api_router.post("/posts/{post_id}/save")
@@ -2112,6 +2202,9 @@ async def create_comment(post_id: str, comment_data: CommentCreate, request: Req
     
     await db.comments.insert_one(comment_dict)
     await db.posts.update_one({"post_id": post_id}, {"$inc": {"comments_count": 1}})
+    
+    # Send push notification to post owner (async, don't wait)
+    asyncio.create_task(send_comment_notification(post_id, user.user_id, user.display_name, comment_data.content[:50]))
     
     comment_dict.pop("_id", None)
     return comment_dict
@@ -3173,6 +3266,10 @@ async def follow_user(user_id: str, request: Request):
         await db.follows.insert_one(follow)
         await db.users.update_one({"user_id": current_user.user_id}, {"$inc": {"following_count": 1}})
         await db.users.update_one({"user_id": user_id}, {"$inc": {"followers_count": 1}})
+        
+        # Send push notification to followed user (async, don't wait)
+        asyncio.create_task(send_follow_notification(user_id, current_user.user_id, current_user.display_name))
+        
         return {"following": True}
 
 @api_router.put("/users/profile")
