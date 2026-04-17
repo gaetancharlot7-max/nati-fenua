@@ -1,0 +1,164 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import { Bell, BellOff, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuth } from '../contexts/AuthContext';
+import { 
+  requestNotificationPermission, 
+  registerTokenWithBackend,
+  onForegroundMessage 
+} from '../lib/firebase';
+
+const NotificationPrompt = () => {
+  const { user, token: authToken } = useAuth();
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Check if we should show the prompt
+  useEffect(() => {
+    if (!user) return;
+    
+    // Check if notifications are supported
+    if (!('Notification' in window)) return;
+    
+    // Check if already granted
+    if (Notification.permission === 'granted') {
+      setNotificationsEnabled(true);
+      return;
+    }
+    
+    // Check if already denied
+    if (Notification.permission === 'denied') return;
+    
+    // Check if user has dismissed the prompt before
+    const dismissed = localStorage.getItem('notification-prompt-dismissed');
+    if (dismissed) {
+      const dismissedAt = new Date(dismissed);
+      const daysSinceDismissed = (Date.now() - dismissedAt.getTime()) / (1000 * 60 * 60 * 24);
+      // Show again after 7 days
+      if (daysSinceDismissed < 7) return;
+    }
+    
+    // Show prompt after 5 seconds
+    const timer = setTimeout(() => {
+      setShowPrompt(true);
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, [user]);
+
+  // Setup foreground message handler
+  useEffect(() => {
+    if (!notificationsEnabled) return;
+    
+    const unsubscribe = onForegroundMessage((payload) => {
+      // Show toast for foreground messages
+      const title = payload.notification?.title || 'Nati Fenua';
+      const body = payload.notification?.body || '';
+      
+      toast(title, {
+        description: body,
+        action: {
+          label: 'Voir',
+          onClick: () => {
+            // Navigate based on notification type
+            const data = payload.data || {};
+            if (data.type === 'message') {
+              window.location.href = `/chat/${data.conversationId || ''}`;
+            } else if (data.type === 'comment' || data.type === 'like') {
+              window.location.href = `/post/${data.postId || ''}`;
+            }
+          }
+        }
+      });
+    });
+    
+    return () => unsubscribe();
+  }, [notificationsEnabled]);
+
+  const enableNotifications = useCallback(async () => {
+    setLoading(true);
+    
+    try {
+      const { permission, token } = await requestNotificationPermission();
+      
+      if (permission === 'granted' && token) {
+        // Register token with backend
+        await registerTokenWithBackend(token, authToken);
+        
+        setNotificationsEnabled(true);
+        setShowPrompt(false);
+        localStorage.removeItem('notification-prompt-dismissed');
+        
+        toast.success('Notifications activees !', {
+          description: 'Vous recevrez des alertes pour les messages et activites.'
+        });
+      } else if (permission === 'denied') {
+        toast.error('Notifications bloquees', {
+          description: 'Activez les notifications dans les parametres de votre navigateur.'
+        });
+        setShowPrompt(false);
+      } else {
+        toast.error('Impossible d\'activer les notifications');
+      }
+    } catch (error) {
+      console.error('Error enabling notifications:', error);
+      toast.error('Erreur lors de l\'activation des notifications');
+    } finally {
+      setLoading(false);
+    }
+  }, [authToken]);
+
+  const dismissPrompt = () => {
+    setShowPrompt(false);
+    localStorage.setItem('notification-prompt-dismissed', new Date().toISOString());
+  };
+
+  if (!showPrompt || !user) return null;
+
+  return (
+    <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50 animate-in slide-in-from-bottom-4">
+      <div className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] rounded-2xl p-4 shadow-xl shadow-orange-500/20">
+        <button 
+          onClick={dismissPrompt}
+          className="absolute top-2 right-2 p-1 rounded-full hover:bg-white/20 transition-colors"
+        >
+          <X className="w-4 h-4 text-white" />
+        </button>
+        
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-white/20 rounded-xl">
+            <Bell className="w-6 h-6 text-white" />
+          </div>
+          
+          <div className="flex-1">
+            <h3 className="font-semibold text-white mb-1">
+              Activez les notifications
+            </h3>
+            <p className="text-white/80 text-sm mb-3">
+              Soyez alerte des nouveaux messages et activites sur Nati Fenua
+            </p>
+            
+            <div className="flex gap-2">
+              <button
+                onClick={enableNotifications}
+                disabled={loading}
+                className="px-4 py-2 bg-white text-[#FF6B35] rounded-full font-medium text-sm hover:bg-white/90 transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Activation...' : 'Activer'}
+              </button>
+              <button
+                onClick={dismissPrompt}
+                className="px-4 py-2 bg-white/20 text-white rounded-full font-medium text-sm hover:bg-white/30 transition-colors"
+              >
+                Plus tard
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default NotificationPrompt;
