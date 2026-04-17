@@ -49,8 +49,8 @@ const PWAInstallBanner = ({ onClose }) => {
       }
       setDeferredPrompt(null);
     } else {
-      // Si pas de prompt natif, afficher les instructions manuelles
-      setShowInstructions(true);
+      // Rediriger vers l'application en production
+      window.open('https://nati-fenua.onrender.com', '_blank');
     }
   };
 
