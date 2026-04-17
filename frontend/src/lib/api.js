@@ -112,8 +112,12 @@ export const adsApi = {
 export const usersApi = {
   getProfile: (userId) => api.get(`/users/${userId}`),
   getPosts: (userId, params) => api.get(`/users/${userId}/posts`, { params }),
+  getFollowers: (userId) => api.get(`/users/${userId}/followers`),
+  getFollowing: (userId) => api.get(`/users/${userId}/following`),
+  getFriends: () => api.get('/users/me/friends'),
   follow: (userId) => api.post(`/users/${userId}/follow`),
   updateProfile: (data) => api.put('/users/profile', data),
+  updatePrivacy: (settings) => api.put('/users/profile', { profile_visibility: settings }),
   searchUsers: (query) => api.get('/users/search', { params: { q: query } }),
   search: (query) => api.get('/search/users', { params: { q: query, limit: 10 } })
 };

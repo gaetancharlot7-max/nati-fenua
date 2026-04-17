@@ -3374,12 +3374,92 @@ async def follow_user(user_id: str, request: Request):
         
         return {"following": True}
 
+
+@api_router.get("/users/{user_id}/followers")
+async def get_user_followers(user_id: str, limit: int = 50, skip: int = 0):
+    """Get list of users who follow this user"""
+    # Get follower IDs
+    follows = await db.follows.find(
+        {"following_id": user_id},
+        {"follower_id": 1, "_id": 0}
+    ).skip(skip).limit(limit).to_list(limit)
+    
+    follower_ids = [f["follower_id"] for f in follows]
+    
+    if not follower_ids:
+        return []
+    
+    # Get follower user details
+    followers = await db.users.find(
+        {"user_id": {"$in": follower_ids}},
+        {"_id": 0, "password_hash": 0, "email": 0}
+    ).to_list(limit)
+    
+    return followers
+
+
+@api_router.get("/users/{user_id}/following")
+async def get_user_following(user_id: str, limit: int = 50, skip: int = 0):
+    """Get list of users this user follows"""
+    # Get following IDs
+    follows = await db.follows.find(
+        {"follower_id": user_id},
+        {"following_id": 1, "_id": 0}
+    ).skip(skip).limit(limit).to_list(limit)
+    
+    following_ids = [f["following_id"] for f in follows]
+    
+    if not following_ids:
+        return []
+    
+    # Get following user details
+    following = await db.users.find(
+        {"user_id": {"$in": following_ids}},
+        {"_id": 0, "password_hash": 0, "email": 0}
+    ).to_list(limit)
+    
+    return following
+
+
+@api_router.get("/users/me/friends")
+async def get_my_friends(request: Request):
+    """Get mutual follows (friends) for current user"""
+    user = await require_auth(request)
+    
+    # Get users I follow
+    my_following = await db.follows.find(
+        {"follower_id": user.user_id},
+        {"following_id": 1, "_id": 0}
+    ).to_list(1000)
+    following_ids = set(f["following_id"] for f in my_following)
+    
+    # Get users who follow me
+    my_followers = await db.follows.find(
+        {"following_id": user.user_id},
+        {"follower_id": 1, "_id": 0}
+    ).to_list(1000)
+    follower_ids = set(f["follower_id"] for f in my_followers)
+    
+    # Mutual = intersection
+    friend_ids = list(following_ids & follower_ids)
+    
+    if not friend_ids:
+        return []
+    
+    friends = await db.users.find(
+        {"user_id": {"$in": friend_ids}},
+        {"_id": 0, "password_hash": 0, "email": 0}
+    ).to_list(100)
+    
+    return friends
+
+
 @api_router.put("/users/profile")
 async def update_profile(request: Request):
     user = await require_auth(request)
     body = await request.json()
     
-    allowed_fields = ["name", "bio", "location", "picture", "is_business"]
+    allowed_fields = ["name", "bio", "location", "picture", "is_business", "profile_visibility"]
     update_data = {k: v for k, v in body.items() if k in allowed_fields}
     
     if update_data:
@@ -3566,7 +3646,7 @@ async def search(q: str, type: str = "all", limit: int = 20):
 
 @api_router.get("/search/users")
 async def search_users(q: str, limit: int = 20, skip: int = 0):
-    """Search users by name, bio, or location with caching"""
+    """Search users by name, bio, or location with caching - excludes private profiles"""
     if not q or len(q) < 2:
         return []
     
@@ -3576,7 +3656,7 @@ async def search_users(q: str, limit: int = 20, skip: int = 0):
     if cached:
         return cached
     
-    # Optimized search with index
+    # Optimized search with index - exclude private profiles
     pipeline = [
         {"$match": {
             "$or": [
@@ -3584,7 +3664,12 @@ async def search_users(q: str, limit: int = 20, skip: int = 0):
                 {"bio": {"$regex": q, "$options": "i"}},
                 {"location": {"$regex": q, "$options": "i"}}
             ],
-            "is_banned": {"$ne": True}
+            "is_banned": {"$ne": True},
+            # Exclude private profiles from search
+            "$or": [
+                {"profile_visibility.is_private": {"$ne": True}},
+                {"profile_visibility": {"$exists": False}}
+            ]
         }},
         {"$project": {
             "_id": 0,

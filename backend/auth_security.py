@@ -190,9 +190,27 @@ def sanitize_input(text: str, max_length: int = 10000) -> str:
 
 
 def validate_email(email: str) -> bool:
-    """Validate email format"""
+    """Validate email format and check for disposable emails"""
+    if not email:
+        return False
+    
+    # Basic format validation
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    return bool(re.match(pattern, email))
+    if not re.match(pattern, email):
+        return False
+    
+    # Check for disposable email domains (common ones)
+    disposable_domains = [
+        'tempmail.com', 'throwaway.email', '10minutemail.com', 'guerrillamail.com',
+        'mailinator.com', 'yopmail.com', 'fakeinbox.com', 'trashmail.com',
+        'temp-mail.org', 'getnada.com', 'maildrop.cc', 'dispostable.com'
+    ]
+    
+    domain = email.split('@')[-1].lower()
+    if domain in disposable_domains:
+        return False
+    
+    return True
 
 
 def validate_password_strength(password: str) -> Tuple[bool, str]:
