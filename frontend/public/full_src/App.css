@@ -1,0 +1,387 @@
+/* iOS Safari Compatibility Fixes */
+html, body {
+  height: 100%;
+  height: -webkit-fill-available;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fix iOS touch issues */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* Fix iOS input zoom */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* iOS safe area support */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+
+/* Fenua Social Custom Styles */
+
+/* Bottom Navigation for Mobile */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Post Card Styles */
+.post-card {
+  transition: all 0.3s ease;
+}
+
+.post-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Story Avatar Ring */
+.avatar-ring {
+  padding: 3px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #00899B, #E97C07, #00899B);
+  background-size: 200% 200%;
+}
+
+.avatar-ring-unseen {
+  animation: gradient-rotate 3s ease infinite;
+}
+
+@keyframes gradient-rotate {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Marketplace Grid */
+.marketplace-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .marketplace-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .marketplace-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Reel Player */
+.reel-player {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
+.reel-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2rem;
+  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+}
+
+/* Feed Layout */
+.feed-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+@media (min-width: 1024px) {
+  .feed-layout {
+    grid-template-columns: 1fr 350px;
+    max-width: 1000px;
+  }
+}
+
+/* Profile Grid */
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+}
+
+/* Button Hover Effects */
+.btn-fenua {
+  transition: all 0.3s ease;
+  transform-origin: center;
+}
+
+.btn-fenua:hover {
+  transform: scale(1.02);
+  box-shadow: 0 10px 40px rgba(0, 137, 155, 0.3);
+}
+
+.btn-fenua:active {
+  transform: scale(0.98);
+}
+
+/* Card Hover */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading Skeleton */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Tab Indicator Animation */
+.tab-indicator {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Floating Action Button */
+.fab {
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
+  z-index: 40;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(0, 137, 155, 0.4);
+  transition: all 0.3s ease;
+}
+
+.fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 30px rgba(0, 137, 155, 0.5);
+}
+
+/* Image Aspect Ratios */
+.aspect-post {
+  aspect-ratio: 1 / 1;
+}
+
+.aspect-story {
+  aspect-ratio: 9 / 16;
+}
+
+.aspect-product {
+  aspect-ratio: 4 / 5;
+}
+
+/* Text Truncation */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Dark mode video feed */
+.dark-feed {
+  background: #0a0a0a;
+  color: white;
+}
+
+/* Auth page background */
+.auth-bg {
+  background-image: url('https://images.unsplash.com/photo-1723958286930-b32795ed2bbd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzV8MHwxfHNlYXJjaHwzfHx0cm9waWNhbCUyMGxhZ29vbiUyMGlzbGFuZCUyMG1vdW50YWluJTIwdHVycXVvaXNlJTIwd2F0ZXJ8ZW58MHx8fHwxNzcyNzg5NzU3fDA&ixlib=rb-4.1.0&q=85');
+  background-size: cover;
+  background-position: center;
+}
+
+/* Notification Badge */
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  background: #E97C07;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Price Tag */
+.price-tag {
+  background: linear-gradient(135deg, #00899B 0%, #006d7a 100%);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+/* Category Pills */
+.category-pill {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.category-pill:hover {
+  transform: scale(1.05);
+}
+
+.category-pill.active {
+  background: #00899B;
+  color: white;
+}
+
+/* Safe Area Padding */
+.safe-bottom {
+  padding-bottom: calc(70px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 1024px) {
+  .safe-bottom {
+    padding-bottom: 2rem;
+  }
+}
+
+/* Fenua Pulse Map Styles */
+.leaflet-container {
+  font-family: inherit;
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.leaflet-control-zoom a {
+  background: white !important;
+  color: #1A1A2E !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  font-size: 18px !important;
+  border: none !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: #f3f4f6 !important;
+}
+
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.pulse-marker:hover > div:last-child {
+  transform: scale(1.1);
+}
+
+/* Story ring gradient */
+.story-ring {
+  background: linear-gradient(135deg, #FF6B35 0%, #FF1493 50%, #00CED1 100%);
+  padding: 3px;
+  border-radius: 16px;
+}
+
+/* Hide scrollbar but keep functionality */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Reaction pop animation */
+.reaction-pop {
+  animation: reaction-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes reaction-pop {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Map water overlay effect */
+.map-water-overlay {
+  background: linear-gradient(180deg, 
+    rgba(0, 206, 209, 0.05) 0%, 
+    transparent 30%,
+    transparent 70%,
+    rgba(0, 206, 209, 0.03) 100%
+  );
+  pointer-events: none;
+}
+
