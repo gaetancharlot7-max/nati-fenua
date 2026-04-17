@@ -43,6 +43,9 @@ slowapi>=0.1.9
 # Email (Resend)
 resend>=0.7.0
 
+# Firebase Admin SDK (Push Notifications)
+firebase-admin==6.2.0
+
 # Payments (Stripe via Emergent) - Install with: pip install emergentintegrations --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
 --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
 emergentintegrations
