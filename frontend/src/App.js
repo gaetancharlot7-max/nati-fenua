@@ -150,6 +150,7 @@ function AppContent() {
         <Route path="/payment/cancel" element={<PaymentCancelPage />} />
         <Route path="/mana" element={<ProtectedRoute><MainLayout><ManaPage /></MainLayout></ProtectedRoute>} />
         <Route path="/pulse" element={<Navigate to="/mana" replace />} />
+        <Route path="/vendor" element={<Navigate to="/vendor/dashboard" replace />} />
         <Route path="/vendor/dashboard" element={<ProtectedRoute><MainLayout><VendorDashboardPage /></MainLayout></ProtectedRoute>} />
         
         {/* Fallback */}

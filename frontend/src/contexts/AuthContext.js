@@ -14,15 +14,31 @@ const isIOSSafari = () => {
   return iOSSafari;
 };
 
+// Detect if running as PWA on iOS
+const isIOSPWA = () => {
+  return (window.navigator.standalone === true) || 
+         (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+};
+
+// Detect iOS version
+const getIOSVersion = () => {
+  const ua = window.navigator.userAgent;
+  const match = ua.match(/OS (\d+)_(\d+)/);
+  if (match) {
+    return parseFloat(`${match[1]}.${match[2]}`);
+  }
+  return null;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const checkAuth = useCallback(async () => {
     try {
-      // For iOS Safari, add a small delay to ensure cookies are set
-      if (isIOSSafari()) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+      // For iOS Safari/PWA, add a small delay to ensure cookies are set
+      if (isIOSSafari() || isIOSPWA()) {
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
       
       const response = await axios.get(`${API}/auth/me`, {
@@ -36,8 +52,12 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       setUser(null);
       // Clear any stale session data on iOS
-      if (isIOSSafari()) {
+      if (isIOSSafari() || isIOSPWA()) {
         sessionStorage.removeItem('oauth_return_url');
+        // Also clear localStorage auth data if corrupted
+        if (error.response?.status === 401) {
+          localStorage.removeItem('auth_token');
+        }
       }
     } finally {
       setLoading(false);

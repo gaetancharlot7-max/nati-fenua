@@ -320,10 +320,10 @@ const MainLayout = ({ children, hideNav = false }) => {
 
           {/* Vendor Dashboard Link */}
           <Link
-            to="/vendor"
+            to="/vendor/dashboard"
             data-testid="right-nav-vendor"
             className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
-              location.pathname === '/vendor' 
+              location.pathname === '/vendor/dashboard' 
                 ? 'bg-gradient-to-r from-[#FF6B35]/10 to-[#00CED1]/10 text-[#FF6B35] font-semibold' 
                 : 'text-[#1A1A2E] hover:bg-gray-100'
             }`}
