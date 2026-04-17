@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X, ChevronLeft, ChevronRight, Flag, Youtube, Link2, ExternalLink, WifiOff, Languages, Loader2, Download, Smartphone } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { Input } from '../components/ui/input';
@@ -195,7 +195,7 @@ const ArticleLinkPreview = ({ url, imageUrl, title, source, onClick }) => {
 };
 
 // Comments Section Component
-const CommentsSection = ({ post }) => {
+const CommentsSection = ({ post, onCommentAdded }) => {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
@@ -220,13 +220,20 @@ const CommentsSection = ({ post }) => {
 
     try {
       const response = await postsApi.addComment(post.post_id, newComment);
-      setComments([...comments, { 
-        comment_id: Date.now(), 
+      const newCommentObj = { 
+        comment_id: response.data?.comment_id || `temp_${Date.now()}`, 
         content: newComment, 
         user: user,
         created_at: new Date().toISOString()
-      }]);
+      };
+      setComments(prev => [...prev, newCommentObj]);
       setNewComment('');
+      
+      // Notify parent to update comment count
+      if (onCommentAdded) {
+        onCommentAdded(post.post_id);
+      }
+      
       toast.success('Commentaire ajouté !');
     } catch (error) {
       toast.error('Erreur lors de l\'ajout du commentaire');
@@ -245,8 +252,9 @@ const CommentsSection = ({ post }) => {
         <button 
           onClick={handleOpenComments}
           className="text-gray-500 text-sm mt-2 hover:text-gray-700"
+          data-testid={`view-comments-${post.post_id}`}
         >
-          Voir les {post.comments_count} commentaires
+          Voir les {post.comments_count} commentaire{post.comments_count > 1 ? 's' : ''}
         </button>
       )}
       
@@ -261,11 +269,13 @@ const CommentsSection = ({ post }) => {
           onChange={(e) => setNewComment(e.target.value)}
           placeholder="Ajouter un commentaire..."
           className="flex-1 border-0 bg-gray-100 rounded-full text-sm h-9"
+          data-testid={`comment-input-${post.post_id}`}
         />
         <button 
           type="submit" 
           disabled={!newComment.trim()}
           className="text-[#FF6B35] disabled:text-gray-300"
+          data-testid={`submit-comment-${post.post_id}`}
         >
           <Send size={20} />
         </button>
@@ -290,7 +300,7 @@ const CommentsSection = ({ post }) => {
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b">
-                <h3 className="font-bold text-lg">Commentaires</h3>
+                <h3 className="font-bold text-lg">Commentaires ({comments.length})</h3>
                 <button onClick={() => setShowComments(false)} className="p-2 hover:bg-gray-100 rounded-full">
                   <X size={20} />
                 </button>
@@ -309,15 +319,22 @@ const CommentsSection = ({ post }) => {
                     <div key={comment.comment_id} className="flex gap-3">
                       <Avatar className="w-10 h-10 rounded-xl">
                         <AvatarImage src={comment.user?.picture} className="rounded-xl" />
-                        <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl">{comment.user?.name?.[0]}</AvatarFallback>
+                        <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl">
+                          {comment.user?.name?.[0] || comment.user?.username?.[0] || '?'}
+                        </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <p className="text-sm">
-                          <span className="font-bold">{comment.user?.name}</span>{' '}
+                          <span className="font-bold">{comment.user?.name || comment.user?.username || 'Utilisateur'}</span>{' '}
                           {comment.content}
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
-                          {new Date(comment.created_at).toLocaleDateString('fr-FR')}
+                          {new Date(comment.created_at).toLocaleDateString('fr-FR', { 
+                            day: 'numeric', 
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
                         </p>
                       </div>
                     </div>
@@ -478,6 +495,7 @@ const reactions = [
 
 const FeedPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [posts, setPosts] = useState(demoPosts);
   const [stories, setStories] = useState(demoStories);
   const [loading, setLoading] = useState(true);
@@ -554,7 +572,12 @@ const FeedPage = () => {
       const response = await postsApi.save(postId);
       if (response.data.saved) {
         setSavedPosts(prev => new Set([...prev, postId]));
-        toast.success('Publication enregistrée !');
+        toast.success('Publication enregistrée !', {
+          action: {
+            label: 'Voir',
+            onClick: () => navigate('/saved')
+          }
+        });
       } else {
         setSavedPosts(prev => {
           const newSet = new Set(prev);
@@ -566,6 +589,19 @@ const FeedPage = () => {
     } catch (error) {
       toast.error('Erreur lors de l\'enregistrement');
     }
+  };
+
+  // Update comment count when a new comment is added
+  const handleCommentAdded = (postId) => {
+    setPosts(prev => prev.map(post => {
+      if (post.post_id === postId) {
+        return {
+          ...post,
+          comments_count: (post.comments_count || 0) + 1
+        };
+      }
+      return post;
+    }));
   };
 
   const formatTimeAgo = (date) => {
@@ -583,6 +619,18 @@ const FeedPage = () => {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
       .map(([type]) => reactions.find(r => r.type === type));
+  };
+
+  // Get reaction counts by type for display
+  const getReactionCounts = (postReactions) => {
+    if (!postReactions) return [];
+    return Object.entries(postReactions)
+      .filter(([_, count]) => count > 0)
+      .map(([type, count]) => ({
+        ...reactions.find(r => r.type === type),
+        count
+      }))
+      .sort((a, b) => b.count - a.count);
   };
 
   return (
@@ -878,22 +926,29 @@ const FeedPage = () => {
                 </button>
               </div>
 
-              {/* Reactions Display */}
-              <div className="flex items-center gap-2 mb-2">
-                <div className="flex -space-x-1">
-                  {getTopReactions(post.reactions).map((reaction, i) => reaction && (
-                    <div 
-                      key={reaction.type}
-                      className="w-6 h-6 rounded-full flex items-center justify-center bg-white shadow-sm"
-                      style={{ zIndex: 3 - i }}
-                    >
-                      <reaction.icon size={14} fill={reaction.color} color={reaction.color} />
+              {/* Reactions Display - Detailed */}
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                {getReactionCounts(post.reactions).length > 0 ? (
+                  <>
+                    <div className="flex items-center gap-1">
+                      {getReactionCounts(post.reactions).map((reaction, i) => reaction && (
+                        <div 
+                          key={reaction.type}
+                          className="flex items-center gap-1 px-2 py-1 rounded-full bg-gray-50"
+                          title={`${reaction.count} ${reaction.label}`}
+                        >
+                          <reaction.icon size={14} fill={reaction.color} color={reaction.color} />
+                          <span className="text-xs font-medium text-gray-600">{reaction.count}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-                <p className="font-bold text-[#1A1A2E] text-sm">
-                  {post.likes_count.toLocaleString()} réactions
-                </p>
+                    <p className="text-gray-500 text-sm">
+                      {post.likes_count > 0 && `${post.likes_count.toLocaleString()} au total`}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-gray-400 text-sm">Soyez le premier à réagir</p>
+                )}
               </div>
 
               {/* Caption */}
@@ -972,7 +1027,7 @@ const FeedPage = () => {
               </div>
 
               {/* Comments Section */}
-              <CommentsSection post={post} />
+              <CommentsSection post={post} onCommentAdded={handleCommentAdded} />
 
               {/* Timestamp */}
               <p className="text-gray-400 text-xs mt-2 uppercase">
