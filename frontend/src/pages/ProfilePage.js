@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { useAuth } from '../contexts/AuthContext';
 import { usersApi, postsApi, marketplaceApi } from '../lib/api';
 import { toast } from 'sonner';
+import FriendButton from '../components/FriendButton';
 
 // Demo posts
 const demoPosts = [];
@@ -191,13 +192,10 @@ const ProfilePage = () => {
                 </div>
               ) : (
                 <div className="flex gap-2 justify-center md:justify-start">
-                  <Button
-                    onClick={handleFollow}
-                    data-testid="follow-btn"
-                    className={`rounded-full ${isFollowing ? 'bg-gray-200 text-[#2F2F31] hover:bg-gray-300' : 'bg-[#00899B] text-white hover:bg-[#007585]'}`}
-                  >
-                    {isFollowing ? 'Ami' : 'Ajouter'}
-                  </Button>
+                  <FriendButton 
+                    userId={userId} 
+                    data-testid="friend-btn"
+                  />
                   <Button
                     onClick={() => navigate(`/chat?user=${userId}`)}
                     data-testid="send-message-btn"

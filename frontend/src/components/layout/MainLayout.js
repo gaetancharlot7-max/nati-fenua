@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone, Shield, Settings, LogOut, ChevronUp, MapPin, Truck, Music, Volume2, VolumeX } from 'lucide-react';
+import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone, Shield, Settings, LogOut, ChevronUp, MapPin, Truck, Music, Volume2, VolumeX, Users } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -59,6 +59,7 @@ const MainLayout = ({ children, hideNav = false }) => {
     // { icon: Radio, label: 'Live', path: '/live' }, // Temporairement désactivé
     { icon: Plus, label: 'Créer', path: '/create', isCreate: true },
     { icon: ShoppingBag, label: 'Marché', path: '/marketplace' },
+    { icon: Users, label: 'Amis', path: '/friends' },
     { icon: User, label: 'Profil', path: '/profile' }
   ];
 

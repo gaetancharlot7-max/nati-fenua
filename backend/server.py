@@ -81,6 +81,9 @@ from roulotte import (
 # Import Auto Publisher module
 from auto_publisher import AutoPublisherService, run_daily_publisher, ISLAND_CONTENT
 
+# Import Friend Requests module
+from friend_requests import FriendRequestService, FriendRequestStatus
+
 # Import Cache and DB optimization modules
 from cache import (
     cache, static_cache, markers_cache, feed_cache, user_cache,
@@ -244,9 +247,10 @@ monitoring_service = None
 pulse_service = None
 roulotte_service = None
 auto_publisher_service = None
+friend_request_service = None
 
 def get_app_services():
-    global moderation_service, gdpr_service, analytics_service, monitoring_service, pulse_service, roulotte_service, auto_publisher_service
+    global moderation_service, gdpr_service, analytics_service, monitoring_service, pulse_service, roulotte_service, auto_publisher_service, friend_request_service
     if moderation_service is None:
         moderation_service = ModerationService(db)
         gdpr_service = GDPRService(db)
@@ -255,6 +259,7 @@ def get_app_services():
         pulse_service = FenuaPulseService(db)
         roulotte_service = RouletteService(db, pulse_service)
         auto_publisher_service = AutoPublisherService(db)
+        friend_request_service = FriendRequestService(db)
     return moderation_service, gdpr_service, analytics_service, monitoring_service, pulse_service, roulotte_service
 
 # Configure logging
@@ -3393,6 +3398,168 @@ async def get_my_friends(request: Request):
     ).to_list(100)
     
     return friends
+
+
+# ==================== FRIEND REQUESTS ROUTES ====================
+
+@api_router.post("/friends/request")
+async def send_friend_request(request: Request):
+    """Envoyer une demande d'ami"""
+    user = await require_auth(request)
+    body = await request.json()
+    receiver_id = body.get("user_id")
+    
+    if not receiver_id:
+        raise HTTPException(status_code=400, detail="user_id requis")
+    
+    get_app_services()
+    result = await friend_request_service.send_request(user.user_id, receiver_id)
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error"))
+    
+    # Envoyer une notification au destinataire
+    try:
+        sender = await db.users.find_one({"user_id": user.user_id}, {"name": 1})
+        receiver = await db.users.find_one({"user_id": receiver_id}, {"device_tokens": 1})
+        
+        if receiver and receiver.get("device_tokens"):
+            for token in receiver["device_tokens"]:
+                await push_service.send_to_device(
+                    token,
+                    "Demande d'ami",
+                    f"{sender.get('name', 'Quelqu\'un')} souhaite être votre ami",
+                    {"type": "friend_request", "sender_id": user.user_id}
+                )
+        
+        # Créer une notification en base
+        await db.notifications.insert_one({
+            "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+            "user_id": receiver_id,
+            "type": "friend_request",
+            "title": "Demande d'ami",
+            "message": f"{sender.get('name', 'Quelqu\'un')} souhaite être votre ami",
+            "data": {"sender_id": user.user_id, "request_id": result.get("request_id")},
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error sending friend request notification: {e}")
+    
+    return result
+
+
+@api_router.get("/friends/requests/sent")
+async def get_sent_friend_requests(request: Request, limit: int = 50, skip: int = 0):
+    """Obtenir les demandes d'ami envoyées"""
+    user = await require_auth(request)
+    get_app_services()
+    return await friend_request_service.get_sent_requests(user.user_id, limit, skip)
+
+
+@api_router.get("/friends/requests/received")
+async def get_received_friend_requests(request: Request, limit: int = 50, skip: int = 0):
+    """Obtenir les demandes d'ami reçues"""
+    user = await require_auth(request)
+    get_app_services()
+    return await friend_request_service.get_received_requests(user.user_id, limit, skip)
+
+
+@api_router.post("/friends/request/{request_id}/accept")
+async def accept_friend_request(request_id: str, request: Request):
+    """Accepter une demande d'ami"""
+    user = await require_auth(request)
+    get_app_services()
+    result = await friend_request_service.accept_request(request_id, user.user_id)
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error"))
+    
+    # Notifier l'émetteur de l'acceptation
+    try:
+        friend_request = await db.friend_requests.find_one({"request_id": request_id})
+        if friend_request:
+            accepter = await db.users.find_one({"user_id": user.user_id}, {"name": 1})
+            sender = await db.users.find_one({"user_id": friend_request["sender_id"]}, {"device_tokens": 1})
+            
+            if sender and sender.get("device_tokens"):
+                for token in sender["device_tokens"]:
+                    await push_service.send_to_device(
+                        token,
+                        "Demande acceptée !",
+                        f"{accepter.get('name', 'Quelqu\'un')} a accepté votre demande d'ami",
+                        {"type": "friend_accepted", "friend_id": user.user_id}
+                    )
+            
+            await db.notifications.insert_one({
+                "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                "user_id": friend_request["sender_id"],
+                "type": "friend_accepted",
+                "title": "Demande acceptée !",
+                "message": f"{accepter.get('name', 'Quelqu\'un')} a accepté votre demande d'ami",
+                "data": {"friend_id": user.user_id},
+                "read": False,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+    except Exception as e:
+        logger.error(f"Error sending friend accepted notification: {e}")
+    
+    return result
+
+
+@api_router.post("/friends/request/{request_id}/reject")
+async def reject_friend_request(request_id: str, request: Request):
+    """Refuser une demande d'ami"""
+    user = await require_auth(request)
+    get_app_services()
+    result = await friend_request_service.reject_request(request_id, user.user_id)
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error"))
+    
+    return result
+
+
+@api_router.post("/friends/request/{request_id}/cancel")
+async def cancel_friend_request(request_id: str, request: Request):
+    """Annuler une demande d'ami envoyée"""
+    user = await require_auth(request)
+    get_app_services()
+    result = await friend_request_service.cancel_request(request_id, user.user_id)
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error"))
+    
+    return result
+
+
+@api_router.get("/friends")
+async def get_my_friends_list(request: Request, limit: int = 50, skip: int = 0):
+    """Obtenir la liste des amis confirmés"""
+    user = await require_auth(request)
+    get_app_services()
+    return await friend_request_service.get_friends(user.user_id, limit, skip)
+
+
+@api_router.delete("/friends/{friend_id}")
+async def remove_friend(friend_id: str, request: Request):
+    """Supprimer un ami"""
+    user = await require_auth(request)
+    get_app_services()
+    result = await friend_request_service.remove_friend(user.user_id, friend_id)
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error"))
+    
+    return result
+
+
+@api_router.get("/friends/status/{user_id}")
+async def get_friendship_status(user_id: str, request: Request):
+    """Obtenir le statut d'amitié avec un utilisateur"""
+    current_user = await require_auth(request)
+    get_app_services()
+    return await friend_request_service.get_friendship_status(current_user.user_id, user_id)
 
 
 @api_router.put("/users/profile")
@@ -7512,7 +7679,34 @@ async def start_auto_publisher():
     
     # Start periodic RSS task
     asyncio.create_task(rss_publish_task())
+    
+    # Start GDPR data cleanup task
+    async def gdpr_cleanup_task():
+        """Background task for GDPR-compliant data cleanup"""
+        from gdpr import DataCleanupService
+        cleanup_service = DataCleanupService(db)
+        
+        while True:
+            try:
+                # Run cleanup daily at night
+                await asyncio.sleep(24 * 3600)  # 24 hours
+                
+                logger.info("🧹 Démarrage du nettoyage RGPD...")
+                results = await cleanup_service.cleanup_all()
+                logger.info(f"🧹 Nettoyage RGPD terminé: {results}")
+                
+                # Also cleanup friend requests
+                get_app_services()
+                deleted_requests = await friend_request_service.cleanup_old_requests(days=10)
+                logger.info(f"🧹 Demandes d'amis nettoyées: {deleted_requests}")
+                
+            except Exception as e:
+                logger.error(f"Error in GDPR cleanup: {e}")
+    
+    asyncio.create_task(gdpr_cleanup_task())
+    
     logger.info("🚀 RSS Publisher started: refresh every 12 hours, auto-generated posts disabled")
+    logger.info("🔒 GDPR Cleanup scheduled: daily cleanup of old data")
 
 
 # ==================== USER STATISTICS ====================

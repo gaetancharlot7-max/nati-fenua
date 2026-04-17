@@ -15,6 +15,16 @@ logger = logging.getLogger(__name__)
 MINIMUM_AGE = 13
 PARENTAL_CONSENT_AGE = 16
 
+# Data retention periods (in days) - RGPD compliant
+DATA_RETENTION = {
+    "friend_requests_rejected": 10,     # Demandes d'amis rejetées : 10 jours
+    "notifications": 45,                 # Notifications : 45 jours
+    "logs": 30,                          # Logs techniques : 30 jours
+    "deleted_accounts": 30,              # Délai avant suppression définitive
+    "sessions_inactive": 90,             # Sessions inactives
+    "stories": 1,                        # Stories : 24h (1 jour)
+}
+
 # Consent types
 CONSENT_TYPES = {
     "terms_of_service": {
@@ -36,6 +46,16 @@ CONSENT_TYPES = {
         "label": "Cookies analytiques",
         "required": False,
         "description": "Aider à améliorer l'application"
+    },
+    "push_notifications": {
+        "label": "Notifications push",
+        "required": False,
+        "description": "Recevoir des alertes sur votre appareil"
+    },
+    "geolocation": {
+        "label": "Géolocalisation",
+        "required": False,
+        "description": "Partager votre position pour la carte Mana"
     }
 }
 
@@ -377,3 +397,79 @@ def get_consent_types():
         }
         for key, val in CONSENT_TYPES.items()
     ]
+
+
+def get_retention_periods():
+    """Return data retention periods for frontend/documentation"""
+    return DATA_RETENTION
+
+
+class DataCleanupService:
+    """Service for automatic data cleanup based on retention periods"""
+    
+    def __init__(self, db):
+        self.db = db
+    
+    async def cleanup_all(self) -> dict:
+        """Run all cleanup tasks"""
+        results = {
+            "friend_requests": await self.cleanup_friend_requests(),
+            "notifications": await self.cleanup_notifications(),
+            "sessions": await self.cleanup_sessions(),
+            "stories": await self.cleanup_stories()
+        }
+        logger.info(f"Data cleanup completed: {results}")
+        return results
+    
+    async def cleanup_friend_requests(self) -> int:
+        """Clean up rejected/cancelled friend requests"""
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=DATA_RETENTION["friend_requests_rejected"])).isoformat()
+        
+        result = await self.db.friend_requests.delete_many({
+            "status": {"$in": ["rejected", "cancelled"]},
+            "updated_at": {"$lt": cutoff}
+        })
+        
+        if result.deleted_count > 0:
+            logger.info(f"Cleaned up {result.deleted_count} old friend requests")
+        
+        return result.deleted_count
+    
+    async def cleanup_notifications(self) -> int:
+        """Clean up old notifications"""
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=DATA_RETENTION["notifications"])).isoformat()
+        
+        result = await self.db.notifications.delete_many({
+            "created_at": {"$lt": cutoff}
+        })
+        
+        if result.deleted_count > 0:
+            logger.info(f"Cleaned up {result.deleted_count} old notifications")
+        
+        return result.deleted_count
+    
+    async def cleanup_sessions(self) -> int:
+        """Clean up inactive sessions"""
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=DATA_RETENTION["sessions_inactive"])).isoformat()
+        
+        result = await self.db.user_sessions.delete_many({
+            "last_activity": {"$lt": cutoff}
+        })
+        
+        if result.deleted_count > 0:
+            logger.info(f"Cleaned up {result.deleted_count} inactive sessions")
+        
+        return result.deleted_count
+    
+    async def cleanup_stories(self) -> int:
+        """Clean up expired stories (24h)"""
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=DATA_RETENTION["stories"])).isoformat()
+        
+        result = await self.db.stories.delete_many({
+            "created_at": {"$lt": cutoff}
+        })
+        
+        if result.deleted_count > 0:
+            logger.info(f"Cleaned up {result.deleted_count} expired stories")
+        
+        return result.deleted_count

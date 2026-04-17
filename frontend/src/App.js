@@ -50,6 +50,7 @@ const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'));
 const EditProfilePage = lazy(() => import('./pages/EditProfilePage'));
 const LegalPage = lazy(() => import('./pages/LegalPage'));
 const GDPRSettingsPage = lazy(() => import('./pages/GDPRSettingsPage'));
+const FriendsPage = lazy(() => import('./pages/FriendsPage'));
 const AdminAnalyticsPage = lazy(() => import('./pages/AdminAnalyticsPage'));
 const AdminMonitoringPage = lazy(() => import('./pages/AdminMonitoringPage'));
 const AdminModerationPage = lazy(() => import('./pages/AdminModerationPage'));
@@ -144,6 +145,7 @@ function AppContent() {
         <Route path="/settings/notifications" element={<ProtectedRoute><MainLayout><NotificationSettingsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/settings/privacy" element={<ProtectedRoute><MainLayout><GDPRSettingsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/settings/gdpr" element={<ProtectedRoute><MainLayout><GDPRSettingsPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/friends" element={<ProtectedRoute><MainLayout><FriendsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><MainLayout><SettingsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/advertising" element={<ProtectedRoute><MainLayout><AdvertisingPage /></MainLayout></ProtectedRoute>} />
         <Route path="/payment/success" element={<PaymentSuccessPage />} />
