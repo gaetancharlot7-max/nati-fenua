@@ -1,0 +1,9 @@
+MONGO_URL="mongodb://localhost:27017"
+DB_NAME="test_database"
+CORS_ORIGINS="*"
+GOOGLE_CLIENT_ID="795265896237-vbtdva4ubl9r203j79dj7jcctd7s3d2g.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="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"
+GOOGLE_REDIRECT_URI="https://nati-fenua-backend.onrender.com/api/auth/google/callback"
+FRONTEND_URL="https://nati-fenua-frontend.onrender.com"
+STRIPE_API_KEY=sk_test_emergent
+EMERGENT_LLM_KEY=sk-emergent-093A3B8Ed36F10fC69
