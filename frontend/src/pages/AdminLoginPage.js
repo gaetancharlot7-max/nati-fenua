@@ -29,6 +29,7 @@ const AdminLoginPage = () => {
 
       if (response.data.success) {
         localStorage.setItem('admin_token', response.data.token);
+        localStorage.setItem('admin_email', email);
         toast.success('Connexion admin réussie');
         navigate('/admin/dashboard');
       }

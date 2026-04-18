@@ -21,10 +21,14 @@ const AIAgentPage = () => {
   const inputRef = useRef(null);
 
   useEffect(() => {
-    loadSessions();
-    // Start a new session
-    const newSessionId = `chat_${user?.user_id}_${Date.now().toString(36)}`;
+    // Start a new session with admin email or user_id
+    const adminEmail = localStorage.getItem('admin_email') || 'admin';
+    const userId = user?.user_id || adminEmail;
+    const newSessionId = `chat_${userId}_${Date.now().toString(36)}`;
     setSessionId(newSessionId);
+    
+    // Load existing sessions
+    loadSessions();
   }, [user]);
 
   useEffect(() => {
@@ -118,7 +122,9 @@ const AIAgentPage = () => {
   };
 
   const startNewSession = () => {
-    const newSessionId = `chat_${user?.user_id}_${Date.now().toString(36)}`;
+    const adminEmail = localStorage.getItem('admin_email') || 'admin';
+    const userId = user?.user_id || adminEmail;
+    const newSessionId = `chat_${userId}_${Date.now().toString(36)}`;
     setSessionId(newSessionId);
     setMessages([]);
     toast.success('Nouvelle conversation démarrée');
