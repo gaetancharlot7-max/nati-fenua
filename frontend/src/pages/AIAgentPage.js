@@ -33,8 +33,10 @@ const AIAgentPage = () => {
 
   const loadSessions = async () => {
     try {
+      const adminToken = localStorage.getItem('admin_token');
       const res = await fetch(`${API}/api/ai/sessions`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: { 'Authorization': `Bearer ${adminToken}` }
       });
       if (res.ok) {
         const data = await res.json();
@@ -48,8 +50,10 @@ const AIAgentPage = () => {
   const loadSession = async (sid) => {
     setSessionId(sid);
     try {
+      const adminToken = localStorage.getItem('admin_token');
       const res = await fetch(`${API}/api/ai/history/${sid}`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: { 'Authorization': `Bearer ${adminToken}` }
       });
       if (res.ok) {
         const data = await res.json();
@@ -74,9 +78,13 @@ const AIAgentPage = () => {
     setLoading(true);
 
     try {
+      const adminToken = localStorage.getItem('admin_token');
       const res = await fetch(`${API}/api/ai/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`
+        },
         credentials: 'include',
         body: JSON.stringify({
           message: userMessage,

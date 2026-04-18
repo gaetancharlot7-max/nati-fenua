@@ -8274,26 +8274,29 @@ class AICodeGenRequest(BaseModel):
 @api_router.post("/ai/chat")
 async def ai_chat(request: Request, data: AIMessageRequest):
     """Chat with the AI Development Agent"""
-    # Check for admin token first
-    admin_token = request.cookies.get("admin_token")
-    is_admin = False
     user_id = "admin"
+    is_authenticated = False
     
-    if admin_token:
-        try:
-            payload = jwt.decode(admin_token, SECRET_KEY, algorithms=["HS256"])
-            if payload.get("role") == "admin":
-                is_admin = True
-                user_id = payload.get("email", "admin")
-        except:
-            pass
+    # Check for admin token in Authorization header
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        session = await db.admin_sessions.find_one({"token": token}, {"_id": 0})
+        if session:
+            expires_at = datetime.fromisoformat(session["expires_at"])
+            if expires_at >= datetime.now(timezone.utc):
+                is_authenticated = True
+                user_id = session.get("email", "admin")
     
     # If not admin, check regular user auth
-    if not is_admin:
+    if not is_authenticated:
         current_user = await get_current_user(request)
-        if not current_user:
-            raise HTTPException(status_code=401, detail="Authentication required")
-        user_id = current_user.user_id
+        if current_user:
+            is_authenticated = True
+            user_id = current_user.user_id
+    
+    if not is_authenticated:
+        raise HTTPException(status_code=401, detail="Authentication required")
     
     # Use provided session_id or create new one
     session_id = data.session_id or f"chat_{user_id}_{uuid.uuid4().hex[:8]}"
@@ -8306,11 +8309,30 @@ async def ai_chat(request: Request, data: AIMessageRequest):
     
     return result
 
+async def get_ai_user(request: Request):
+    """Get user for AI endpoints (admin or regular user)"""
+    # Check for admin token in Authorization header
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        session = await db.admin_sessions.find_one({"token": token}, {"_id": 0})
+        if session:
+            expires_at = datetime.fromisoformat(session["expires_at"])
+            if expires_at >= datetime.now(timezone.utc):
+                return {"user_id": session.get("email", "admin"), "is_admin": True}
+    
+    # Check regular user auth
+    current_user = await get_current_user(request)
+    if current_user:
+        return {"user_id": current_user.user_id, "is_admin": False}
+    
+    return None
+
 @api_router.get("/ai/history/{session_id}")
 async def get_ai_history(session_id: str, request: Request, limit: int = 50):
     """Get conversation history for a session"""
-    current_user = await get_current_user(request)
-    if not current_user:
+    user = await get_ai_user(request)
+    if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
     
     history = await ai_agent.get_conversation_history(session_id, limit)
@@ -8319,8 +8341,8 @@ async def get_ai_history(session_id: str, request: Request, limit: int = 50):
 @api_router.post("/ai/analyze-error")
 async def ai_analyze_error(request: Request, data: AIAnalyzeRequest):
     """Analyze an error and get fix suggestions"""
-    current_user = await get_current_user(request)
-    if not current_user:
+    user = await get_ai_user(request)
+    if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
     
     result = await ai_agent.analyze_error(data.error_log, data.file_path)
@@ -8329,8 +8351,8 @@ async def ai_analyze_error(request: Request, data: AIAnalyzeRequest):
 @api_router.post("/ai/generate-code")
 async def ai_generate_code(request: Request, data: AICodeGenRequest):
     """Generate code based on description"""
-    current_user = await get_current_user(request)
-    if not current_user:
+    user = await get_ai_user(request)
+    if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
     
     result = await ai_agent.generate_code(data.description, data.language)
@@ -8339,8 +8361,8 @@ async def ai_generate_code(request: Request, data: AICodeGenRequest):
 @api_router.delete("/ai/session/{session_id}")
 async def clear_ai_session(session_id: str, request: Request):
     """Clear an AI chat session"""
-    current_user = await get_current_user(request)
-    if not current_user:
+    user = await get_ai_user(request)
+    if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
     
     ai_agent.clear_session(session_id)
@@ -8349,13 +8371,15 @@ async def clear_ai_session(session_id: str, request: Request):
 @api_router.get("/ai/sessions")
 async def get_ai_sessions(request: Request):
     """Get all AI chat sessions for current user"""
-    current_user = await get_current_user(request)
-    if not current_user:
+    user = await get_ai_user(request)
+    if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
+    
+    user_id = user["user_id"]
     
     # Get unique sessions from database
     sessions = await db.ai_conversations.aggregate([
-        {"$match": {"session_id": {"$regex": f"^chat_{current_user.user_id}_"}}},
+        {"$match": {"session_id": {"$regex": f"^chat_{user_id}_"}}},
         {"$group": {
             "_id": "$session_id",
             "last_message": {"$last": "$user_message"},
