@@ -8376,10 +8376,15 @@ async def get_ai_sessions(request: Request):
         raise HTTPException(status_code=401, detail="Authentication required")
     
     user_id = user["user_id"]
+    # Escape special characters for regex and replace @ and . with _
+    safe_user_id = user_id.replace("@", "_").replace(".", "_")
     
-    # Get unique sessions from database
+    # Get unique sessions from database - match both old and new format
     sessions = await db.ai_conversations.aggregate([
-        {"$match": {"session_id": {"$regex": f"^chat_{user_id}_"}}},
+        {"$match": {"$or": [
+            {"session_id": {"$regex": f"^chat_{safe_user_id}_"}},
+            {"session_id": {"$regex": f"^chat_admin_"}}
+        ]}},
         {"$group": {
             "_id": "$session_id",
             "last_message": {"$last": "$user_message"},

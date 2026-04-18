@@ -17,14 +17,20 @@ const AIAgentPage = () => {
   const [sessions, setSessions] = useState([]);
   const [showSidebar, setShowSidebar] = useState(true);
   const [copiedIndex, setCopiedIndex] = useState(null);
+  const [adminEmail, setAdminEmail] = useState('admin');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
-    // Start a new session with admin email or user_id
-    const adminEmail = localStorage.getItem('admin_email') || 'admin';
-    const userId = user?.user_id || adminEmail;
-    const newSessionId = `chat_${userId}_${Date.now().toString(36)}`;
+    // Get admin email from localStorage
+    const storedEmail = localStorage.getItem('admin_email');
+    if (storedEmail) {
+      setAdminEmail(storedEmail);
+    }
+    
+    // Create session ID
+    const userId = user?.user_id || storedEmail || 'admin';
+    const newSessionId = `chat_${userId.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now().toString(36)}`;
     setSessionId(newSessionId);
     
     // Load existing sessions
@@ -122,9 +128,8 @@ const AIAgentPage = () => {
   };
 
   const startNewSession = () => {
-    const adminEmail = localStorage.getItem('admin_email') || 'admin';
     const userId = user?.user_id || adminEmail;
-    const newSessionId = `chat_${userId}_${Date.now().toString(36)}`;
+    const newSessionId = `chat_${userId.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now().toString(36)}`;
     setSessionId(newSessionId);
     setMessages([]);
     toast.success('Nouvelle conversation démarrée');
