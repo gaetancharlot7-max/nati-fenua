@@ -8274,13 +8274,29 @@ class AICodeGenRequest(BaseModel):
 @api_router.post("/ai/chat")
 async def ai_chat(request: Request, data: AIMessageRequest):
     """Chat with the AI Development Agent"""
-    # Verify admin access (optional - remove if you want public access)
-    current_user = await get_current_user(request)
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Authentication required")
+    # Check for admin token first
+    admin_token = request.cookies.get("admin_token")
+    is_admin = False
+    user_id = "admin"
+    
+    if admin_token:
+        try:
+            payload = jwt.decode(admin_token, SECRET_KEY, algorithms=["HS256"])
+            if payload.get("role") == "admin":
+                is_admin = True
+                user_id = payload.get("email", "admin")
+        except:
+            pass
+    
+    # If not admin, check regular user auth
+    if not is_admin:
+        current_user = await get_current_user(request)
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        user_id = current_user.user_id
     
     # Use provided session_id or create new one
-    session_id = data.session_id or f"chat_{current_user.user_id}_{uuid.uuid4().hex[:8]}"
+    session_id = data.session_id or f"chat_{user_id}_{uuid.uuid4().hex[:8]}"
     
     result = await ai_agent.send_message(
         session_id=session_id,
