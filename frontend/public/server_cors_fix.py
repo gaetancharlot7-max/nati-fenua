@@ -197,7 +197,7 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
                     headers={
                         "Access-Control-Allow-Origin": origin if origin else "*",
                         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
-                        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cookie",
+                        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cookie, Cache-Control, Pragma",
                         "Access-Control-Allow-Credentials": "true",
                         "Access-Control-Max-Age": "600",
                     }
