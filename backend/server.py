@@ -763,8 +763,38 @@ async def login(request: Request, response: Response):
     if not allowed:
         raise HTTPException(status_code=429, detail="Trop de tentatives. Réessayez dans une minute.")
     
-    # Find user
-    user = await db.users.find_one({"email": email}, {"_id": 0})
+    # Check if admin login
+    is_admin_login = email == ADMIN_EMAIL.lower()
+    user = None
+    
+    if is_admin_login:
+        # Check admin_users table for admin account
+        admin = await db.admin_users.find_one({"email": email}, {"_id": 0})
+        if admin:
+            # Verify admin password
+            stored_hash = admin.get("password_hash", "")
+            is_valid, new_hash = verify_password_with_migration(user_data.password, stored_hash)
+            
+            if is_valid:
+                # Create a pseudo-user object for admin
+                user = {
+                    "user_id": admin.get("admin_id"),
+                    "email": admin.get("email"),
+                    "name": "Administrateur",
+                    "picture": None,
+                    "is_admin": True,
+                    "is_verified": True
+                }
+                # Update hash if migrated
+                if new_hash:
+                    await db.admin_users.update_one(
+                        {"admin_id": admin["admin_id"]},
+                        {"$set": {"password_hash": new_hash}}
+                    )
+    
+    # If not admin or admin not found, check regular users
+    if not user:
+        user = await db.users.find_one({"email": email}, {"_id": 0})
     
     if not user:
         # Record failed attempt
@@ -780,27 +810,29 @@ async def login(request: Request, response: Response):
     if user.get("is_banned"):
         raise HTTPException(status_code=403, detail="Ce compte a été suspendu")
     
-    # Verify password with migration support (SHA256 -> bcrypt)
-    stored_hash = user.get("password_hash", "")
-    is_valid, new_hash = verify_password_with_migration(user_data.password, stored_hash)
-    
-    if not is_valid:
-        # Record failed attempt
-        is_now_locked, remaining, lockout_mins = record_failed_login(identifier)
-        if is_now_locked:
-            raise HTTPException(
-                status_code=429,
-                detail=f"Compte bloqué après trop de tentatives. Réessayez dans {lockout_mins} minutes."
+    # Skip password verification for admin (already verified above)
+    if not user.get("is_admin"):
+        # Verify password with migration support (SHA256 -> bcrypt)
+        stored_hash = user.get("password_hash", "")
+        is_valid, new_hash = verify_password_with_migration(user_data.password, stored_hash)
+        
+        if not is_valid:
+            # Record failed attempt
+            is_now_locked, remaining, lockout_mins = record_failed_login(identifier)
+            if is_now_locked:
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Compte bloqué après trop de tentatives. Réessayez dans {lockout_mins} minutes."
+                )
+            raise HTTPException(status_code=401, detail=f"Email ou mot de passe incorrect. {remaining} tentative(s) restante(s).")
+        
+        # Migrate password hash if needed
+        if new_hash:
+            await db.users.update_one(
+                {"user_id": user["user_id"]},
+                {"$set": {"password_hash": new_hash}}
             )
-        raise HTTPException(status_code=401, detail=f"Email ou mot de passe incorrect. {remaining} tentative(s) restante(s).")
-    
-    # Migrate password hash if needed
-    if new_hash:
-        await db.users.update_one(
-            {"user_id": user["user_id"]},
-            {"$set": {"password_hash": new_hash}}
-        )
-        logger.info(f"Password hash migrated to bcrypt for user {user['user_id']}")
+            logger.info(f"Password hash migrated to bcrypt for user {user['user_id']}")
     
     # Clear failed attempts on successful login
     clear_failed_attempts(identifier)
