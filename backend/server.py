@@ -4276,9 +4276,9 @@ async def websocket_live(websocket: WebSocket, live_id: str):
 async def upload_file(
     file: UploadFile = File(...), 
     request: Request = None,
-    media_type: str = "video"  # video, story, photo
+    media_type: str = "photo"  # video, story, photo
 ):
-    """Upload a file (image or video) with automatic compression"""
+    """Upload a file (image or video) to Cloudinary for permanent storage"""
     try:
         # Get user for storage limits check
         user = None
@@ -4297,99 +4297,98 @@ async def upload_file(
         if file.content_type not in allowed_types:
             raise HTTPException(status_code=400, detail="Type de fichier non supporté. Utilisez JPG, PNG, GIF, WebP ou MP4.")
         
-        # Generate unique filename
-        file_ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
-        unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
-        temp_file_path = UPLOAD_DIR / f"temp_{unique_filename}"
-        final_file_path = UPLOAD_DIR / unique_filename
-        
-        # Save original file to temp location
-        with open(temp_file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        
-        # Get file size before compression
-        original_size_mb = os.path.getsize(temp_file_path) / (1024 * 1024)
+        # Read file content
+        file_content = await file.read()
+        original_size_mb = len(file_content) / (1024 * 1024)
         
         is_video = file.content_type.startswith('video/')
-        compression_result = {"success": True}
         
-        if is_video:
-            # Compress video based on media type
-            output_filename = f"{uuid.uuid4().hex}.mp4"
-            output_path = UPLOAD_DIR / output_filename
-            
-            compression_result = await compress_video(
-                str(temp_file_path), 
-                str(output_path), 
-                media_type
-            )
-            
-            if compression_result["success"]:
-                # Remove temp file, use compressed version
-                os.remove(temp_file_path)
-                final_file_path = output_path
-                unique_filename = output_filename
-            else:
-                os.remove(temp_file_path)
-                raise HTTPException(status_code=400, detail=compression_result["message"])
+        # Determine folder based on media type
+        if media_type == "story":
+            folder = "nati-fenua/stories"
+        elif media_type == "profile":
+            folder = "nati-fenua/profiles"
         else:
-            # Compress image to WebP
-            output_filename = f"{uuid.uuid4().hex}.webp"
-            output_path = UPLOAD_DIR / output_filename
-            
-            compression_result = await compress_image(
-                str(temp_file_path),
-                str(output_path)
-            )
-            
-            if compression_result["success"]:
-                os.remove(temp_file_path)
-                final_file_path = output_path
-                unique_filename = output_filename
+            folder = "nati-fenua/posts"
+        
+        # Upload to Cloudinary
+        if is_cloudinary_enabled():
+            if is_video:
+                result = await upload_video(file_content, folder=folder)
             else:
-                # If compression fails, use original
-                shutil.move(str(temp_file_path), str(final_file_path))
-        
-        # Calculate final size
-        final_size_mb = os.path.getsize(final_file_path) / (1024 * 1024)
-        
-        # Record media file in database
-        if user:
-            media_record = {
-                "media_id": f"media_{uuid.uuid4().hex[:12]}",
-                "user_id": user.user_id,
-                "file_path": f"/uploads/{unique_filename}",
-                "media_type": "photo" if not is_video else media_type,
-                "size_mb": round(final_size_mb, 2),
+                result = await upload_image(file_content, folder=folder)
+            
+            if "error" in result:
+                raise HTTPException(status_code=500, detail=f"Cloudinary error: {result['error']}")
+            
+            file_url = result["url"]
+            final_size_mb = original_size_mb  # Cloudinary handles compression
+            public_id = result.get("public_id", "")
+            
+            # Record media file in database
+            if user:
+                media_record = {
+                    "media_id": f"media_{uuid.uuid4().hex[:12]}",
+                    "user_id": user.user_id,
+                    "cloudinary_public_id": public_id,
+                    "url": file_url,
+                    "media_type": "photo" if not is_video else media_type,
+                    "size_mb": round(original_size_mb, 2),
+                    "storage": "cloudinary",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.media_files.insert_one(media_record)
+            
+            logger.info(f"Cloudinary upload: {public_id}, Size: {original_size_mb:.2f}MB")
+            
+            return {
+                "success": True,
+                "url": file_url,
+                "public_id": public_id,
+                "content_type": file.content_type,
                 "original_size_mb": round(original_size_mb, 2),
-                "created_at": datetime.now(timezone.utc).isoformat()
+                "final_size_mb": round(final_size_mb, 2),
+                "storage": "cloudinary",
+                "message": "Fichier uploadé sur Cloudinary (stockage permanent)"
             }
-            await db.media_files.insert_one(media_record)
-        
-        # Build URL
-        forwarded_proto = request.headers.get('x-forwarded-proto', 'https')
-        forwarded_host = request.headers.get('x-forwarded-host', request.headers.get('host', ''))
-        
-        if forwarded_host:
-            file_url = f"{forwarded_proto}://{forwarded_host}/api/uploads/{unique_filename}"
         else:
-            base_url = str(request.base_url).rstrip('/').replace('http://', 'https://')
-            file_url = f"{base_url}/api/uploads/{unique_filename}"
-        
-        compression_ratio = round((1 - final_size_mb / original_size_mb) * 100, 1) if original_size_mb > 0 else 0
-        
-        logger.info(f"File uploaded: {unique_filename}, Original: {original_size_mb:.2f}MB, Final: {final_size_mb:.2f}MB, Compression: {compression_ratio}%")
-        
-        return {
-            "success": True,
-            "url": file_url,
-            "filename": unique_filename,
-            "content_type": file.content_type,
-            "original_size_mb": round(original_size_mb, 2),
-            "final_size_mb": round(final_size_mb, 2),
-            "compression_ratio": compression_ratio,
-            "message": f"Fichier optimisé ({compression_ratio}% de compression)"
-        }
+            # Fallback to local storage (development only)
+            logger.warning("Cloudinary not configured, using local storage (temporary)")
+            
+            # Generate unique filename
+            file_ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
+            unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
+            final_file_path = UPLOAD_DIR / unique_filename
+            
+            # Ensure upload directory exists
+            UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+            
+            # Save file
+            with open(final_file_path, "wb") as buffer:
+                buffer.write(file_content)
+            
+            final_size_mb = os.path.getsize(final_file_path) / (1024 * 1024)
+            
+            # Build URL
+            forwarded_proto = request.headers.get('x-forwarded-proto', 'https')
+            forwarded_host = request.headers.get('x-forwarded-host', request.headers.get('host', ''))
+            
+            if forwarded_host:
+                file_url = f"{forwarded_proto}://{forwarded_host}/api/uploads/{unique_filename}"
+            else:
+                base_url = str(request.base_url).rstrip('/').replace('http://', 'https://')
+                file_url = f"{base_url}/api/uploads/{unique_filename}"
+            
+            return {
+                "success": True,
+                "url": file_url,
+                "filename": unique_filename,
+                "content_type": file.content_type,
+                "original_size_mb": round(original_size_mb, 2),
+                "final_size_mb": round(final_size_mb, 2),
+                "storage": "local",
+                "message": "⚠️ Stockage local temporaire - configurez Cloudinary pour le stockage permanent"
+            }
     except HTTPException:
         raise
     except Exception as e:
