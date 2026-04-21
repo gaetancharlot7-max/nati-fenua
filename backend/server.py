@@ -8814,6 +8814,16 @@ async def download_ai_agent_v2_py():
         media_type="text/plain"
     )
 
+@api_router.get("/download-profile-page-js")
+async def download_profile_page_js():
+    """Endpoint temporaire pour télécharger ProfilePage.js"""
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        path="/app/frontend/src/pages/ProfilePage.js",
+        filename="ProfilePage.js",
+        media_type="text/plain"
+    )
+
 # Include router AFTER all routes are defined
 app.include_router(api_router)
 

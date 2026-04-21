@@ -626,7 +626,7 @@ const ProfilePage = () => {
                         onClick={async () => {
                           if (window.confirm('Voulez-vous vraiment supprimer cette publication ?')) {
                             try {
-                              const token = localStorage.getItem('session_token');
+                              const token = localStorage.getItem('nati_session_token');
                               const res = await fetch(`${API}/api/posts/${selectedPost.post_id}`, {
                                 method: 'DELETE',
                                 headers: {
