@@ -8781,6 +8781,19 @@ async def cloudinary_upload(request: Request):
     return result
 
 
+# ============================================
+# TEMPORARY DOWNLOAD ENDPOINT (pour récupération)
+# ============================================
+@app.get("/download-server-py")
+async def download_server_py():
+    """Endpoint temporaire pour télécharger server.py"""
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        path="/app/backend/server.py",
+        filename="server.py",
+        media_type="text/plain"
+    )
+
 # Include router AFTER all routes are defined
 app.include_router(api_router)
 
