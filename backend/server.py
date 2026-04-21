@@ -4084,10 +4084,14 @@ async def search(q: str, type: str = "all", limit: int = 20):
 # ==================== SEARCH SPECIFIC ENDPOINTS ====================
 
 @api_router.get("/search/users")
-async def search_users(q: str, limit: int = 20, skip: int = 0):
+async def search_users(q: str, limit: int = 20, skip: int = 0, page: int = 1):
     """Search users by name, bio, or location with caching - excludes private profiles"""
     if not q or len(q) < 2:
-        return []
+        return {"data": [], "total": 0, "page": page, "pages": 0}
+    
+    # Calculate skip from page if page > 1
+    if page > 1:
+        skip = (page - 1) * limit
     
     # Cache key
     cache_key = f"search_users:{q}:{limit}:{skip}"
@@ -4095,21 +4099,29 @@ async def search_users(q: str, limit: int = 20, skip: int = 0):
     if cached:
         return cached
     
-    # Optimized search with index - exclude private profiles
-    pipeline = [
-        {"$match": {
-            "$or": [
+    # Base match filter - exclude private profiles
+    match_filter = {
+        "$and": [
+            {"$or": [
                 {"name": {"$regex": q, "$options": "i"}},
                 {"bio": {"$regex": q, "$options": "i"}},
                 {"location": {"$regex": q, "$options": "i"}}
-            ],
-            "is_banned": {"$ne": True},
-            # Exclude private profiles from search
-            "$or": [
+            ]},
+            {"is_banned": {"$ne": True}},
+            {"$or": [
                 {"profile_visibility.is_private": {"$ne": True}},
                 {"profile_visibility": {"$exists": False}}
-            ]
-        }},
+            ]}
+        ]
+    }
+    
+    # Count total for pagination
+    total = await db.users.count_documents(match_filter)
+    total_pages = (total + limit - 1) // limit if total > 0 else 0
+    
+    # Optimized search with index
+    pipeline = [
+        {"$match": match_filter},
         {"$project": {
             "_id": 0,
             "password_hash": 0,
@@ -4121,9 +4133,17 @@ async def search_users(q: str, limit: int = 20, skip: int = 0):
     
     users = await db.users.aggregate(pipeline).to_list(limit)
     
+    # Build response with pagination info
+    result = {
+        "data": users,
+        "total": total,
+        "page": page,
+        "pages": total_pages
+    }
+    
     # Cache for 60 seconds
-    await cache.set(cache_key, users, ttl=60)
-    return users
+    await cache.set(cache_key, result, ttl=60)
+    return result
 
 
 @api_router.get("/search/posts")
