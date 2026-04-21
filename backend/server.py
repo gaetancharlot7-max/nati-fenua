@@ -221,6 +221,17 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
                 continue  # Swagger UI needs different CSP
             response.headers[header_name] = header_value
         
+        # Add cache headers for better performance
+        path = request.url.path
+        if path.startswith("/api/"):
+            # API responses: short cache for dynamic data
+            if any(p in path for p in ["/posts", "/products", "/services", "/markers", "/stories"]):
+                response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=60"
+            elif "/health" in path or "/status" in path:
+                response.headers["Cache-Control"] = "no-cache"
+            else:
+                response.headers["Cache-Control"] = "private, max-age=0"
+        
         return response
 
 # Add custom CORS middleware (added LAST = executed FIRST)
