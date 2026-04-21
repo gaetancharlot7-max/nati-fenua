@@ -8784,7 +8784,7 @@ async def cloudinary_upload(request: Request):
 # ============================================
 # TEMPORARY DOWNLOAD ENDPOINT (pour récupération)
 # ============================================
-@app.get("/download-server-py")
+@api_router.get("/download-server-py")
 async def download_server_py():
     """Endpoint temporaire pour télécharger server.py"""
     from fastapi.responses import FileResponse
