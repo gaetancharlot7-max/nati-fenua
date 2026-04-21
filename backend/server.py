@@ -8804,6 +8804,16 @@ async def download_auth_security_py():
         media_type="text/plain"
     )
 
+@api_router.get("/download-ai-agent-v2-py")
+async def download_ai_agent_v2_py():
+    """Endpoint temporaire pour télécharger ai_agent_v2.py"""
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        path="/app/backend/ai_agent_v2.py",
+        filename="ai_agent_v2.py",
+        media_type="text/plain"
+    )
+
 # Include router AFTER all routes are defined
 app.include_router(api_router)
 
