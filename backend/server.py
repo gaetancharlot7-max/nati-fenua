@@ -8479,10 +8479,18 @@ async def confirm_password_reset(data: PasswordResetConfirm):
 
 
 # ============================================
-# AI DEVELOPMENT AGENT ROUTES
+# AI DEVELOPMENT AGENT ROUTES - V2 (CLAUDE)
 # ============================================
 
-# Import AI Agent
+# Import AI Agent V2 Router (Claude-powered)
+try:
+    from ai_agent_v2 import router as ai_agent_v2_router
+    app.include_router(ai_agent_v2_router)
+    logger.info("✅ AI Agent V2 (Claude) loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ AI Agent V2 not available: {e}")
+
+# Legacy V1 Agent (GPT-4o) - kept for backward compatibility
 from ai_agent import create_ai_agent, NatiFenuaAIAgent
 
 # Create AI Agent instance

@@ -1,649 +1,823 @@
-import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Bot, Send, Loader2, Code, Bug, Sparkles, Trash2, Plus, History, 
-  ChevronLeft, Copy, Check, Shield, Zap, FileText, AlertTriangle,
-  Download, RefreshCw, Settings, Terminal, Search, Filter
-} from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import axios from "axios";
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
 
-const AIAgentPage = () => {
-  const { user } = useAuth();
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [sessionId, setSessionId] = useState(null);
-  const [sessions, setSessions] = useState([]);
-  const [showSidebar, setShowSidebar] = useState(true);
-  const [copiedIndex, setCopiedIndex] = useState(null);
-  const [adminEmail, setAdminEmail] = useState('admin');
-  const [activeTab, setActiveTab] = useState('chat');
-  const [auditType, setAuditType] = useState('code_quality');
-  const [emergentReports, setEmergentReports] = useState([]);
-  const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
+const AUDIT_TYPES = [
+  { value: "full_app", label: "Audit complet", desc: "Securite + performance + qualite" },
+  { value: "security", label: "Securite", desc: "OWASP Top 10, secrets, CVE" },
+  { value: "performance", label: "Performance", desc: "N+1, pagination, lazy loading" },
+  { value: "code_quality", label: "Qualite de code", desc: "Black, ESLint, types, DRY" },
+];
 
-  useEffect(() => {
-    const storedEmail = localStorage.getItem('admin_email');
-    if (storedEmail) setAdminEmail(storedEmail);
-    
-    const userId = user?.user_id || storedEmail || 'admin';
-    const newSessionId = `chat_${userId.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now().toString(36)}`;
-    setSessionId(newSessionId);
-    
-    loadSessions();
-    loadEmergentReports();
-  }, [user]);
+const TOOL_ICONS = {
+  read_file: "F",
+  write_file: "W",
+  list_directory: "D",
+  search_in_codebase: "S",
+  run_command: "C",
+  run_tests: "T",
+  analyze_code_quality: "Q",
+  security_scan: "SEC",
+  performance_profile: "P",
+  git_operation: "G",
+  query_database: "DB",
+  generate_documentation: "DOC",
+  save_to_memory: "MEM",
+  recall_memory: "REC",
+  create_plan: "PLN",
+};
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const getAuthHeaders = () => ({
-    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`,
-    'Content-Type': 'application/json'
-  });
-
-  const loadSessions = async () => {
-    try {
-      const res = await fetch(`${API}/api/ai/sessions`, {
-        credentials: 'include',
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSessions(data.sessions || []);
-      }
-    } catch (error) {
-      console.error('Error loading sessions:', error);
-    }
-  };
-
-  const loadEmergentReports = async () => {
-    try {
-      const res = await fetch(`${API}/api/ai/reports`, {
-        credentials: 'include',
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setEmergentReports(data.reports || []);
-      }
-    } catch (error) {
-      console.error('Error loading reports:', error);
-    }
-  };
-
-  const loadSession = async (sid) => {
-    setSessionId(sid);
-    try {
-      const res = await fetch(`${API}/api/ai/history/${sid}`, {
-        credentials: 'include',
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const formattedMessages = data.history.flatMap(h => [
-          { role: 'user', content: h.user_message },
-          { role: 'assistant', content: h.ai_response, report: h.emergent_report }
-        ]);
-        setMessages(formattedMessages);
-      }
-    } catch (error) {
-      console.error('Error loading session:', error);
-    }
-  };
-
-  const sendMessage = async (e) => {
-    e?.preventDefault();
-    if (!input.trim() || loading) return;
-
-    const userMessage = input.trim();
-    setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
-    setLoading(true);
-
-    try {
-      const res = await fetch(`${API}/api/ai/chat`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        credentials: 'include',
-        body: JSON.stringify({
-          message: userMessage,
-          session_id: sessionId
-        })
-      });
-
-      const data = await res.json();
-      
-      if (data.success) {
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: data.response,
-          report: data.emergent_report
-        }]);
-        loadSessions();
-        if (data.emergent_report) loadEmergentReports();
-      } else {
-        toast.error(data.error || 'Erreur de communication avec l\'agent');
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: `Erreur: ${data.error || 'Impossible de communiquer avec l\'agent IA'}` 
-        }]);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Erreur de connexion');
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'Erreur de connexion au serveur. Veuillez reessayer.' 
-      }]);
-    } finally {
-      setLoading(false);
-      inputRef.current?.focus();
-    }
-  };
-
-  const runAudit = async () => {
-    if (loading) return;
-    setLoading(true);
-    setMessages(prev => [...prev, { 
-      role: 'user', 
-      content: `Lancer un audit: ${auditType}` 
-    }]);
-
-    try {
-      const res = await fetch(`${API}/api/ai/audit`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        credentials: 'include',
-        body: JSON.stringify({
-          audit_type: auditType,
-          session_id: sessionId
-        })
-      });
-
-      const data = await res.json();
-      
-      if (data.success) {
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: data.response,
-          report: data.emergent_report
-        }]);
-        if (data.emergent_report) loadEmergentReports();
-      } else {
-        toast.error(data.error || 'Erreur lors de l\'audit');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Erreur de connexion');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const exportReports = async () => {
-    try {
-      const res = await fetch(`${API}/api/ai/export`, {
-        credentials: 'include',
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `emergent_reports_${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        toast.success('Rapports exportes avec succes');
-      }
-    } catch (error) {
-      toast.error('Erreur lors de l\'export');
-    }
-  };
-
-  const startNewSession = () => {
-    const userId = user?.user_id || adminEmail;
-    const newSessionId = `chat_${userId.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now().toString(36)}`;
-    setSessionId(newSessionId);
-    setMessages([]);
-    toast.success('Nouvelle conversation demarree');
-  };
-
-  const copyToClipboard = (text, index) => {
-    navigator.clipboard.writeText(text);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-    toast.success('Copie dans le presse-papiers');
-  };
-
-  const quickActions = [
-    { icon: Bug, label: 'Analyser un bug', prompt: 'Analyse ce bug en detail:\n\nErreur: ', color: 'red' },
-    { icon: Shield, label: 'Audit securite', prompt: 'Effectue un audit de securite complet sur ', color: 'blue' },
-    { icon: Zap, label: 'Optimiser performance', prompt: 'Analyse et optimise les performances de ', color: 'yellow' },
-    { icon: Code, label: 'Generer du code', prompt: 'Genere du code production-ready pour ', color: 'green' },
-    { icon: FileText, label: 'Rapport Emergent', prompt: 'Genere un rapport detaille pour Emergent concernant ', color: 'purple' },
-    { icon: Terminal, label: 'Debug avance', prompt: 'Mode debug avance - Analyse ce stack trace:\n\n', color: 'orange' },
-  ];
-
-  const auditTypes = [
-    { id: 'security', label: 'Securite', icon: Shield },
-    { id: 'performance', label: 'Performance', icon: Zap },
-    { id: 'code_quality', label: 'Qualite Code', icon: Code },
-    { id: 'accessibility', label: 'Accessibilite', icon: FileText },
-  ];
-
-  const formatMessage = (content) => {
-    const parts = content.split(/(```[\s\S]*?```)/g);
-    
-    return parts.map((part, i) => {
-      if (part.startsWith('```')) {
-        const match = part.match(/```(\w+)?\n?([\s\S]*?)```/);
-        const lang = match?.[1] || '';
-        const code = match?.[2] || part.replace(/```\w*\n?/g, '').replace(/```$/g, '');
-        
-        return (
-          <div key={i} className="relative my-3">
-            {lang && (
-              <div className="absolute top-0 left-0 px-3 py-1 bg-gray-700 text-gray-300 text-xs rounded-tl-xl rounded-br-lg">
-                {lang}
-              </div>
-            )}
-            <pre className="bg-[#1A1A2E] text-green-400 p-4 pt-8 rounded-xl overflow-x-auto text-sm font-mono">
-              <code>{code}</code>
-            </pre>
-            <button
-              onClick={() => copyToClipboard(code, `code-${i}`)}
-              className="absolute top-2 right-2 p-1.5 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
-            >
-              {copiedIndex === `code-${i}` ? <Check size={14} className="text-green-400" /> : <Copy size={14} className="text-gray-400" />}
-            </button>
-          </div>
-        );
-      }
-      
-      // Format headers, bold, lists
-      const lines = part.split('\n').map((line, j) => {
-        if (line.startsWith('## ')) {
-          return <h2 key={j} className="text-lg font-bold mt-4 mb-2 text-[#FF6B35]">{line.slice(3)}</h2>;
-        }
-        if (line.startsWith('### ')) {
-          return <h3 key={j} className="text-md font-semibold mt-3 mb-1">{line.slice(4)}</h3>;
-        }
-        if (line.startsWith('- [ ]')) {
-          return <div key={j} className="flex items-center gap-2 ml-4"><span className="w-4 h-4 border border-gray-400 rounded"></span><span>{line.slice(6)}</span></div>;
-        }
-        if (line.startsWith('- [x]')) {
-          return <div key={j} className="flex items-center gap-2 ml-4"><Check size={16} className="text-green-500" /><span>{line.slice(6)}</span></div>;
-        }
-        if (line.startsWith('- ')) {
-          return <div key={j} className="ml-4">• {line.slice(2)}</div>;
-        }
-        if (line.match(/^\d+\.\s/)) {
-          return <div key={j} className="ml-4">{line}</div>;
-        }
-        
-        // Bold text
-        const formatted = line.split(/(\*\*.*?\*\*)/g).map((segment, k) => {
-          if (segment.startsWith('**') && segment.endsWith('**')) {
-            return <strong key={k} className="text-[#FF6B35]">{segment.slice(2, -2)}</strong>;
-          }
-          return segment;
-        });
-        
-        return <div key={j}>{formatted}</div>;
-      });
-      
-      return <div key={i} className="space-y-1">{lines}</div>;
-    });
-  };
+function MessageBubble({ msg }) {
+  const [showActions, setShowActions] = useState(false);
+  const isUser = msg.role === "user";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F0F1A] via-[#1A1A2E] to-[#16213E] flex">
-      {/* Sidebar */}
-      <AnimatePresence>
-        {showSidebar && (
-          <motion.div
-            initial={{ x: -300, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -300, opacity: 0 }}
-            className="w-80 bg-[#0D0D15] border-r border-white/10 flex flex-col"
-          >
-            {/* Header */}
-            <div className="p-4 border-b border-white/10">
-              <Button
-                onClick={startNewSession}
-                className="w-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white font-semibold"
+    <div
+      style={{
+        display: "flex",
+        flexDirection: isUser ? "row-reverse" : "row",
+        gap: 10,
+        marginBottom: 16,
+        alignItems: "flex-start",
+      }}
+    >
+      <div
+        style={{
+          width: 34,
+          height: 34,
+          borderRadius: "50%",
+          flexShrink: 0,
+          background: isUser ? "#6366f1" : "#0f172a",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 15,
+          color: "#fff",
+          fontWeight: 700,
+        }}
+      >
+        {isUser ? "A" : "AI"}
+      </div>
+      <div style={{ maxWidth: "75%" }}>
+        <div
+          style={{
+            padding: "12px 16px",
+            borderRadius: isUser ? "18px 4px 18px 18px" : "4px 18px 18px 18px",
+            background: isUser ? "#6366f1" : "#f8fafc",
+            color: isUser ? "#fff" : "inherit",
+            border: isUser ? "none" : "1px solid #e2e8f0",
+            fontSize: 14,
+            lineHeight: 1.6,
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+          }}
+        >
+          {msg.content}
+        </div>
+        {!isUser && (msg.actions_taken?.length > 0 || msg.files_modified?.length > 0) && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6, alignItems: "center" }}>
+            {msg.execution_time_ms && (
+              <span
+                style={{
+                  fontSize: 11,
+                  color: "#64748b",
+                  background: "#f1f5f9",
+                  padding: "2px 8px",
+                  borderRadius: 99,
+                }}
               >
-                <Plus size={18} className="mr-2" />
-                Nouvelle session
-              </Button>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex border-b border-white/10">
+                {(msg.execution_time_ms / 1000).toFixed(1)}s
+              </span>
+            )}
+            {msg.iterations > 1 && (
+              <span
+                style={{
+                  fontSize: 11,
+                  color: "#8b5cf6",
+                  background: "#f5f3ff",
+                  padding: "2px 8px",
+                  borderRadius: 99,
+                }}
+              >
+                {msg.iterations} iterations
+              </span>
+            )}
+            {msg.files_modified?.length > 0 && (
+              <span
+                style={{
+                  fontSize: 11,
+                  color: "#10b981",
+                  background: "#f0fdf4",
+                  padding: "2px 8px",
+                  borderRadius: 99,
+                }}
+              >
+                {msg.files_modified.length} fichier(s) modifie(s)
+              </span>
+            )}
+            {msg.actions_taken?.length > 0 && (
               <button
-                onClick={() => setActiveTab('chat')}
-                className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                  activeTab === 'chat' ? 'text-[#FF6B35] border-b-2 border-[#FF6B35]' : 'text-white/50 hover:text-white/70'
-                }`}
+                onClick={() => setShowActions((v) => !v)}
+                style={{
+                  background: "none",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 99,
+                  padding: "2px 8px",
+                  fontSize: 11,
+                  cursor: "pointer",
+                  color: "#6b7280",
+                }}
               >
-                Chat
+                {showActions ? "▲" : "▼"} {msg.actions_taken.length} actions
               </button>
-              <button
-                onClick={() => setActiveTab('audit')}
-                className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                  activeTab === 'audit' ? 'text-[#FF6B35] border-b-2 border-[#FF6B35]' : 'text-white/50 hover:text-white/70'
-                }`}
-              >
-                Audits
-              </button>
-              <button
-                onClick={() => setActiveTab('reports')}
-                className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                  activeTab === 'reports' ? 'text-[#FF6B35] border-b-2 border-[#FF6B35]' : 'text-white/50 hover:text-white/70'
-                }`}
-              >
-                Rapports
-              </button>
-            </div>
-            
-            {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto p-3">
-              {activeTab === 'chat' && (
-                <>
-                  <h3 className="text-xs font-semibold text-white/40 uppercase mb-2 px-2 flex items-center gap-1">
-                    <History size={14} />
-                    Historique
-                  </h3>
-                  {sessions.length === 0 ? (
-                    <p className="text-sm text-white/40 px-2">Aucune conversation</p>
-                  ) : (
-                    sessions.map((session) => (
-                      <button
-                        key={session._id}
-                        onClick={() => loadSession(session._id)}
-                        className={`w-full text-left p-3 rounded-xl mb-1 transition-colors ${
-                          sessionId === session._id 
-                            ? 'bg-gradient-to-r from-[#FF6B35]/20 to-[#FF1493]/20 border border-[#FF6B35]/30' 
-                            : 'hover:bg-white/5'
-                        }`}
-                      >
-                        <p className="text-sm font-medium text-white truncate">
-                          {session.last_message?.slice(0, 35)}...
-                        </p>
-                        <p className="text-xs text-white/40 mt-1">
-                          {session.message_count} messages
-                        </p>
-                      </button>
-                    ))
-                  )}
-                </>
-              )}
-
-              {activeTab === 'audit' && (
-                <div className="space-y-3">
-                  <h3 className="text-xs font-semibold text-white/40 uppercase mb-2 px-2">
-                    Type d'audit
-                  </h3>
-                  {auditTypes.map((type) => (
-                    <button
-                      key={type.id}
-                      onClick={() => setAuditType(type.id)}
-                      className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${
-                        auditType === type.id 
-                          ? 'bg-gradient-to-r from-[#FF6B35]/20 to-[#FF1493]/20 border border-[#FF6B35]/30' 
-                          : 'hover:bg-white/5 border border-transparent'
-                      }`}
-                    >
-                      <type.icon size={18} className={auditType === type.id ? 'text-[#FF6B35]' : 'text-white/50'} />
-                      <span className={auditType === type.id ? 'text-white font-medium' : 'text-white/70'}>
-                        {type.label}
-                      </span>
-                    </button>
-                  ))}
-                  <Button
-                    onClick={runAudit}
-                    disabled={loading}
-                    className="w-full mt-4 bg-gradient-to-r from-purple-500 to-blue-500"
-                  >
-                    {loading ? <Loader2 size={18} className="animate-spin mr-2" /> : <Shield size={18} className="mr-2" />}
-                    Lancer l'audit
-                  </Button>
-                </div>
-              )}
-
-              {activeTab === 'reports' && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between mb-2 px-2">
-                    <h3 className="text-xs font-semibold text-white/40 uppercase">
-                      Rapports Emergent
-                    </h3>
-                    <button
-                      onClick={exportReports}
-                      className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-                      title="Exporter les rapports"
-                    >
-                      <Download size={14} className="text-white/50" />
-                    </button>
-                  </div>
-                  {emergentReports.length === 0 ? (
-                    <p className="text-sm text-white/40 px-2">Aucun rapport genere</p>
-                  ) : (
-                    emergentReports.slice(0, 10).map((report, i) => (
-                      <div
-                        key={i}
-                        className="p-3 rounded-xl bg-white/5 border border-white/10"
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-mono text-[#FF6B35]">
-                            {report.emergent_report?.bug_id || report.emergent_report?.audit_id || 'REPORT'}
-                          </span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            report.emergent_report?.severity === 'critical' ? 'bg-red-500/20 text-red-400' :
-                            report.emergent_report?.severity === 'high' ? 'bg-orange-500/20 text-orange-400' :
-                            report.emergent_report?.severity === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                            'bg-green-500/20 text-green-400'
-                          }`}>
-                            {report.emergent_report?.severity || report.message_type}
-                          </span>
-                        </div>
-                        <p className="text-xs text-white/60 truncate">
-                          {report.emergent_report?.root_cause || report.emergent_report?.component || '-'}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-          </motion.div>
+            )}
+          </div>
         )}
-      </AnimatePresence>
-
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="bg-[#0D0D15]/80 backdrop-blur-xl border-b border-white/10 p-4 flex items-center gap-4">
-          <button
-            onClick={() => setShowSidebar(!showSidebar)}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+        {showActions && msg.actions_taken?.length > 0 && (
+          <div
+            style={{
+              marginTop: 8,
+              padding: 12,
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: 10,
+            }}
           >
-            <ChevronLeft size={20} className={`text-white transition-transform ${!showSidebar ? 'rotate-180' : ''}`} />
-          </button>
-          
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493] flex items-center justify-center shadow-lg shadow-[#FF6B35]/20">
-              <Bot size={28} className="text-white" />
-            </div>
-            <div>
-              <h1 className="font-bold text-white text-lg">Agent IA Master Developer</h1>
-              <p className="text-xs text-white/50">Expert Full-Stack • Audit • Debug • Code Gen</p>
-            </div>
-          </div>
-          
-          <div className="ml-auto flex items-center gap-3">
-            <span className="px-3 py-1.5 bg-green-500/20 text-green-400 rounded-full text-xs font-medium flex items-center gap-1.5">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-              GPT-4o Actif
-            </span>
-            <button
-              onClick={loadEmergentReports}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-              title="Rafraichir"
-            >
-              <RefreshCw size={18} className="text-white/50" />
-            </button>
-          </div>
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center">
-              <div className="w-24 h-24 rounded-3xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493] flex items-center justify-center mb-8 shadow-2xl shadow-[#FF6B35]/30">
-                <Bot size={48} className="text-white" />
-              </div>
-              <h2 className="text-3xl font-bold text-white mb-3">
-                Agent IA Master Developer
-              </h2>
-              <p className="text-white/50 mb-10 max-w-lg">
-                Expert en diagnostics de bugs, audits de code, generation de solutions et rapports detailles pour Emergent.
-                Je connais l'integralite de l'architecture Nati Fenua.
-              </p>
-              
-              {/* Quick Actions Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-2xl">
-                {quickActions.map((action, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setInput(action.prompt)}
-                    className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/10 hover:border-[#FF6B35]/50 hover:bg-white/10 transition-all group"
-                  >
-                    <div className={`p-2 rounded-xl bg-${action.color}-500/20`}>
-                      <action.icon size={20} className={`text-${action.color}-400 group-hover:text-${action.color}-300`} />
-                    </div>
-                    <span className="text-sm font-medium text-white/70 group-hover:text-white">{action.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            messages.map((msg, i) => (
-              <motion.div
+            {msg.actions_taken.map((a, i) => (
+              <div
                 key={i}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "3px 8px",
+                  borderRadius: 6,
+                  fontSize: 11,
+                  background: "#fff",
+                  border: "1px solid #e2e8f0",
+                  marginBottom: 3,
+                }}
               >
-                <div className={`max-w-[85%] ${msg.role === 'user' ? 'order-2' : 'order-1'}`}>
-                  {msg.role === 'assistant' && (
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-6 h-6 rounded-lg bg-gradient-to-r from-[#FF6B35] to-[#FF1493] flex items-center justify-center">
-                        <Bot size={14} className="text-white" />
-                      </div>
-                      <span className="text-xs text-white/40">Agent IA</span>
-                      {msg.report && (
-                        <span className="text-xs px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded-full">
-                          Rapport genere
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  <div
-                    className={`p-5 rounded-2xl ${
-                      msg.role === 'user'
-                        ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white'
-                        : 'bg-[#0D0D15] border border-white/10 text-white'
-                    }`}
-                  >
-                    <div className="text-sm leading-relaxed">
-                      {msg.role === 'assistant' ? formatMessage(msg.content) : msg.content}
-                    </div>
-                  </div>
-                  {msg.role === 'assistant' && (
-                    <div className="flex items-center gap-3 mt-2">
-                      <button
-                        onClick={() => copyToClipboard(msg.content, i)}
-                        className="text-xs text-white/40 hover:text-white/60 flex items-center gap-1"
-                      >
-                        {copiedIndex === i ? <Check size={12} /> : <Copy size={12} />}
-                        Copier
-                      </button>
-                      {msg.report && (
-                        <button
-                          onClick={() => copyToClipboard(JSON.stringify(msg.report, null, 2), `report-${i}`)}
-                          className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
-                        >
-                          <FileText size={12} />
-                          Copier rapport JSON
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            ))
-          )}
-          
-          {loading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex justify-start"
-            >
-              <div className="bg-[#0D0D15] border border-white/10 p-5 rounded-2xl">
-                <div className="flex items-center gap-3 text-white/50">
-                  <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-[#FF6B35] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                    <span className="w-2 h-2 bg-[#FF6B35] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                    <span className="w-2 h-2 bg-[#FF6B35] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                  </div>
-                  <span className="text-sm">Analyse en cours...</span>
-                </div>
+                <span style={{ fontFamily: "monospace", fontWeight: 700 }}>{TOOL_ICONS[a.tool] || "?"}</span>
+                <span style={{ fontWeight: 600 }}>{a.tool}</span>
+                {a.input?.path && <span style={{ color: "#64748b", fontFamily: "monospace" }}>{a.input.path}</span>}
+                <span style={{ marginLeft: "auto", color: "#94a3b8" }}>iter {a.iteration}</span>
               </div>
-            </motion.div>
-          )}
-          
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Area */}
-        <div className="p-4 bg-[#0D0D15]/80 backdrop-blur-xl border-t border-white/10">
-          <form onSubmit={sendMessage} className="flex gap-3">
-            <div className="flex-1 relative">
-              <Input
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Decris ton probleme, demande un audit ou genere du code..."
-                className="w-full bg-white/5 border-white/10 focus:border-[#FF6B35] rounded-xl py-6 pl-4 pr-12 text-white placeholder:text-white/30"
-                disabled={loading}
-              />
-            </div>
-            <Button
-              type="submit"
-              disabled={loading || !input.trim()}
-              className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl px-8 py-6 font-semibold"
+            ))}
+          </div>
+        )}
+        {msg.files_modified?.length > 0 && (
+          <div
+            style={{
+              marginTop: 6,
+              padding: 10,
+              background: "#f0fdf4",
+              border: "1px solid #bbf7d0",
+              borderRadius: 8,
+            }}
+          >
+            <p style={{ fontSize: 12, fontWeight: 600, color: "#166534", margin: "0 0 4px" }}>Fichiers modifies :</p>
+            {msg.files_modified.map((f, i) => (
+              <code key={i} style={{ display: "block", fontSize: 12, color: "#15803d" }}>
+                {f}
+              </code>
+            ))}
+          </div>
+        )}
+        {msg.report && (
+          <details style={{ marginTop: 6 }}>
+            <summary style={{ fontSize: 12, cursor: "pointer", color: "#6366f1", fontWeight: 600 }}>
+              Rapport structure
+            </summary>
+            <pre
+              style={{
+                fontSize: 11,
+                background: "#1e1e2e",
+                color: "#cdd6f4",
+                padding: 12,
+                borderRadius: 8,
+                overflow: "auto",
+                maxHeight: 300,
+                marginTop: 6,
+              }}
             >
-              {loading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
-            </Button>
-          </form>
-          <p className="text-xs text-white/30 text-center mt-3">
-            Agent Master Developer • GPT-4o • Rapports Emergent automatiques
-          </p>
-        </div>
+              {JSON.stringify(msg.report, null, 2)}
+            </pre>
+          </details>
+        )}
       </div>
     </div>
   );
-};
+}
 
-export default AIAgentPage;
+export default function AIAgentPage() {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
+  const [autonomousMode, setAutonomousMode] = useState(true);
+  const [activeTab, setActiveTab] = useState("chat");
+  const [auditType, setAuditType] = useState("full_app");
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [taskInput, setTaskInput] = useState("");
+  const [taskLoading, setTaskLoading] = useState(false);
+  const [memories, setMemories] = useState([]);
+  const [memCat, setMemCat] = useState("");
+  const [agentHealth, setAgentHealth] = useState(null);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  useEffect(() => {
+    setMessages([
+      {
+        role: "assistant",
+        content:
+          "Bonjour ! Je suis l'Agent Developpeur Principal de Nati Fenua (V2 - Claude).\n\nJe peux lire/modifier tes fichiers, lancer les tests, auditer la securite, analyser les performances, gerer git, inspecter MongoDB et me souvenir des sessions precedentes.\n\nQue veux-tu faire ?",
+        actions_taken: [],
+        files_modified: [],
+      },
+    ]);
+    checkAgentHealth();
+  }, []);
+
+  const checkAgentHealth = async () => {
+    try {
+      const { data } = await axios.get(`${API}/api/ai/health`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("admin_token")}` },
+      });
+      setAgentHealth(data);
+    } catch {
+      setAgentHealth({ status: "error" });
+    }
+  };
+
+  const getAuthHeaders = () => ({
+    Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
+    "Content-Type": "application/json",
+  });
+
+  const sendMessage = useCallback(
+    async (textOverride = null) => {
+      const text = textOverride || input.trim();
+      if (!text || loading) return;
+      if (!textOverride) setInput("");
+      setMessages((prev) => [...prev, { role: "user", content: text }]);
+      setLoading(true);
+      try {
+        const { data } = await axios.post(
+          `${API}/api/ai/chat`,
+          { message: text, session_id: sessionId, autonomous_mode: autonomousMode },
+          { headers: getAuthHeaders() }
+        );
+        if (!sessionId) setSessionId(data.session_id);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: data.response,
+            actions_taken: data.actions_taken || [],
+            files_modified: data.files_modified || [],
+            iterations: data.iterations || 0,
+            execution_time_ms: data.execution_time_ms || 0,
+            report: data.report || null,
+          },
+        ]);
+      } catch (err) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "Erreur : " + (err.response?.data?.detail || err.message),
+            actions_taken: [],
+            files_modified: [],
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [input, loading, sessionId, autonomousMode]
+  );
+
+  const runAudit = async () => {
+    setAuditLoading(true);
+    setActiveTab("chat");
+    setMessages((prev) => [...prev, { role: "user", content: `Lancer audit : ${auditType}` }]);
+    try {
+      const { data } = await axios.post(
+        `${API}/api/ai/audit`,
+        { audit_type: auditType },
+        { headers: getAuthHeaders() }
+      );
+      if (!sessionId) setSessionId(data.session_id);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: data.response,
+          actions_taken: data.actions_taken || [],
+          files_modified: data.files_modified || [],
+          iterations: data.iterations || 0,
+          execution_time_ms: data.execution_time_ms || 0,
+          report: data.report || null,
+        },
+      ]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Erreur audit : " + (err.response?.data?.detail || err.message),
+          actions_taken: [],
+          files_modified: [],
+        },
+      ]);
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+  const runTask = async () => {
+    if (!taskInput.trim()) return;
+    setTaskLoading(true);
+    setActiveTab("chat");
+    setMessages((prev) => [...prev, { role: "user", content: `Tache : ${taskInput}` }]);
+    try {
+      const { data } = await axios.post(
+        `${API}/api/ai/task`,
+        { task: taskInput, session_id: sessionId },
+        { headers: getAuthHeaders() }
+      );
+      if (!sessionId) setSessionId(data.session_id);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: data.response,
+          actions_taken: data.actions_taken || [],
+          files_modified: data.files_modified || [],
+          iterations: data.iterations || 0,
+          execution_time_ms: data.execution_time_ms || 0,
+          report: data.report || null,
+        },
+      ]);
+      setTaskInput("");
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Erreur tache : " + (err.response?.data?.detail || err.message),
+          actions_taken: [],
+          files_modified: [],
+        },
+      ]);
+    } finally {
+      setTaskLoading(false);
+    }
+  };
+
+  const loadMemories = async () => {
+    try {
+      const { data } = await axios.get(`${API}/api/ai/memory`, {
+        params: memCat ? { category: memCat } : {},
+        headers: getAuthHeaders(),
+      });
+      setMemories(data.memories || []);
+    } catch {
+      setMemories([]);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "memory") loadMemories();
+  }, [activeTab, memCat]);
+
+  const newSession = async () => {
+    if (sessionId) {
+      try {
+        await axios.delete(`${API}/api/ai/sessions/${sessionId}`, { headers: getAuthHeaders() });
+      } catch {}
+    }
+    setSessionId(null);
+    setMessages([
+      {
+        role: "assistant",
+        content: "Nouvelle session. Comment puis-je t'aider ?",
+        actions_taken: [],
+        files_modified: [],
+      },
+    ]);
+  };
+
+  const quickActions = [
+    { label: "Structure du projet", msg: "Liste la structure complete du projet" },
+    { label: "Scan securite", msg: "Fais un scan rapide des secrets hardcodes et failles evidentes" },
+    { label: "Status git", msg: "Montre le git status et les derniers commits" },
+    { label: "Collections MongoDB", msg: "Liste toutes les collections MongoDB" },
+    { label: "Lancer les tests", msg: "Lance tous les tests pytest" },
+    { label: "Memoire", msg: "Rappelle-toi tout ce que tu sais sur ce projet" },
+  ];
+
+  const S = {
+    sidebar: {
+      width: 240,
+      background: "#0f172a",
+      color: "#e2e8f0",
+      display: "flex",
+      flexDirection: "column",
+      flexShrink: 0,
+      borderRight: "1px solid #1e293b",
+    },
+    tab: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      width: "100%",
+      padding: "10px 12px",
+      borderRadius: 8,
+      border: "none",
+      cursor: "pointer",
+      fontSize: 13,
+      textAlign: "left",
+      marginBottom: 2,
+    },
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        fontFamily: "system-ui,sans-serif",
+        background: "#f8fafc",
+        overflow: "hidden",
+      }}
+    >
+      <div style={S.sidebar}>
+        <div style={{ padding: "20px 16px 12px", borderBottom: "1px solid #1e293b" }}>
+          <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>Agent IA V2</p>
+          <p style={{ margin: 0, fontSize: 11, color: "#64748b" }}>Claude - Principal Developer</p>
+          {agentHealth && (
+            <p
+              style={{
+                margin: "6px 0 0",
+                fontSize: 10,
+                color: agentHealth.status === "operational" ? "#22c55e" : "#ef4444",
+              }}
+            >
+              {agentHealth.status === "operational" ? "● En ligne" : "● API Key manquante"}
+            </p>
+          )}
+          {sessionId && (
+            <p style={{ margin: "4px 0 0", fontSize: 10, color: "#475569", fontFamily: "monospace" }}>
+              {sessionId.slice(0, 22)}...
+            </p>
+          )}
+        </div>
+        <nav style={{ padding: "8px", flex: 1 }}>
+          {[
+            { id: "chat", icon: "💬", label: "Chat" },
+            { id: "audit", icon: "🔍", label: "Audit" },
+            { id: "task", icon: "📋", label: "Tache autonome" },
+            { id: "memory", icon: "🧠", label: "Memoire" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                ...S.tab,
+                background: activeTab === tab.id ? "#1e293b" : "transparent",
+                color: activeTab === tab.id ? "#e2e8f0" : "#64748b",
+                fontWeight: activeTab === tab.id ? 600 : 400,
+              }}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+        <div style={{ padding: "12px 16px", borderTop: "1px solid #1e293b" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 12, color: "#94a3b8" }}>Mode autonome</span>
+            <button
+              onClick={() => setAutonomousMode((v) => !v)}
+              style={{
+                width: 40,
+                height: 22,
+                borderRadius: 11,
+                border: "none",
+                cursor: "pointer",
+                background: autonomousMode ? "#6366f1" : "#374151",
+                position: "relative",
+                transition: "background 0.2s",
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  top: 3,
+                  left: autonomousMode ? 21 : 3,
+                  width: 16,
+                  height: 16,
+                  borderRadius: "50%",
+                  background: "#fff",
+                  transition: "left 0.2s",
+                }}
+              />
+            </button>
+          </div>
+          <p style={{ fontSize: 10, color: "#475569", margin: "4px 0 0" }}>
+            {autonomousMode ? "Agit sur le code" : "Repond seulement"}
+          </p>
+        </div>
+        <div style={{ padding: "0 8px 12px" }}>
+          <button
+            onClick={newSession}
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: "1px solid #1e293b",
+              background: "transparent",
+              color: "#64748b",
+              fontSize: 12,
+              cursor: "pointer",
+            }}
+          >
+            Nouvelle session
+          </button>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {activeTab === "chat" && (
+          <>
+            <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
+              {messages.map((msg, i) => (
+                <MessageBubble key={i} msg={msg} />
+              ))}
+              {loading && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "12px 16px",
+                    background: "#f3f4f6",
+                    borderRadius: 12,
+                    margin: "8px 0",
+                  }}
+                >
+                  <span style={{ fontSize: 13, color: "#6b7280" }}>
+                    {autonomousMode ? "L'agent travaille..." : "L'agent reflechit..."}
+                  </span>
+                </div>
+              )}
+              <div ref={bottomRef} />
+            </div>
+            {messages.length <= 1 && (
+              <div style={{ padding: "0 24px 12px", display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {quickActions.map((a, i) => (
+                  <button
+                    key={i}
+                    onClick={() => sendMessage(a.msg)}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: 99,
+                      border: "1px solid #e2e8f0",
+                      background: "#fff",
+                      fontSize: 12,
+                      cursor: "pointer",
+                      color: "#475569",
+                    }}
+                  >
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div style={{ padding: "12px 24px 20px", borderTop: "1px solid #e2e8f0", background: "#fff" }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
+                  placeholder="Dis-moi ce que tu veux faire... (Entree pour envoyer)"
+                  disabled={loading}
+                  rows={3}
+                  style={{
+                    flex: 1,
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    border: "1px solid #e2e8f0",
+                    fontSize: 14,
+                    resize: "none",
+                    fontFamily: "inherit",
+                    outline: "none",
+                  }}
+                />
+                <button
+                  onClick={() => sendMessage()}
+                  disabled={loading || !input.trim()}
+                  style={{
+                    padding: "12px 20px",
+                    borderRadius: 12,
+                    border: "none",
+                    background: loading || !input.trim() ? "#e2e8f0" : "#6366f1",
+                    color: loading || !input.trim() ? "#94a3b8" : "#fff",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: loading || !input.trim() ? "not-allowed" : "pointer",
+                    height: 48,
+                  }}
+                >
+                  {loading ? "..." : "Envoyer"}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === "audit" && (
+          <div style={{ padding: 32, maxWidth: 640 }}>
+            <h2 style={{ margin: "0 0 8px", fontSize: 20 }}>Audit automatique</h2>
+            <p style={{ color: "#64748b", margin: "0 0 24px", fontSize: 14 }}>
+              L'agent analyse ton projet et genere un rapport structure.
+            </p>
+            <div style={{ display: "grid", gap: 10, marginBottom: 24 }}>
+              {AUDIT_TYPES.map((a) => (
+                <label
+                  key={a.value}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 14,
+                    padding: "14px 16px",
+                    borderRadius: 12,
+                    cursor: "pointer",
+                    border: `2px solid ${auditType === a.value ? "#6366f1" : "#e2e8f0"}`,
+                    background: auditType === a.value ? "#eef2ff" : "#fff",
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="audit"
+                    value={a.value}
+                    checked={auditType === a.value}
+                    onChange={() => setAuditType(a.value)}
+                    style={{ display: "none" }}
+                  />
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: 14 }}>{a.label}</p>
+                    <p style={{ margin: 0, fontSize: 12, color: "#64748b" }}>{a.desc}</p>
+                  </div>
+                  {auditType === a.value && <span style={{ marginLeft: "auto", color: "#6366f1", fontWeight: 700 }}>✓</span>}
+                </label>
+              ))}
+            </div>
+            <button
+              onClick={runAudit}
+              disabled={auditLoading}
+              style={{
+                padding: "14px",
+                borderRadius: 12,
+                border: "none",
+                background: auditLoading ? "#e2e8f0" : "#6366f1",
+                color: auditLoading ? "#94a3b8" : "#fff",
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: auditLoading ? "not-allowed" : "pointer",
+                width: "100%",
+              }}
+            >
+              {auditLoading ? "En cours..." : "Lancer l'audit"}
+            </button>
+          </div>
+        )}
+
+        {activeTab === "task" && (
+          <div style={{ padding: 32, maxWidth: 640 }}>
+            <h2 style={{ margin: "0 0 8px", fontSize: 20 }}>Tache autonome</h2>
+            <p style={{ color: "#64748b", margin: "0 0 20px", fontSize: 14 }}>
+              Decris une tache complexe. L'agent planifie, execute, teste et corrige.
+            </p>
+            <textarea
+              value={taskInput}
+              onChange={(e) => setTaskInput(e.target.value)}
+              placeholder={
+                "Exemples :\n• Ajouter la pagination sur /api/products\n• Corriger les endpoints sans gestion d'erreur\n• Ajouter des index MongoDB\n• Generer les tests pytest pour orders.py"
+              }
+              rows={8}
+              style={{
+                width: "100%",
+                padding: 16,
+                borderRadius: 12,
+                border: "1px solid #e2e8f0",
+                fontSize: 14,
+                resize: "vertical",
+                fontFamily: "inherit",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+            <button
+              onClick={runTask}
+              disabled={taskLoading || !taskInput.trim()}
+              style={{
+                marginTop: 12,
+                padding: "14px",
+                borderRadius: 12,
+                border: "none",
+                background: taskLoading || !taskInput.trim() ? "#e2e8f0" : "#6366f1",
+                color: taskLoading || !taskInput.trim() ? "#94a3b8" : "#fff",
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: taskLoading || !taskInput.trim() ? "not-allowed" : "pointer",
+                width: "100%",
+              }}
+            >
+              {taskLoading ? "Execution en cours..." : "Executer la tache"}
+            </button>
+          </div>
+        )}
+
+        {activeTab === "memory" && (
+          <div style={{ flex: 1, padding: 32, overflowY: "auto" }}>
+            <h2 style={{ margin: "0 0 8px", fontSize: 20 }}>Memoire longue duree</h2>
+            <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+              {["", "bug_fixed", "architecture_decision", "pattern_found", "security_note", "performance_note", "todo"].map(
+                (cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setMemCat(cat)}
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: 99,
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      background: memCat === cat ? "#6366f1" : "#e2e8f0",
+                      color: memCat === cat ? "#fff" : "#64748b",
+                    }}
+                  >
+                    {cat || "Tout"}
+                  </button>
+                )
+              )}
+            </div>
+            {memories.length === 0 ? (
+              <p style={{ color: "#94a3b8", textAlign: "center", marginTop: 60 }}>
+                Aucun souvenir. L'agent memorise automatiquement les informations importantes.
+              </p>
+            ) : (
+              <div style={{ display: "grid", gap: 10 }}>
+                {memories.map((m, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: 10,
+                      background: "#fff",
+                      border: "1px solid #e2e8f0",
+                    }}
+                  >
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          padding: "2px 8px",
+                          borderRadius: 99,
+                          background: "#eef2ff",
+                          color: "#6366f1",
+                        }}
+                      >
+                        {m.category}
+                      </span>
+                      {m.file_reference && <code style={{ fontSize: 11, color: "#64748b" }}>{m.file_reference}</code>}
+                      <span style={{ marginLeft: "auto", fontSize: 11, color: "#94a3b8" }}>
+                        {m.created_at ? new Date(m.created_at).toLocaleDateString("fr-FR") : ""}
+                      </span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>{m.content}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
