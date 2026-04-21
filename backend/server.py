@@ -8782,7 +8782,7 @@ async def cloudinary_upload(request: Request):
 
 
 # ============================================
-# TEMPORARY DOWNLOAD ENDPOINT (pour récupération)
+# TEMPORARY DOWNLOAD ENDPOINTS (pour récupération)
 # ============================================
 @api_router.get("/download-server-py")
 async def download_server_py():
@@ -8791,6 +8791,16 @@ async def download_server_py():
     return FileResponse(
         path="/app/backend/server.py",
         filename="server.py",
+        media_type="text/plain"
+    )
+
+@api_router.get("/download-auth-security-py")
+async def download_auth_security_py():
+    """Endpoint temporaire pour télécharger auth_security.py"""
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        path="/app/backend/auth_security.py",
+        filename="auth_security.py",
         media_type="text/plain"
     )
 
