@@ -254,16 +254,22 @@ SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-XSS-Protection": "1; mode=block",
     "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(self)",
+    # HSTS - Force HTTPS for 1 year + subdomains
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+    # CSP - Adapted for Nati Fenua (Cloudinary, Google, etc.)
     "Content-Security-Policy": (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-        "style-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "img-src 'self' data: https: blob:; "
-        "font-src 'self' data:; "
-        "connect-src 'self' https:; "
+        "font-src 'self' data: https://fonts.gstatic.com; "
+        "connect-src 'self' https: wss:; "
         "media-src 'self' blob: https:; "
-        "frame-ancestors 'none';"
+        "frame-src https://accounts.google.com; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self';"
     ),
 }
 
@@ -295,5 +301,68 @@ def is_session_expired(expiry_str: str) -> bool:
     try:
         expiry = datetime.fromisoformat(expiry_str.replace('Z', '+00:00'))
         return datetime.now(timezone.utc) > expiry
+    except:
+        return True
+
+
+# ==================== SESSION ROTATION (Anti Session Fixation) ====================
+
+async def rotate_session_token(db, old_token: str, user_id: str, request_info: dict = None) -> Tuple[str, datetime]:
+    """
+    Rotate session token to prevent session fixation attacks.
+    Should be called after sensitive actions (login, password change, privilege escalation)
+    
+    Args:
+        db: MongoDB database instance
+        old_token: Current session token to invalidate
+        user_id: User ID for the new session
+        request_info: Optional dict with ip_address, user_agent
+    
+    Returns: (new_token, expiry_datetime)
+    """
+    # Generate new token
+    new_token, expiry = create_session_token()
+    
+    # Create new session
+    session_data = {
+        "user_id": user_id,
+        "session_token": new_token,
+        "expires_at": expiry.isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "rotated_from": old_token[:20] + "..."  # Keep reference for audit
+    }
+    
+    # Add request info if provided
+    if request_info:
+        session_data["ip_address"] = request_info.get("ip_address", "unknown")
+        session_data["user_agent"] = request_info.get("user_agent", "unknown")
+    
+    # Insert new session
+    await db.user_sessions.insert_one(session_data)
+    
+    # Invalidate old session
+    await db.user_sessions.delete_one({"session_token": old_token})
+    
+    logger.info(f"Session rotated for user {user_id}")
+    return new_token, expiry
+
+
+async def should_rotate_session(db, session_token: str, max_age_hours: int = 24) -> bool:
+    """
+    Check if session should be rotated based on age
+    Recommended: Rotate every 24 hours for active sessions
+    """
+    session = await db.user_sessions.find_one(
+        {"session_token": session_token}, 
+        {"_id": 0, "created_at": 1}
+    )
+    
+    if not session or not session.get("created_at"):
+        return True
+    
+    try:
+        created_at = datetime.fromisoformat(session["created_at"].replace('Z', '+00:00'))
+        age = datetime.now(timezone.utc) - created_at
+        return age > timedelta(hours=max_age_hours)
     except:
         return True

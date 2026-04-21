@@ -47,7 +47,7 @@ from auth_security import (
     check_rate_limit_enhanced, sanitize_input, validate_email,
     generate_secure_token, generate_password_reset_token,
     SECURITY_HEADERS, add_security_headers, create_session_token,
-    is_session_expired
+    is_session_expired, rotate_session_token, should_rotate_session
 )
 
 # Import media processing module
@@ -185,6 +185,7 @@ else:
     ]
 
 # Custom CORS Middleware - handles preflight BEFORE any other processing
+# Also adds security headers (HSTS, CSP, X-Frame-Options, etc.)
 class CustomCORSMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         origin = request.headers.get("origin", "")
@@ -212,6 +213,13 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Access-Control-Expose-Headers"] = "Set-Cookie"
+        
+        # Add security headers to all responses (HSTS, CSP, etc.)
+        for header_name, header_value in SECURITY_HEADERS.items():
+            # Skip CSP for certain paths that need different policies
+            if header_name == "Content-Security-Policy" and request.url.path.startswith("/api/docs"):
+                continue  # Swagger UI needs different CSP
+            response.headers[header_name] = header_value
         
         return response
 
