@@ -1,0 +1,73 @@
+name: 🧪 Tests E2E Automatiques
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Exécuter chaque jour à 6h du matin
+  schedule:
+    - cron: '0 6 * * *'
+  # Permettre l'exécution manuelle
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: 🚀 Tests Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📚 Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: 🎭 Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: 🧪 Run Playwright tests
+        working-directory: frontend
+        run: npx playwright test --project=Desktop-Chrome
+        env:
+          TEST_URL: https://nati-fenua-frontend.onrender.com
+          CI: true
+
+      - name: 📊 Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: frontend/test-results/
+          retention-days: 30
+
+      - name: 📋 Upload HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-html-report-${{ github.run_id }}
+          path: frontend/test-results/html-report/
+          retention-days: 30
+
+  notify:
+    name: 📬 Notification
+    runs-on: ubuntu-latest
+    needs: test
+    if: failure()
+    
+    steps:
+      - name: ❌ Tests échoués - Notification
+        run: |
+          echo "⚠️ Les tests E2E ont échoué!"
+          echo "Vérifiez les résultats sur GitHub Actions"
+          # Ici vous pouvez ajouter une notification Discord/Slack/Email

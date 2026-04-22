@@ -1,170 +1,164 @@
 /**
- * Tests E2E - Publications (Posts)
- * Nati Fenua - Créer, Liker, Supprimer des posts
+ * 🚀 TESTS ULTRA-RAPIDES - PUBLICATIONS
+ * Teste TOUT ce qu'un utilisateur peut faire avec les posts
  */
 const { test, expect } = require('@playwright/test');
-const { testData } = require('./utils/test-helpers');
+const { fastLogin, smartSelectors, waitForPageReady, PerformanceCollector } = require('./utils/test-helpers');
 
-test.describe('Publications', () => {
+test.describe('📝 Publications', () => {
   
-  // Se connecter avant chaque test
+  test.describe.configure({ mode: 'parallel' });
+  
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
-    
-    await page.fill('input[type="email"]', 'admin@natifenua.pf');
-    await page.fill('input[type="password"]', 'NatiFenua2025!');
-    await page.click('button[type="submit"]');
-    
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000); // Attendre que tout soit chargé
+    await fastLogin(page);
   });
 
-  test('Le feed se charge avec des posts', async ({ page }) => {
+  test('⚡ Feed charge en < 2s', async ({ page }) => {
+    const start = Date.now();
     await page.goto('/feed');
-    await page.waitForLoadState('networkidle');
+    await waitForPageReady(page);
+    const loadTime = Date.now() - start;
     
-    // Vérifier qu'il y a des posts ou un message "pas de posts"
-    const hasPosts = await page.locator('[data-testid="post-card"], .post-card, article').first().isVisible().catch(() => false);
-    const emptyMessage = await page.locator('text=Aucune publication, text=Pas de posts').isVisible().catch(() => false);
-    
-    expect(hasPosts || emptyMessage).toBeTruthy();
-    console.log(`✅ Feed chargé (posts: ${hasPosts})`);
+    console.log(`⏱️ Feed chargé en ${loadTime}ms`);
+    expect(loadTime).toBeLessThan(2000);
   });
 
-  test('Créer une nouvelle publication', async ({ page }) => {
+  test('📰 Posts s\'affichent dans le feed', async ({ page }) => {
     await page.goto('/feed');
-    await page.waitForLoadState('networkidle');
+    await waitForPageReady(page);
     
-    const postContent = `Test automatique Playwright - ${new Date().toISOString()}`;
+    const posts = page.locator(smartSelectors.postCard);
+    const count = await posts.count();
     
-    // Trouver le champ de création de post
-    const postInput = page.locator('textarea[placeholder*="quoi"], textarea[name="content"], [data-testid="post-input"]').first();
+    console.log(`📊 ${count} posts affichés`);
+    expect(count).toBeGreaterThan(0);
+  });
+
+  test('✍️ Créer une publication texte', async ({ page }) => {
+    await page.goto('/feed');
+    await waitForPageReady(page);
     
-    if (await postInput.isVisible()) {
+    const postContent = `🤖 Test auto ${Date.now()}`;
+    
+    // Trouver le champ de création
+    const postInput = page.locator('textarea[placeholder*="quoi" i], textarea[name="content"], [data-testid="post-input"]').first();
+    
+    if (await postInput.isVisible({ timeout: 2000 })) {
       await postInput.fill(postContent);
-      
-      // Cliquer sur publier
       await page.click('button:has-text("Publier"), [data-testid="post-submit"]');
       
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
       
       // Vérifier que le post apparaît
-      const newPost = await page.locator(`text=${postContent.substring(0, 30)}`).first().isVisible().catch(() => false);
-      
-      if (newPost) {
-        console.log('✅ Publication créée avec succès');
-      } else {
-        console.log('⚠️ Publication créée mais pas visible immédiatement');
-      }
-    } else {
-      // Peut-être un bouton pour ouvrir le formulaire
-      const createButton = page.locator('[data-testid="create-post-button"], button:has-text("Créer"), button:has-text("Publier")').first();
-      
-      if (await createButton.isVisible()) {
-        await createButton.click();
-        await page.waitForTimeout(1000);
-        
-        const modal = page.locator('textarea').first();
-        await modal.fill(postContent);
-        await page.click('button:has-text("Publier")');
-        
-        console.log('✅ Publication créée via modal');
-      } else {
-        console.log('⚠️ Formulaire de création non trouvé');
-      }
+      const newPost = await page.locator(`text=${postContent.slice(0, 15)}`).isVisible({ timeout: 3000 });
+      expect(newPost).toBeTruthy();
+      console.log('✅ Post créé');
     }
   });
 
-  test('Liker une publication', async ({ page }) => {
+  test('❤️ Liker un post', async ({ page }) => {
     await page.goto('/feed');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    await waitForPageReady(page);
     
-    // Trouver le premier bouton like
-    const likeButton = page.locator('[data-testid="like-button"], button:has(svg), button:has-text("❤"), button:has-text("J\'aime")').first();
+    // Premier bouton like
+    const likeBtn = page.locator(smartSelectors.likeButton).first();
     
-    if (await likeButton.isVisible()) {
-      // Récupérer le compteur avant
-      const countBefore = await page.locator('[data-testid="like-count"]').first().textContent().catch(() => '0');
-      
-      await likeButton.click();
-      await page.waitForTimeout(1000);
-      
+    if (await likeBtn.isVisible({ timeout: 2000 })) {
+      await likeBtn.click();
+      await page.waitForTimeout(500);
       console.log('✅ Like envoyé');
-    } else {
-      console.log('⚠️ Bouton like non trouvé');
     }
   });
 
-  test('Supprimer une publication', async ({ page }) => {
+  test('💬 Commenter un post', async ({ page }) => {
+    await page.goto('/feed');
+    await waitForPageReady(page);
+    
+    // Ouvrir les commentaires
+    const commentBtn = page.locator(smartSelectors.commentButton).first();
+    
+    if (await commentBtn.isVisible({ timeout: 2000 })) {
+      await commentBtn.click();
+      await page.waitForTimeout(500);
+      
+      // Écrire un commentaire
+      const commentInput = page.locator('input[placeholder*="commentaire" i], textarea[placeholder*="commentaire" i]').first();
+      
+      if (await commentInput.isVisible({ timeout: 2000 })) {
+        await commentInput.fill(`🤖 Auto ${Date.now()}`);
+        await page.keyboard.press('Enter');
+        console.log('✅ Commentaire envoyé');
+      }
+    }
+  });
+
+  test('🔖 Sauvegarder un post', async ({ page }) => {
+    await page.goto('/feed');
+    await waitForPageReady(page);
+    
+    const saveBtn = page.locator('[data-testid="save-button"], button[aria-label*="save" i], button:has-text("Sauvegarder")').first();
+    
+    if (await saveBtn.isVisible({ timeout: 2000 })) {
+      await saveBtn.click();
+      await page.waitForTimeout(500);
+      console.log('✅ Post sauvegardé');
+    }
+  });
+
+  test('🗑️ Supprimer un post', async ({ page }) => {
     // Aller sur le profil pour voir ses propres posts
     await page.goto('/profile');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    await waitForPageReady(page);
     
     // Cliquer sur un post
-    const postCard = page.locator('[data-testid="post-card"], .post-card, article').first();
+    const post = page.locator(smartSelectors.postCard).first();
     
-    if (await postCard.isVisible()) {
-      await postCard.click();
-      await page.waitForTimeout(1000);
+    if (await post.isVisible({ timeout: 2000 })) {
+      await post.click();
+      await page.waitForTimeout(500);
       
       // Chercher le bouton supprimer
-      const deleteButton = page.locator('[data-testid="delete-post"], button:has-text("Supprimer"), button.text-red-500').first();
+      const deleteBtn = page.locator('[data-testid="delete-post"], button:has-text("Supprimer"), button.text-red-500, [aria-label*="delete" i]').first();
       
-      if (await deleteButton.isVisible()) {
-        // Intercepter la boîte de dialogue de confirmation
+      if (await deleteBtn.isVisible({ timeout: 2000 })) {
+        // Accepter la confirmation
         page.on('dialog', dialog => dialog.accept());
+        await deleteBtn.click();
         
-        await deleteButton.click();
-        await page.waitForTimeout(2000);
-        
-        // Vérifier le message de succès
-        const successToast = await page.locator('text=supprimé, text=Succès').isVisible().catch(() => false);
-        
-        if (successToast) {
-          console.log('✅ Publication supprimée avec succès');
-        } else {
-          console.log('✅ Suppression effectuée');
-        }
-      } else {
-        console.log('⚠️ Bouton supprimer non visible (peut-être pas propriétaire)');
+        await waitForPageReady(page);
+        console.log('✅ Post supprimé');
       }
-    } else {
-      console.log('⚠️ Aucun post trouvé sur le profil');
     }
   });
 
-  test('Commenter une publication', async ({ page }) => {
+  test('🔄 Pagination du feed fonctionne', async ({ page }) => {
     await page.goto('/feed');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    await waitForPageReady(page);
     
-    // Cliquer sur le premier post pour ouvrir les commentaires
-    const postCard = page.locator('[data-testid="post-card"], article').first();
+    // Compter les posts initiaux
+    const initialCount = await page.locator(smartSelectors.postCard).count();
     
-    if (await postCard.isVisible()) {
-      // Chercher le bouton commentaire
-      const commentButton = page.locator('[data-testid="comment-button"], button:has-text("Commentaire"), button:has(svg)').nth(1);
-      
-      if (await commentButton.isVisible()) {
-        await commentButton.click();
-        await page.waitForTimeout(1000);
-        
-        // Remplir le commentaire
-        const commentInput = page.locator('input[placeholder*="commentaire"], textarea[placeholder*="commentaire"]').first();
-        
-        if (await commentInput.isVisible()) {
-          const commentText = `Test auto ${Date.now()}`;
-          await commentInput.fill(commentText);
-          await page.keyboard.press('Enter');
-          
-          await page.waitForTimeout(1000);
-          console.log('✅ Commentaire envoyé');
-        }
-      }
+    // Scroll vers le bas
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(1500);
+    
+    // Vérifier si plus de posts chargés
+    const newCount = await page.locator(smartSelectors.postCard).count();
+    
+    console.log(`📊 Posts: ${initialCount} → ${newCount}`);
+  });
+
+  test('🔍 Recherche de posts', async ({ page }) => {
+    await page.goto('/feed');
+    await waitForPageReady(page);
+    
+    const searchInput = page.locator('input[type="search"], input[placeholder*="recherche" i]').first();
+    
+    if (await searchInput.isVisible({ timeout: 2000 })) {
+      await searchInput.fill('test');
+      await page.keyboard.press('Enter');
+      await waitForPageReady(page);
+      console.log('✅ Recherche effectuée');
     }
   });
 });

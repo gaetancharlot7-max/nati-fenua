@@ -2,51 +2,88 @@
 const { defineConfig, devices } = require('@playwright/test');
 
 /**
- * Configuration Playwright pour Nati Fenua
- * Tests End-to-End automatisés
+ * Configuration Playwright ULTRA-OPTIMISÉE pour Nati Fenua
+ * Plus rapide qu'un testeur humain
  */
 module.exports = defineConfig({
   testDir: './tests/e2e',
   
-  // Timeout par test
-  timeout: 60 * 1000,
+  // ⚡ PARALLÉLISATION MAXIMALE
+  fullyParallel: true,
+  workers: process.env.CI ? 4 : 6, // 6 tests en parallèle en local
   
-  // Nombre de retries en cas d'échec
-  retries: 1,
+  // ⏱️ Timeouts optimisés
+  timeout: 30 * 1000, // 30 sec max par test
+  expect: {
+    timeout: 5000, // 5 sec pour les assertions
+  },
   
-  // Reporter pour les résultats
+  // 🔄 Retry intelligent
+  retries: process.env.CI ? 2 : 0,
+  
+  // 📊 Reporters multiples
   reporter: [
-    ['html', { outputFolder: 'test-results/html-report' }],
-    ['list']
+    ['html', { outputFolder: 'test-results/html-report', open: 'never' }],
+    ['json', { outputFile: 'test-results/results.json' }],
+    ['list'],
+    // Rapport GitHub Actions
+    ...(process.env.CI ? [['github']] : []),
   ],
   
-  // Configuration globale
+  // ⚡ Configuration globale optimisée
   use: {
-    // URL de base de l'application
     baseURL: process.env.TEST_URL || 'https://nati-fenua-frontend.onrender.com',
     
-    // Screenshots en cas d'échec
+    // 📸 Captures intelligentes
     screenshot: 'only-on-failure',
-    
-    // Vidéo en cas d'échec
     video: 'retain-on-failure',
-    
-    // Traces pour debug
     trace: 'retain-on-failure',
     
-    // Viewport
+    // 🖥️ Viewport standard
     viewport: { width: 1280, height: 720 },
+    
+    // ⚡ OPTIMISATIONS DE VITESSE
+    actionTimeout: 10000, // Actions rapides
+    navigationTimeout: 15000, // Navigation rapide
+    
+    // 🚀 Ignorer les ressources non essentielles
+    bypassCSP: true,
+    ignoreHTTPSErrors: true,
+    
+    // 📱 User agent réaliste
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Playwright-NatiFenua-Bot',
   },
 
-  // Projets de test (différents navigateurs)
+  // 📱 Tests multi-appareils en parallèle
   projects: [
     {
-      name: 'Desktop Chrome',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'Desktop-Chrome',
+      use: { 
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: ['--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage']
+        }
+      },
     },
     {
-      name: 'Mobile Safari',
+      name: 'Mobile-iOS',
       use: { ...devices['iPhone 13'] },
     },
+    {
+      name: 'Mobile-Android',
+      use: { ...devices['Pixel 5'] },
+    },
+    {
+      name: 'Tablet',
+      use: { ...devices['iPad Pro 11'] },
+    },
   ],
+
+  // 🌐 Serveur de dev local (optionnel)
+  webServer: process.env.LOCAL_TEST ? {
+    command: 'npm start',
+    url: 'http://localhost:3000',
+    reuseExistingServer: true,
+    timeout: 120 * 1000,
+  } : undefined,
 });

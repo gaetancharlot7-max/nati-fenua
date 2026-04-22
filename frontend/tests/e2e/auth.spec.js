@@ -1,138 +1,130 @@
 /**
- * Tests E2E - Authentification
- * Nati Fenua - Inscription, Connexion, Déconnexion
+ * 🚀 TESTS ULTRA-RAPIDES - AUTHENTIFICATION
+ * Plus rapide et plus complet qu'un testeur humain
  */
 const { test, expect } = require('@playwright/test');
-const { testData, selectors } = require('./utils/test-helpers');
+const { fastLogin, smartSelectors, waitForPageReady, ADMIN_ACCOUNT, generateTestEmail, generateTestUsername, TEST_PASSWORD } = require('./utils/test-helpers');
 
-test.describe('Authentification', () => {
+test.describe('🔐 Authentification', () => {
   
-  test.beforeEach(async ({ page }) => {
+  test.describe.configure({ mode: 'parallel' }); // Tests en parallèle
+
+  test('⚡ Page accueil charge en < 3s', async ({ page }) => {
+    const start = Date.now();
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await waitForPageReady(page);
+    const loadTime = Date.now() - start;
+    
+    console.log(`⏱️ Temps de chargement: ${loadTime}ms`);
+    expect(loadTime).toBeLessThan(3000);
   });
 
-  test('Page d\'accueil se charge correctement', async ({ page }) => {
-    // Vérifie que la page se charge
-    await expect(page).toHaveTitle(/Nati Fenua/i);
+  test('✅ Connexion admin réussie', async ({ page }) => {
+    await page.goto('/login');
+    await waitForPageReady(page);
     
-    // Vérifie la présence du bouton de connexion ou du feed
-    const loginVisible = await page.locator('text=Connexion, text=Se connecter').first().isVisible().catch(() => false);
-    const feedVisible = await page.locator('[data-testid="feed"], [data-testid="post-card"]').first().isVisible().catch(() => false);
+    await page.fill(smartSelectors.emailInput, ADMIN_ACCOUNT.email);
+    await page.fill(smartSelectors.passwordInput, ADMIN_ACCOUNT.password);
+    await page.click(smartSelectors.submitButton);
     
-    expect(loginVisible || feedVisible).toBeTruthy();
+    // Vérification rapide
+    await expect(page).toHaveURL(/feed|profile|home/, { timeout: 5000 });
   });
 
-  test('Inscription d\'un nouvel utilisateur', async ({ page }) => {
-    // Générer des données uniques
-    const email = testData.generateEmail();
-    const username = testData.generateUsername();
+  test('❌ Connexion échoue avec mauvais password', async ({ page }) => {
+    await page.goto('/login');
+    await page.fill(smartSelectors.emailInput, ADMIN_ACCOUNT.email);
+    await page.fill(smartSelectors.passwordInput, 'WrongPassword123!');
+    await page.click(smartSelectors.submitButton);
     
-    // Cliquer sur inscription
-    await page.click('text=Inscription, text=S\'inscrire, text=Créer un compte').catch(async () => {
-      // Peut-être déjà sur la page d'inscription
-      await page.goto('/register');
-    });
+    // Doit afficher une erreur
+    const error = await page.locator('text=/erreur|incorrect|invalid/i').isVisible({ timeout: 3000 });
+    expect(error).toBeTruthy();
+  });
+
+  test('❌ Connexion échoue avec email invalide', async ({ page }) => {
+    await page.goto('/login');
+    await page.fill(smartSelectors.emailInput, 'not-an-email');
+    await page.fill(smartSelectors.passwordInput, 'Password123!');
+    await page.click(smartSelectors.submitButton);
     
-    await page.waitForLoadState('networkidle');
+    // Doit afficher une erreur ou ne pas soumettre
+    await page.waitForTimeout(1000);
+    const stillOnLogin = page.url().includes('login');
+    expect(stillOnLogin).toBeTruthy();
+  });
+
+  test('📝 Inscription nouvel utilisateur', async ({ page }) => {
+    const email = generateTestEmail();
+    const username = generateTestUsername();
+    
+    await page.goto('/register');
+    await waitForPageReady(page);
     
     // Remplir le formulaire
-    await page.fill('input[name="username"], input[placeholder*="nom"]', username);
-    await page.fill('input[type="email"], input[name="email"]', email);
-    await page.fill('input[type="password"]', testData.password);
+    await page.fill('input[name="username"], input[placeholder*="nom" i]', username);
+    await page.fill(smartSelectors.emailInput, email);
+    await page.fill(smartSelectors.passwordInput, TEST_PASSWORD);
     
-    // Confirmer le mot de passe si le champ existe
-    const confirmPassword = page.locator('input[name="confirmPassword"], input[name="password_confirm"]');
-    if (await confirmPassword.isVisible()) {
-      await confirmPassword.fill(testData.password);
+    // Confirmer password si présent
+    const confirmField = page.locator('input[name="confirmPassword"], input[name="password_confirm"]');
+    if (await confirmField.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await confirmField.fill(TEST_PASSWORD);
     }
     
-    // Accepter les conditions si présentes
-    const termsCheckbox = page.locator('input[type="checkbox"]').first();
-    if (await termsCheckbox.isVisible()) {
-      await termsCheckbox.check();
+    // Accepter les conditions
+    const checkbox = page.locator('input[type="checkbox"]').first();
+    if (await checkbox.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await checkbox.check();
     }
     
-    // Soumettre
-    await page.click('button[type="submit"]');
+    await page.click(smartSelectors.submitButton);
     
-    // Attendre la réponse
-    await page.waitForLoadState('networkidle');
-    
-    // Vérifier le succès (redirection ou message)
+    // Vérifier succès
     const success = await Promise.race([
-      page.waitForURL('**/feed**', { timeout: 10000 }).then(() => true).catch(() => false),
-      page.waitForURL('**/profile**', { timeout: 10000 }).then(() => true).catch(() => false),
-      page.waitForSelector('text=Bienvenue, text=Compte créé', { timeout: 10000 }).then(() => true).catch(() => false),
-    ]);
+      page.waitForURL(/feed|profile|welcome/, { timeout: 8000 }).then(() => true),
+      page.locator('text=/bienvenue|compte créé|succès/i').isVisible({ timeout: 8000 }),
+    ]).catch(() => false);
     
     expect(success).toBeTruthy();
-    
-    console.log(`✅ Utilisateur créé: ${username} (${email})`);
+    console.log(`✅ Créé: ${username} (${email})`);
   });
 
-  test('Connexion avec compte existant', async ({ page }) => {
-    // Aller sur la page de connexion
-    await page.click('text=Connexion, text=Se connecter').catch(async () => {
-      await page.goto('/login');
-    });
+  test('🚪 Déconnexion fonctionne', async ({ page }) => {
+    // Connexion rapide
+    await fastLogin(page);
     
-    await page.waitForLoadState('networkidle');
+    // Trouver et cliquer déconnexion
+    await page.click('[data-testid="nav-profile"], a[href="/profile"]').catch(() => {});
+    await page.click('text=/déconnexion|logout|se déconnecter/i');
     
-    // Utiliser le compte admin de test
-    await page.fill('input[type="email"], input[name="email"]', 'admin@natifenua.pf');
-    await page.fill('input[type="password"]', 'NatiFenua2025!');
+    await waitForPageReady(page);
     
-    // Soumettre
-    await page.click('button[type="submit"]');
-    
-    // Attendre la connexion
-    await page.waitForLoadState('networkidle');
-    
-    // Vérifier qu'on est connecté (présence du profil ou feed)
-    const loggedIn = await Promise.race([
-      page.waitForURL('**/feed**', { timeout: 10000 }).then(() => true).catch(() => false),
-      page.waitForSelector('[data-testid="user-avatar"], [data-testid="nav-profile"]', { timeout: 10000 }).then(() => true).catch(() => false),
-    ]);
-    
-    expect(loggedIn).toBeTruthy();
-    console.log('✅ Connexion réussie');
+    // Vérifier déconnecté
+    const loginVisible = await page.locator(smartSelectors.loginButton).isVisible({ timeout: 3000 });
+    expect(loginVisible).toBeTruthy();
   });
 
-  test('Connexion échoue avec mauvais mot de passe', async ({ page }) => {
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+  test('🔒 Page protégée redirige vers login', async ({ page }) => {
+    // Essayer d'accéder au profil sans être connecté
+    await page.goto('/profile');
     
-    await page.fill('input[type="email"]', 'admin@natifenua.pf');
-    await page.fill('input[type="password"]', 'MauvaisMotDePasse123!');
-    
-    await page.click('button[type="submit"]');
-    
-    // Attendre un message d'erreur
-    const errorMessage = await page.waitForSelector('text=Erreur, text=incorrect, text=invalide, [role="alert"]', { timeout: 5000 }).catch(() => null);
-    
-    expect(errorMessage).not.toBeNull();
-    console.log('✅ Erreur de connexion détectée correctement');
+    // Devrait rediriger vers login
+    await page.waitForURL(/login|auth/, { timeout: 5000 }).catch(() => {});
+    expect(page.url()).toMatch(/login|auth|\/$/);
   });
 
-  test('Déconnexion fonctionne', async ({ page }) => {
-    // D'abord se connecter
-    await page.goto('/login');
-    await page.fill('input[type="email"]', 'admin@natifenua.pf');
-    await page.fill('input[type="password"]', 'NatiFenua2025!');
-    await page.click('button[type="submit"]');
-    await page.waitForLoadState('networkidle');
+  test('💾 Session persiste après refresh', async ({ page }) => {
+    await fastLogin(page);
     
-    // Trouver et cliquer sur déconnexion
-    await page.click('[data-testid="nav-profile"], text=Profil').catch(() => {});
-    await page.click('[data-testid="logout-button"], text=Déconnexion, text=Se déconnecter');
+    // Refresh la page
+    await page.reload();
+    await waitForPageReady(page);
     
-    await page.waitForLoadState('networkidle');
+    // Doit toujours être connecté
+    const isLoggedIn = await page.locator('[data-testid="user-avatar"], [data-testid="nav-profile"]')
+      .isVisible({ timeout: 3000 }).catch(() => false);
     
-    // Vérifier qu'on est déconnecté
-    const loginButton = await page.waitForSelector('text=Connexion, text=Se connecter', { timeout: 5000 }).catch(() => null);
-    
-    expect(loginButton).not.toBeNull();
-    console.log('✅ Déconnexion réussie');
+    expect(isLoggedIn).toBeTruthy();
   });
 });
