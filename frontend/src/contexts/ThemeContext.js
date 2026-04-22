@@ -10,19 +10,65 @@ export const useTheme = () => {
   return context;
 };
 
-export const ThemeProvider = ({ children }) => {
-  // Initialize theme from localStorage or system preference
-  const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('nati-theme');
-    if (saved !== null) {
-      return saved === 'dark';
+// Safe localStorage access for iOS Safari
+const safeLocalStorage = {
+  getItem: (key) => {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
     }
-    // Check system preference
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
+  },
+  setItem: (key, value) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // localStorage not available (iOS private mode)
+    }
+  },
+  removeItem: (key) => {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // localStorage not available
+    }
+  }
+};
+
+// Safe matchMedia for older browsers
+const safeMatchMedia = (query) => {
+  try {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia(query);
+    }
+  } catch {
+    // matchMedia not available
+  }
+  return { matches: false, addEventListener: () => {}, removeEventListener: () => {} };
+};
+
+export const ThemeProvider = ({ children }) => {
+  // Initialize theme - default to light for safety on iOS
+  const [isDark, setIsDark] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialize on mount (client-side only)
+  useEffect(() => {
+    const saved = safeLocalStorage.getItem('nati-theme');
+    if (saved !== null) {
+      setIsDark(saved === 'dark');
+    } else {
+      // Check system preference
+      const prefersDark = safeMatchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDark(prefersDark);
+    }
+    setIsInitialized(true);
+  }, []);
 
   // Apply theme to document
   useEffect(() => {
+    if (!isInitialized) return;
+    
     const root = document.documentElement;
     if (isDark) {
       root.classList.add('dark');
@@ -31,14 +77,14 @@ export const ThemeProvider = ({ children }) => {
       root.classList.remove('dark');
       document.body.style.background = 'linear-gradient(180deg, #FFF5E6 0%, #FEFEFE 100%)';
     }
-    localStorage.setItem('nati-theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
+    safeLocalStorage.setItem('nati-theme', isDark ? 'dark' : 'light');
+  }, [isDark, isInitialized]);
 
   // Listen for system preference changes
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const mediaQuery = safeMatchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e) => {
-      const saved = localStorage.getItem('nati-theme');
+      const saved = safeLocalStorage.getItem('nati-theme');
       if (saved === null) {
         setIsDark(e.matches);
       }
@@ -53,8 +99,8 @@ export const ThemeProvider = ({ children }) => {
 
   const setTheme = (theme) => {
     if (theme === 'system') {
-      localStorage.removeItem('nati-theme');
-      setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
+      safeLocalStorage.removeItem('nati-theme');
+      setIsDark(safeMatchMedia('(prefers-color-scheme: dark)').matches);
     } else {
       setIsDark(theme === 'dark');
     }

@@ -8870,6 +8870,26 @@ async def download_ai_agent_v2_fixed():
         media_type="text/plain"
     )
 
+@api_router.get("/download-app-js")
+async def download_app_js():
+    """Télécharger App.js corrigé"""
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        path="/app/frontend/src/App.js",
+        filename="App.js",
+        media_type="text/plain"
+    )
+
+@api_router.get("/download-theme-context")
+async def download_theme_context():
+    """Télécharger ThemeContext.js corrigé"""
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        path="/app/frontend/src/contexts/ThemeContext.js",
+        filename="ThemeContext.js",
+        media_type="text/plain"
+    )
+
 # Include router AFTER all routes are defined
 app.include_router(api_router)
 

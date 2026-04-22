@@ -2,8 +2,47 @@ import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-route
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from './components/ui/sonner';
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, Component } from 'react';
 import './App.css';
+
+// Error Boundary pour capturer les erreurs JavaScript (surtout sur iOS)
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('App Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="fixed inset-0 bg-[#1A1A2E] flex items-center justify-center p-4">
+          <div className="text-center text-white max-w-md">
+            <h1 className="text-2xl font-bold mb-4">Oups ! Une erreur est survenue</h1>
+            <p className="text-white/60 mb-4">
+              {this.state.error?.message || 'Erreur inconnue'}
+            </p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="bg-gradient-to-r from-orange-500 to-pink-500 px-6 py-3 rounded-full font-semibold"
+            >
+              Recharger l'application
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // Loading component - iOS compatible
 const PageLoader = () => (
@@ -178,13 +217,15 @@ function AppContent() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <ThemeProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 
