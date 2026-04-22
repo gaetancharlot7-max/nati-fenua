@@ -8824,6 +8824,26 @@ async def download_profile_page_js():
         media_type="text/plain"
     )
 
+@api_router.get("/download-playwright-tests")
+async def download_playwright_tests():
+    """Télécharger la suite de tests Playwright"""
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        path="/app/backend/static/playwright-tests.zip",
+        filename="playwright-tests.zip",
+        media_type="application/zip"
+    )
+
+@api_router.get("/download-playwright-config")
+async def download_playwright_config():
+    """Télécharger la config Playwright"""
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        path="/app/frontend/playwright.config.js",
+        filename="playwright.config.js",
+        media_type="text/plain"
+    )
+
 # Include router AFTER all routes are defined
 app.include_router(api_router)
 
