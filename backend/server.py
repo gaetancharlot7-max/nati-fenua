@@ -8890,6 +8890,16 @@ async def download_theme_context():
         media_type="text/plain"
     )
 
+@api_router.get("/download-ai-agent-page")
+async def download_ai_agent_page():
+    """Télécharger AIAgentPage.js corrigé"""
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        path="/app/frontend/src/pages/AIAgentPage.js",
+        filename="AIAgentPage.js",
+        media_type="text/plain"
+    )
+
 # Include router AFTER all routes are defined
 app.include_router(api_router)
 

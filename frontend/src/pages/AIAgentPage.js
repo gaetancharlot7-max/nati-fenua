@@ -260,6 +260,19 @@ export default function AIAgentPage() {
     "Content-Type": "application/json",
   });
 
+  // Fonction pour effacer toutes les discussions
+  const clearAllMessages = () => {
+    setMessages([
+      {
+        role: "assistant",
+        content: "💬 Historique effacé. Comment puis-je t'aider ?",
+        actions_taken: [],
+        files_modified: [],
+      },
+    ]);
+    setSessionId(null);
+  };
+
   const sendMessage = useCallback(
     async (textOverride = null) => {
       const text = textOverride || input.trim();
@@ -268,11 +281,24 @@ export default function AIAgentPage() {
       setMessages((prev) => [...prev, { role: "user", content: text }]);
       setLoading(true);
       try {
-        const { data } = await axios.post(
-          `${API}/api/ai/chat`,
-          { message: text, session_id: sessionId, autonomous_mode: autonomousMode },
-          { headers: getAuthHeaders() }
-        );
+        const response = await fetch(`${API}/api/ai/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem("admin_token")}`,
+          },
+          body: JSON.stringify({ 
+            message: text, 
+            session_id: sessionId, 
+            autonomous_mode: autonomousMode 
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
         if (!sessionId) setSessionId(data.session_id);
         setMessages((prev) => [
           ...prev,
@@ -287,11 +313,12 @@ export default function AIAgentPage() {
           },
         ]);
       } catch (err) {
+        console.error("Erreur Agent IA:", err);
         setMessages((prev) => [
           ...prev,
           {
             role: "assistant",
-            content: "Erreur : " + (err.response?.data?.detail || err.message),
+            content: "Erreur: Impossible de communiquer avec l'agent IA. Vérifiez votre connexion ou réessayez. (" + (err.message || "Erreur inconnue") + ")",
             actions_taken: [],
             files_modified: [],
           },
@@ -453,15 +480,16 @@ export default function AIAgentPage() {
       style={{
         display: "flex",
         height: "100vh",
+        maxHeight: "100vh",
         fontFamily: "system-ui,sans-serif",
         background: "#f8fafc",
         overflow: "hidden",
       }}
     >
-      <div style={S.sidebar}>
-        <div style={{ padding: "20px 16px 12px", borderBottom: "1px solid #1e293b" }}>
-          <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>Agent IA V2</p>
-          <p style={{ margin: 0, fontSize: 11, color: "#64748b" }}>Claude - Principal Developer</p>
+      <div style={{...S.sidebar, height: "100vh", maxHeight: "100vh", overflow: "hidden"}}>
+        <div style={{ padding: "16px 16px 10px", borderBottom: "1px solid #1e293b", flexShrink: 0 }}>
+          <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>Agent IA V2</p>
+          <p style={{ margin: 0, fontSize: 10, color: "#64748b" }}>Claude Sonnet 4.6</p>
           {agentHealth && (
             <p
               style={{
@@ -535,7 +563,7 @@ export default function AIAgentPage() {
             {autonomousMode ? "Agit sur le code" : "Repond seulement"}
           </p>
         </div>
-        <div style={{ padding: "0 8px 12px" }}>
+        <div style={{ padding: "0 8px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
           <button
             onClick={newSession}
             style={{
@@ -549,15 +577,30 @@ export default function AIAgentPage() {
               cursor: "pointer",
             }}
           >
-            Nouvelle session
+            🔄 Nouvelle session
+          </button>
+          <button
+            onClick={clearAllMessages}
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: "1px solid #ef4444",
+              background: "transparent",
+              color: "#ef4444",
+              fontSize: 12,
+              cursor: "pointer",
+            }}
+          >
+            🗑️ Effacer l'historique
           </button>
         </div>
       </div>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100vh", maxHeight: "100vh", overflow: "hidden" }}>
         {activeTab === "chat" && (
-          <>
-            <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
+          <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px", minHeight: 0 }}>
               {messages.map((msg, i) => (
                 <MessageBubble key={i} msg={msg} />
               ))}
@@ -645,7 +688,7 @@ export default function AIAgentPage() {
                 </button>
               </div>
             </div>
-          </>
+          </div>
         )}
 
         {activeTab === "audit" && (
