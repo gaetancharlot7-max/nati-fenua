@@ -22,6 +22,8 @@ import httpx
 import json
 import shutil
 import base64
+import bcrypt
+import hashlib
 
 # Import Stripe checkout (optional - may not be available on all deployments)
 try:
@@ -4992,24 +4994,28 @@ async def get_or_create_admin():
 @api_router.get("/admin/reset-credentials")
 async def reset_admin_credentials():
     """Reset admin credentials to default with bcrypt (secure)"""
-    default_password = "NatiFenua2025!"
-    password_hash = hash_admin_password(default_password)
-    
-    # Delete old admin accounts
-    await db.admin_users.delete_many({})
-    
-    # Create new admin with bcrypt
-    admin = {
-        "admin_id": f"admin_{uuid.uuid4().hex[:12]}",
-        "email": ADMIN_EMAIL,
-        "password_hash": password_hash,
-        "hash_type": "bcrypt",
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.admin_users.insert_one(admin)
-    
-    logger.info(f"Admin credentials reset with bcrypt")
-    return {"success": True, "message": f"Admin reset to {ADMIN_EMAIL} / NatiFenua2025!"}
+    try:
+        default_password = "NatiFenua2025!"
+        password_hash = hash_admin_password(default_password)
+        
+        # Delete old admin accounts
+        await db.admin_users.delete_many({})
+        
+        # Create new admin with bcrypt
+        admin = {
+            "admin_id": f"admin_{uuid.uuid4().hex[:12]}",
+            "email": ADMIN_EMAIL,
+            "password_hash": password_hash,
+            "hash_type": "bcrypt",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.admin_users.insert_one(admin)
+        
+        logger.info(f"Admin credentials reset with bcrypt")
+        return {"success": True, "message": f"Admin reset to {ADMIN_EMAIL} / NatiFenua2025!"}
+    except Exception as e:
+        logger.error(f"Error resetting admin: {e}")
+        return {"success": False, "error": str(e)}
 
 async def verify_admin_token(request: Request):
     """Verify admin token from Authorization header"""
