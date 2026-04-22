@@ -21,7 +21,7 @@ from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
 
 # Configuration
-CLAUDE_MODEL = "claude-sonnet-4-20250514"
+CLAUDE_MODEL = "claude-sonnet-4-6"
 MAX_TOKENS_OUT = 16000
 MAX_REACT_LOOPS = 12
 SESSION_WINDOW = 30
