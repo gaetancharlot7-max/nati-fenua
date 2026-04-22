@@ -8844,6 +8844,16 @@ async def download_playwright_config():
         media_type="text/plain"
     )
 
+@api_router.get("/download-nati-fenua-spec")
+async def download_nati_fenua_spec():
+    """Télécharger le test Nati Fenua"""
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        path="/app/frontend/tests/e2e/nati-fenua.spec.js",
+        filename="nati-fenua.spec.js",
+        media_type="text/plain"
+    )
+
 # Include router AFTER all routes are defined
 app.include_router(api_router)
 
