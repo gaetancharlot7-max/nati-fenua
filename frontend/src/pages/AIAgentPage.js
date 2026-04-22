@@ -59,6 +59,37 @@ const AIAgentPage = () => {
     toast.success('Historique effacé');
   };
 
+  // Fonction pour supprimer une session spécifique
+  const deleteSession = async (sid, e) => {
+    e?.stopPropagation(); // Empêcher de sélectionner la session
+    if (!window.confirm('Supprimer cette conversation ?')) return;
+    
+    try {
+      const res = await fetch(`${API}/api/ai/sessions/${sid}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        credentials: 'include'
+      });
+      
+      if (res.ok) {
+        toast.success('Conversation supprimée');
+        loadSessions();
+        if (sessionId === sid) {
+          setSessionId(null);
+          setMessages([{
+            role: 'assistant',
+            content: '👋 Conversation supprimée. Comment puis-je vous aider ?'
+          }]);
+        }
+      } else {
+        toast.error('Erreur lors de la suppression');
+      }
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      toast.error('Erreur de connexion');
+    }
+  };
+
   const loadSessions = async () => {
     try {
       const res = await fetch(`${API}/api/ai/sessions`, {
@@ -131,19 +162,26 @@ const AIAgentPage = () => {
 
       const data = await res.json();
       
-      if (data.success) {
+      // Vérifier si la réponse contient le champ 'response' (succès)
+      if (data.response) {
         setMessages(prev => [...prev, { 
           role: 'assistant', 
           content: data.response,
-          report: data.emergent_report
+          report: data.report || data.emergent_report
         }]);
         loadSessions();
-        if (data.emergent_report) loadEmergentReports();
-      } else {
-        toast.error(data.error || 'Erreur de communication avec l\'agent');
+        if (data.report || data.emergent_report) loadEmergentReports();
+      } else if (data.error) {
+        toast.error(data.error);
         setMessages(prev => [...prev, { 
           role: 'assistant', 
-          content: `Erreur: ${data.error || 'Impossible de communiquer avec l\'agent IA'}` 
+          content: `Erreur: ${data.error}` 
+        }]);
+      } else {
+        // Réponse inattendue mais pas une erreur
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: JSON.stringify(data) 
         }]);
       }
     } catch (error) {
@@ -386,22 +424,30 @@ const AIAgentPage = () => {
                     <p className="text-sm text-white/40 px-2">Aucune conversation</p>
                   ) : (
                     sessions.map((session) => (
-                      <button
+                      <div
                         key={session._id}
-                        onClick={() => loadSession(session._id)}
-                        className={`w-full text-left p-3 rounded-xl mb-1 transition-colors ${
+                        className={`relative group w-full text-left p-3 rounded-xl mb-1 transition-colors cursor-pointer ${
                           sessionId === session._id 
                             ? 'bg-gradient-to-r from-[#FF6B35]/20 to-[#FF1493]/20 border border-[#FF6B35]/30' 
                             : 'hover:bg-white/5'
                         }`}
+                        onClick={() => loadSession(session._id)}
                       >
-                        <p className="text-sm font-medium text-white truncate">
+                        <p className="text-sm font-medium text-white truncate pr-6">
                           {session.last_message?.slice(0, 35)}...
                         </p>
                         <p className="text-xs text-white/40 mt-1">
                           {session.message_count} messages
                         </p>
-                      </button>
+                        {/* Bouton supprimer */}
+                        <button
+                          onClick={(e) => deleteSession(session._id, e)}
+                          className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/20 text-red-400 transition-all"
+                          title="Supprimer cette conversation"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     ))
                   )}
                 </>
