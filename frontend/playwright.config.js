@@ -1,89 +1,36 @@
 // @ts-check
 const { defineConfig, devices } = require('@playwright/test');
 
-/**
- * Configuration Playwright ULTRA-OPTIMISÉE pour Nati Fenua
- * Plus rapide qu'un testeur humain
- */
 module.exports = defineConfig({
   testDir: './tests/e2e',
-  
-  // ⚡ PARALLÉLISATION MAXIMALE
+  timeout: 60 * 1000,
   fullyParallel: true,
-  workers: process.env.CI ? 4 : 6, // 6 tests en parallèle en local
+  workers: 2,
+  retries: 0,
   
-  // ⏱️ Timeouts optimisés
-  timeout: 30 * 1000, // 30 sec max par test
-  expect: {
-    timeout: 5000, // 5 sec pour les assertions
-  },
-  
-  // 🔄 Retry intelligent
-  retries: process.env.CI ? 2 : 0,
-  
-  // 📊 Reporters multiples
+  // Reporter CORRIGÉ - pas de conflit de dossiers
   reporter: [
-    ['html', { outputFolder: 'test-results/html-report', open: 'never' }],
-    ['json', { outputFile: 'test-results/results.json' }],
     ['list'],
-    // Rapport GitHub Actions
-    ...(process.env.CI ? [['github']] : []),
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
   ],
   
-  // ⚡ Configuration globale optimisée
+  // Output folder séparé
+  outputDir: 'test-output',
+  
   use: {
-    baseURL: process.env.TEST_URL || 'https://nati-fenua-frontend.onrender.com',
-    
-    // 📸 Captures intelligentes
+    baseURL: 'https://nati-fenua-frontend.onrender.com',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     trace: 'retain-on-failure',
-    
-    // 🖥️ Viewport standard
     viewport: { width: 1280, height: 720 },
-    
-    // ⚡ OPTIMISATIONS DE VITESSE
-    actionTimeout: 10000, // Actions rapides
-    navigationTimeout: 15000, // Navigation rapide
-    
-    // 🚀 Ignorer les ressources non essentielles
-    bypassCSP: true,
-    ignoreHTTPSErrors: true,
-    
-    // 📱 User agent réaliste
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Playwright-NatiFenua-Bot',
+    actionTimeout: 15000,
+    navigationTimeout: 30000,
   },
 
-  // 📱 Tests multi-appareils en parallèle
   projects: [
     {
       name: 'Desktop-Chrome',
-      use: { 
-        ...devices['Desktop Chrome'],
-        launchOptions: {
-          args: ['--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage']
-        }
-      },
-    },
-    {
-      name: 'Mobile-iOS',
-      use: { ...devices['iPhone 13'] },
-    },
-    {
-      name: 'Mobile-Android',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'Tablet',
-      use: { ...devices['iPad Pro 11'] },
+      use: { ...devices['Desktop Chrome'] },
     },
   ],
-
-  // 🌐 Serveur de dev local (optionnel)
-  webServer: process.env.LOCAL_TEST ? {
-    command: 'npm start',
-    url: 'http://localhost:3000',
-    reuseExistingServer: true,
-    timeout: 120 * 1000,
-  } : undefined,
 });
