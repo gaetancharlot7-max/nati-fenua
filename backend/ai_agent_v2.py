@@ -1,7 +1,7 @@
 """
 AGENT IA V2 NATI FENUA - CLAUDE SONNET
 Version: 2.0 - Principal Developer Mode
-Modele: Claude claude-sonnet-4-20250514
+Modele: Claude 3.5 Sonnet
 """
 
 import os
@@ -21,7 +21,7 @@ from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
 
 # Configuration
-CLAUDE_MODEL = "claude-sonnet-4-20250514"
+CLAUDE_MODEL = "claude-3-5-sonnet-20241022"
 MAX_TOKENS_OUT = 16000
 MAX_REACT_LOOPS = 12
 SESSION_WINDOW = 30

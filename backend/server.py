@@ -8854,6 +8854,16 @@ async def download_nati_fenua_spec():
         media_type="text/plain"
     )
 
+@api_router.get("/download-ai-agent-v2")
+async def download_ai_agent_v2_fixed():
+    """Télécharger ai_agent_v2.py corrigé"""
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        path="/app/backend/ai_agent_v2.py",
+        filename="ai_agent_v2.py",
+        media_type="text/plain"
+    )
+
 # Include router AFTER all routes are defined
 app.include_router(api_router)
 
