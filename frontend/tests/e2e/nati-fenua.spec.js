@@ -13,10 +13,10 @@ const NATI_FENUA = {
   messagesPage: '/messages',
   mapPage: '/map',
   
-  // Credentials de test
-  admin: {
-    email: 'admin@natifenua.pf',
-    password: 'NatiFenua2025!'
+  // Compte TEST créé pour Playwright
+  testAccount: {
+    email: 'playwright_test@natifenua.pf',
+    password: 'PlaywrightTest2025!'
   }
 };
 
@@ -52,7 +52,7 @@ const SELECTORS = {
 /**
  * Helper: Connexion rapide
  */
-async function login(page, credentials = NATI_FENUA.admin) {
+async function login(page, credentials = NATI_FENUA.testAccount) {
   await page.goto(NATI_FENUA.authPage);
   await page.waitForLoadState('networkidle');
   
@@ -130,13 +130,13 @@ test.describe('🔐 Authentification', () => {
     console.log('✅ Page de connexion chargée avec tous les champs');
   });
 
-  test('Connexion avec compte admin', async ({ page }) => {
+  test('Connexion avec compte test', async ({ page }) => {
     const success = await login(page);
     
     if (success) {
-      console.log('✅ Connexion admin réussie');
+      console.log('✅ Connexion test réussie');
     } else {
-      console.log('⚠️ Connexion admin - vérifier les credentials');
+      console.log('⚠️ Connexion test - vérifier les credentials');
     }
     
     expect(success).toBeTruthy();
@@ -146,7 +146,7 @@ test.describe('🔐 Authentification', () => {
     await page.goto(NATI_FENUA.authPage);
     await page.waitForLoadState('networkidle');
     
-    await page.fill(SELECTORS.emailInput, NATI_FENUA.admin.email);
+    await page.fill(SELECTORS.emailInput, NATI_FENUA.testAccount.email);
     await page.fill(SELECTORS.passwordInput, 'MauvaisMotDePasse123!');
     await page.click(SELECTORS.loginButton);
     
