@@ -224,15 +224,23 @@ const AIAgentPage = () => {
 
       const data = await res.json();
       
-      if (data.success) {
+      // v2 API returns { response, session_id, report, ... }
+      if (data.response) {
         setMessages(prev => [...prev, { 
           role: 'assistant', 
           content: data.response,
-          report: data.emergent_report
+          report: data.report || data.emergent_report
         }]);
-        if (data.emergent_report) loadEmergentReports();
+        if (data.report || data.emergent_report) loadEmergentReports();
+        loadSessions();
+      } else if (data.error) {
+        toast.error(data.error);
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: `Erreur: ${data.error}` 
+        }]);
       } else {
-        toast.error(data.error || 'Erreur lors de l\'audit');
+        toast.error('Reponse inattendue de l\'audit');
       }
     } catch (error) {
       console.error('Error:', error);

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone, Shield, Settings, LogOut, ChevronUp, MapPin, Truck, Music, Volume2, VolumeX, Users } from 'lucide-react';
+import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone, Shield, Settings, LogOut, ChevronUp, MapPin, Truck, Music, Volume2, VolumeX, Users, Sun, Moon } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -8,6 +8,23 @@ import NotificationBell from '../NotificationBell';
 import NotificationPrompt from '../NotificationPrompt';
 import { useUnreadMessages } from '../../hooks/useUnreadMessages';
 import soundManager from '../../lib/soundManager';
+
+// Theme Toggle Button - light/dark switcher
+const ThemeToggleButton = ({ isDark, onClick, compact = false }) => (
+  <button
+    onClick={onClick}
+    data-testid="theme-toggle-btn"
+    aria-label={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
+    title={isDark ? 'Mode clair' : 'Mode sombre'}
+    className={`${compact ? 'p-2' : 'p-2.5'} rounded-xl transition-all ${
+      isDark
+        ? 'bg-white/10 hover:bg-white/20 text-yellow-300'
+        : 'bg-gray-100 hover:bg-gray-200 text-[#1A1A2E]'
+    }`}
+  >
+    {isDark ? <Sun size={compact ? 20 : 22} strokeWidth={1.5} /> : <Moon size={compact ? 20 : 22} strokeWidth={1.5} />}
+  </button>
+);
 
 // Nati Fenua Logo Component - Logo personnalisé SVG
 const NatiFenuaLogo = ({ size = 'md' }) => {
@@ -32,7 +49,7 @@ const MainLayout = ({ children, hideNav = false }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { isDark } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
   const { unreadCount } = useUnreadMessages();
@@ -281,12 +298,12 @@ const MainLayout = ({ children, hideNav = false }) => {
       </aside>
 
       {/* Desktop Top Bar */}
-      <header className="hidden lg:flex fixed top-0 left-72 right-72 h-16 bg-white/80 backdrop-blur-xl border-b border-gray-100 z-30 items-center justify-between px-6">
+      <header className={`hidden lg:flex fixed top-0 left-72 right-72 h-16 backdrop-blur-xl border-b z-30 items-center justify-between px-6 ${isDark ? 'bg-[#1A1A2E]/80 border-white/10' : 'bg-white/80 border-gray-100'}`}>
         <div className="flex-1 max-w-lg">
           <Link 
             to="/search"
             data-testid="search-bar"
-            className="flex items-center gap-3 w-full px-5 py-2.5 bg-gray-100 rounded-2xl text-gray-500 hover:bg-gray-200 transition-all"
+            className={`flex items-center gap-3 w-full px-5 py-2.5 rounded-2xl transition-all ${isDark ? 'bg-white/10 text-white/60 hover:bg-white/15' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
           >
             <Search size={20} strokeWidth={1.5} />
             <span>Rechercher sur Nati Fenua...</span>
@@ -294,14 +311,15 @@ const MainLayout = ({ children, hideNav = false }) => {
         </div>
         
         <div className="flex items-center gap-3">
+          <ThemeToggleButton isDark={isDark} onClick={toggleTheme} />
           <NotificationBell />
         </div>
       </header>
 
       {/* Desktop Right Sidebar */}
-      <aside className="hidden lg:flex fixed right-0 top-0 bottom-0 w-72 flex-col bg-white/80 backdrop-blur-xl border-l border-gray-100 z-40">
-        <div className="p-6 border-b border-gray-100">
-          <h3 className="text-lg font-bold text-[#1A1A2E]">Raccourcis</h3>
+      <aside className={`hidden lg:flex fixed right-0 top-0 bottom-0 w-72 flex-col backdrop-blur-xl border-l z-40 ${isDark ? 'bg-[#1A1A2E]/95 border-white/10' : 'bg-white/80 border-gray-100'}`}>
+        <div className={`p-6 border-b ${isDark ? 'border-white/10' : 'border-gray-100'}`}>
+          <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-[#1A1A2E]'}`}>Raccourcis</h3>
         </div>
         
         <div className="p-4 space-y-2">
@@ -312,7 +330,7 @@ const MainLayout = ({ children, hideNav = false }) => {
             className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
               location.pathname === '/profile' 
                 ? 'bg-gradient-to-r from-[#FF6B35]/10 to-[#00CED1]/10 text-[#FF6B35] font-semibold' 
-                : 'text-[#1A1A2E] hover:bg-gray-100'
+                : isDark ? 'text-white hover:bg-white/10' : 'text-[#1A1A2E] hover:bg-gray-100'
             }`}
           >
             <User size={24} strokeWidth={1.5} />
@@ -326,18 +344,18 @@ const MainLayout = ({ children, hideNav = false }) => {
             className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
               location.pathname === '/vendor/dashboard' 
                 ? 'bg-gradient-to-r from-[#FF6B35]/10 to-[#00CED1]/10 text-[#FF6B35] font-semibold' 
-                : 'text-[#1A1A2E] hover:bg-gray-100'
+                : isDark ? 'text-white hover:bg-white/10' : 'text-[#1A1A2E] hover:bg-gray-100'
             }`}
           >
             <Truck size={24} strokeWidth={1.5} />
             <span>Ma Roulotte</span>
           </Link>
 
-          <div className="pt-4 border-t border-gray-100">
-            <p className="px-4 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Suggestions</p>
+          <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-gray-100'}`}>
+            <p className={`px-4 mb-2 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Suggestions</p>
             <div className="space-y-2">
               {/* Suggested users placeholder */}
-              <div className="px-4 py-2 text-sm text-gray-500">
+              <div className={`px-4 py-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 Découvrez des créateurs polynésiens
               </div>
             </div>
@@ -345,11 +363,11 @@ const MainLayout = ({ children, hideNav = false }) => {
         </div>
 
         {/* Footer */}
-        <div className="mt-auto p-4 border-t border-gray-100">
-          <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs text-gray-400">
-            <Link to="/legal" className="hover:text-gray-600">CGU</Link>
+        <div className={`mt-auto p-4 border-t ${isDark ? 'border-white/10' : 'border-gray-100'}`}>
+          <div className={`flex flex-wrap gap-x-2 gap-y-1 text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+            <Link to="/legal" className={isDark ? 'hover:text-gray-300' : 'hover:text-gray-600'}>CGU</Link>
             <span>·</span>
-            <Link to="/legal#privacy" className="hover:text-gray-600">Confidentialité</Link>
+            <Link to="/legal#privacy" className={isDark ? 'hover:text-gray-300' : 'hover:text-gray-600'}>Confidentialité</Link>
             <span>·</span>
             <span>© 2024 Nati Fenua</span>
           </div>
@@ -357,7 +375,7 @@ const MainLayout = ({ children, hideNav = false }) => {
       </aside>
 
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-14 glass z-30 flex items-center justify-between px-4">
+      <header className={`lg:hidden fixed top-0 left-0 right-0 h-14 backdrop-blur-xl border-b z-30 flex items-center justify-between px-4 ${isDark ? 'bg-[#1A1A2E]/95 border-white/10' : 'bg-white/90 border-gray-100'}`}>
         <Link to="/feed" className="flex items-center gap-2">
           <NatiFenuaLogo size="sm" />
           <h1 className="text-xl font-black">
@@ -366,16 +384,17 @@ const MainLayout = ({ children, hideNav = false }) => {
         </Link>
         
         <div className="flex items-center gap-1">
-          <Link to="/chat" className="relative p-2 rounded-xl hover:bg-gray-100">
-            <MessageCircle size={22} strokeWidth={1.5} className="text-[#1A1A2E]" />
+          <ThemeToggleButton isDark={isDark} onClick={toggleTheme} compact />
+          <Link to="/chat" className={`relative p-2 rounded-xl ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}>
+            <MessageCircle size={22} strokeWidth={1.5} className={isDark ? 'text-white' : 'text-[#1A1A2E]'} />
             {unreadCount > 0 && (
               <span className="absolute top-0 right-0 min-w-[16px] h-4 px-1 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
           </Link>
-          <Link to="/search" className="p-2 rounded-xl hover:bg-gray-100">
-            <Search size={22} strokeWidth={1.5} className="text-[#1A1A2E]" />
+          <Link to="/search" className={`p-2 rounded-xl ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}>
+            <Search size={22} strokeWidth={1.5} className={isDark ? 'text-white' : 'text-[#1A1A2E]'} />
           </Link>
           <NotificationBell />
         </div>
@@ -391,7 +410,7 @@ const MainLayout = ({ children, hideNav = false }) => {
         <motion.nav 
           initial={{ y: 100 }}
           animate={{ y: 0 }}
-          className="lg:hidden fixed bottom-0 left-0 right-0 glass z-50"
+          className={`lg:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl border-t ${isDark ? 'bg-[#1A1A2E]/95 border-white/10' : 'bg-white/90 border-gray-100'}`}
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           <div className="flex items-center justify-around py-2">
@@ -418,7 +437,7 @@ const MainLayout = ({ children, hideNav = false }) => {
                   to={item.path}
                   data-testid={`mobile-nav-${item.label.toLowerCase()}`}
                   className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all ${
-                    isActive ? 'text-[#FF6B35]' : 'text-[#1A1A2E]'
+                    isActive ? 'text-[#FF6B35]' : isDark ? 'text-white' : 'text-[#1A1A2E]'
                   }`}
                 >
                   <div className="relative">

@@ -870,6 +870,7 @@ async def run_audit(req: AuditRequest):
         "security": "Audit securite OWASP Top 10 complet. security_scan sur backend/ et frontend/src/. Cherche secrets hardcodes et CVE. Rapport JSON.",
         "performance": "Analyse performance. N+1 MongoDB, endpoints sans pagination, lazy loading React. performance_profile sur backend/ et frontend/src/.",
         "code_quality": "Audit qualite code. analyze_code_quality sur backend/ et frontend/src/. Type hints, PropTypes, DRY, try/catch.",
+        "accessibility": "Audit accessibilite WCAG 2.1 AA complet. Analyse les composants frontend/src/ : attributs aria-*, alt sur images, labels sur inputs, contraste couleurs, navigation clavier, roles semantiques. Rapport JSON avec score /100 et liste des ameliorations prioritaires.",
         "full_app": "Audit COMPLET : 1) list_directory 2) security_scan 3) performance_profile 4) analyze_code_quality. Rapport JSON avec score /100 et roadmap priorisee."
     }
     target = f" Focus : {req.target_path}" if req.target_path else ""
