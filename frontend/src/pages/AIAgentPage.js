@@ -19,7 +19,13 @@ const AIAgentPage = () => {
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const [sessions, setSessions] = useState([]);
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [showSidebar, setShowSidebar] = useState(() => {
+    // Sidebar closed by default on mobile, open on desktop
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 768;
+    }
+    return true;
+  });
   const [copiedIndex, setCopiedIndex] = useState(null);
   const [adminEmail, setAdminEmail] = useState('admin');
   const [activeTab, setActiveTab] = useState('chat');
@@ -355,7 +361,14 @@ const AIAgentPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F0F1A] via-[#1A1A2E] to-[#16213E] flex">
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-[#0F0F1A] via-[#1A1A2E] to-[#16213E] flex relative">
+      {/* Mobile backdrop when sidebar is open */}
+      {showSidebar && (
+        <div
+          onClick={() => setShowSidebar(false)}
+          className="md:hidden fixed inset-0 bg-black/50 z-20"
+        />
+      )}
       {/* Sidebar */}
       <AnimatePresence>
         {showSidebar && (
@@ -363,7 +376,7 @@ const AIAgentPage = () => {
             initial={{ x: -300, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -300, opacity: 0 }}
-            className="w-80 bg-[#0D0D15] border-r border-white/10 flex flex-col"
+            className="w-72 md:w-80 bg-[#0D0D15] border-r border-white/10 flex flex-col flex-shrink-0 h-full fixed md:relative z-30 md:z-auto"
           >
             {/* Header */}
             <div className="p-4 border-b border-white/10 space-y-2">
@@ -534,30 +547,32 @@ const AIAgentPage = () => {
       </AnimatePresence>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="bg-[#0D0D15]/80 backdrop-blur-xl border-b border-white/10 p-4 flex items-center gap-4">
+      <div className="flex-1 flex flex-col h-full min-w-0">
+        {/* Header - FIXED */}
+        <div className="bg-[#0D0D15]/80 backdrop-blur-xl border-b border-white/10 p-3 sm:p-4 flex items-center gap-2 sm:gap-4 flex-shrink-0">
           <button
             onClick={() => setShowSidebar(!showSidebar)}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
           >
             <ChevronLeft size={20} className={`text-white transition-transform ${!showSidebar ? 'rotate-180' : ''}`} />
           </button>
           
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493] flex items-center justify-center shadow-lg shadow-[#FF6B35]/20">
-              <Bot size={28} className="text-white" />
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493] flex items-center justify-center shadow-lg shadow-[#FF6B35]/20 flex-shrink-0">
+              <Bot size={24} className="text-white sm:hidden" />
+              <Bot size={28} className="text-white hidden sm:block" />
             </div>
-            <div>
-              <h1 className="font-bold text-white text-lg">Agent IA Master Developer</h1>
-              <p className="text-xs text-white/50">Expert Full-Stack • Audit • Debug • Code Gen</p>
+            <div className="min-w-0">
+              <h1 className="font-bold text-white text-sm sm:text-lg truncate">Agent IA Master Developer</h1>
+              <p className="text-xs text-white/50 hidden sm:block">Expert Full-Stack • Audit • Debug • Code Gen</p>
             </div>
           </div>
           
-          <div className="ml-auto flex items-center gap-3">
-            <span className="px-3 py-1.5 bg-green-500/20 text-green-400 rounded-full text-xs font-medium flex items-center gap-1.5">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <span className="px-2 sm:px-3 py-1 sm:py-1.5 bg-green-500/20 text-green-400 rounded-full text-xs font-medium flex items-center gap-1.5">
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-              GPT-4o Actif
+              <span className="hidden sm:inline">GPT-4o Actif</span>
+              <span className="sm:hidden">Actif</span>
             </span>
             <button
               onClick={loadEmergentReports}
@@ -569,8 +584,8 @@ const AIAgentPage = () => {
           </div>
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Messages - SCROLLABLE ONLY INSIDE */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 min-h-0">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center">
               <div className="w-24 h-24 rounded-3xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493] flex items-center justify-center mb-8 shadow-2xl shadow-[#FF6B35]/30">
@@ -680,28 +695,28 @@ const AIAgentPage = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
-        <div className="p-4 bg-[#0D0D15]/80 backdrop-blur-xl border-t border-white/10">
-          <form onSubmit={sendMessage} className="flex gap-3">
+        {/* Input Area - FIXED at bottom */}
+        <div className="p-3 sm:p-4 bg-[#0D0D15]/80 backdrop-blur-xl border-t border-white/10 flex-shrink-0">
+          <form onSubmit={sendMessage} className="flex gap-2 sm:gap-3">
             <div className="flex-1 relative">
               <Input
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Decris ton probleme, demande un audit ou genere du code..."
-                className="w-full bg-white/5 border-white/10 focus:border-[#FF6B35] rounded-xl py-6 pl-4 pr-12 text-white placeholder:text-white/30"
+                className="w-full bg-white/5 border-white/10 focus:border-[#FF6B35] rounded-xl py-5 sm:py-6 pl-4 pr-12 text-white placeholder:text-white/30 text-sm sm:text-base"
                 disabled={loading}
               />
             </div>
             <Button
               type="submit"
               disabled={loading || !input.trim()}
-              className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl px-8 py-6 font-semibold"
+              className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl px-4 sm:px-8 py-5 sm:py-6 font-semibold flex-shrink-0"
             >
               {loading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
             </Button>
           </form>
-          <p className="text-xs text-white/30 text-center mt-3">
+          <p className="text-xs text-white/30 text-center mt-2 sm:mt-3 hidden sm:block">
             Agent Master Developer • GPT-4o • Rapports Emergent automatiques
           </p>
         </div>
