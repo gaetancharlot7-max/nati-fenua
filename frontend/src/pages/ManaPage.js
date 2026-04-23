@@ -117,6 +117,30 @@ const createUserIcon = () => {
 };
 
 // Map Controller Component
+// Computes a bounding box around each island from its (lat, lng, zoom) and
+// uses fitBounds so the whole island fits on screen (regardless of device size).
+const ISLAND_RADIUS_BY_ZOOM = {
+  // approximate visible half-width in degrees for a reasonable "fit island" view
+  7: 3.5,  // archipelagos (Tuamotu)
+  8: 2.0,
+  9: 1.0,
+  10: 0.5,
+  11: 0.18,  // Tahiti
+  12: 0.09,  // Moorea, Huahine
+  13: 0.05,  // Bora Bora
+  14: 0.025, // Maupiti
+  15: 0.012,
+};
+
+const computeIslandBounds = (island) => {
+  const z = island.zoom || 12;
+  const r = ISLAND_RADIUS_BY_ZOOM[z] || 0.08;
+  return [
+    [island.lat - r, island.lng - r],
+    [island.lat + r, island.lng + r],
+  ];
+};
+
 const MapController = ({ selectedIsland, islands, userLocation }) => {
   const map = useMap();
   
@@ -124,7 +148,14 @@ const MapController = ({ selectedIsland, islands, userLocation }) => {
     if (selectedIsland && islands.length > 0) {
       const island = islands.find(i => i.id === selectedIsland);
       if (island) {
-        map.setView([island.lat, island.lng], island.zoom);
+        // Ensure map knows its current size (fixes fitBounds after container resize)
+        try { map.invalidateSize(); } catch {}
+        const bounds = computeIslandBounds(island);
+        map.fitBounds(bounds, {
+          padding: [20, 20],
+          maxZoom: (island.zoom || 12) + 1,
+          animate: true,
+        });
       }
     }
   }, [selectedIsland, islands, map]);
