@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Heart, MessageCircle, UserPlus, Film, Image, Radio, X, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -6,12 +6,14 @@ import { notificationsApi } from '../lib/api';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import soundManager from '../lib/soundManager';
 
 const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const previousCountRef = useRef(null);
 
   useEffect(() => {
     fetchUnreadCount();
@@ -22,7 +24,17 @@ const NotificationBell = () => {
   const fetchUnreadCount = async () => {
     try {
       const response = await notificationsApi.getUnreadCount();
-      setUnreadCount(response.data.count);
+      const newCount = response.data.count;
+      // Play sound when a NEW notification arrives (not on first load)
+      if (previousCountRef.current !== null && newCount > previousCountRef.current) {
+        try {
+          soundManager.playNotification();
+        } catch (e) {
+          // sound may fail silently (browser policy)
+        }
+      }
+      previousCountRef.current = newCount;
+      setUnreadCount(newCount);
     } catch (error) {
       console.error('Error fetching unread count:', error);
     }

@@ -676,9 +676,6 @@ const FeedPage = () => {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 safe-bottom">
-      {/* PWA Install Banner */}
-      <PWAInstallBannerCompact />
-      
       {/* Stories Section */}
       <div className="mb-8">
         <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-4">

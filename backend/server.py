@@ -1660,8 +1660,14 @@ async def get_posts(
         except:
             pass  # Invalid cursor, ignore
     
-    # Cache key based on cursor (not skip)
-    cache_key = f"smart_feed:{limit}:{cursor or 'start'}:{user_id or 'anon'}"
+    # Cache key based on cursor (not skip). For the first page we add a small time-bucket
+    # so that different visits over time get different shuffled orders.
+    if cursor:
+        cache_key = f"smart_feed:{limit}:{cursor}:{user_id or 'anon'}"
+    else:
+        import time as _time
+        bucket = int(_time.time() / 30)  # bucket every 30 seconds
+        cache_key = f"smart_feed:{limit}:start:{user_id or 'anon'}:{bucket}"
     
     # Try cache first (shorter TTL for fresh content)
     cached = await cache.get(cache_key)
@@ -1764,6 +1770,21 @@ async def get_posts(
     user_posts_sorted = sorted(user_posts, key=lambda x: x.get('created_at', ''), reverse=True)
     rss_posts_sorted = sorted(rss_posts, key=lambda x: x.get('created_at', ''), reverse=True)
     
+    # On FIRST page (no cursor): shuffle the top recent posts so feed varies each open
+    # while still bubbling up recent content. We keep the newest ~5 pinned at top for freshness,
+    # then shuffle the rest of the window to avoid "same feed every time".
+    if not cursor:
+        if len(user_posts_sorted) > 5:
+            head = user_posts_sorted[:5]
+            tail = user_posts_sorted[5:]
+            random.shuffle(tail)
+            user_posts_sorted = head + tail
+        if len(rss_posts_sorted) > 3:
+            head_r = rss_posts_sorted[:3]
+            tail_r = rss_posts_sorted[3:]
+            random.shuffle(tail_r)
+            rss_posts_sorted = head_r + tail_r
+    
     # Interleave: 2-3 user posts, then 1 RSS post (prioritizing users)
     u_idx, r_idx = 0, 0
     while len(mixed_posts) < limit and (u_idx < len(user_posts_sorted) or r_idx < len(rss_posts_sorted)):
@@ -1795,8 +1816,9 @@ async def get_posts(
         for post in mixed_posts:
             post['_cursor'] = f"{post.get('created_at', '')}:{post.get('post_id', '')}"
     
-    # Cache for 2 minutes
-    await cache.set(cache_key, mixed_posts, ttl=120)
+    # Cache for 2 minutes for paginated pages, 30s for first page (fresher variation)
+    cache_ttl = 30 if not cursor else 120
+    await cache.set(cache_key, mixed_posts, ttl=cache_ttl)
     
     logger.info(f"Smart feed: {len(user_posts)} user + {len(rss_posts)} RSS = {len(mixed_posts)} mixed (cursor: {cursor})")
     return mixed_posts

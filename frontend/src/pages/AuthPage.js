@@ -14,6 +14,7 @@ const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -36,6 +37,10 @@ const AuthPage = () => {
 
     try {
       if (isLogin) {
+        // Store remember-me preference before login
+        try {
+          localStorage.setItem('nati_remember_me', rememberMe ? '1' : '0');
+        } catch {}
         await login(formData.email, formData.password);
         toast.success('Ia ora na ! Connexion réussie');
         
@@ -232,7 +237,17 @@ const AuthPage = () => {
               </div>
 
               {isLogin && (
-                <div className="text-right">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-[#1A1A2E]">
+                    <input
+                      type="checkbox"
+                      data-testid="remember-me-checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 accent-[#FF6B35] cursor-pointer"
+                    />
+                    <span>Rester connecté</span>
+                  </label>
                   <a 
                     href="/forgot-password" 
                     className="text-sm text-[#FF6B35] hover:underline"

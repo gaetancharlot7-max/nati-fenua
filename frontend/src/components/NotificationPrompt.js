@@ -7,6 +7,7 @@ import {
   registerTokenWithBackend,
   onForegroundMessage 
 } from '../lib/firebase';
+import soundManager from '../lib/soundManager';
 
 const NotificationPrompt = () => {
   const { user, token: authToken } = useAuth();
@@ -52,6 +53,11 @@ const NotificationPrompt = () => {
     if (!notificationsEnabled) return;
     
     const unsubscribe = onForegroundMessage((payload) => {
+      // Play notification sound when a push arrives while app is open
+      try {
+        soundManager.playNotification();
+      } catch {}
+      
       // Show toast for foreground messages
       const title = payload.notification?.title || 'Nati Fenua';
       const body = payload.notification?.body || '';

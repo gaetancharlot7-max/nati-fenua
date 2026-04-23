@@ -20,22 +20,30 @@ const isIOSPWA = () => {
          (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
 };
 
-// Get stored session token from localStorage
+// Get stored session token (checks both localStorage + sessionStorage)
 const getStoredToken = () => {
   try {
-    return localStorage.getItem('nati_session_token');
+    return localStorage.getItem('nati_session_token') || sessionStorage.getItem('nati_session_token');
   } catch {
     return null;
   }
 };
 
-// Store session token in localStorage
+// Store session token - uses localStorage for "remember me", sessionStorage otherwise
 const storeToken = (token) => {
   try {
+    const remember = localStorage.getItem('nati_remember_me') !== '0';
     if (token) {
-      localStorage.setItem('nati_session_token', token);
+      if (remember) {
+        localStorage.setItem('nati_session_token', token);
+        sessionStorage.removeItem('nati_session_token');
+      } else {
+        sessionStorage.setItem('nati_session_token', token);
+        localStorage.removeItem('nati_session_token');
+      }
     } else {
       localStorage.removeItem('nati_session_token');
+      sessionStorage.removeItem('nati_session_token');
     }
   } catch {
     // localStorage not available
