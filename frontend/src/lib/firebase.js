@@ -47,13 +47,13 @@ export const requestNotificationPermission = async () => {
     }
 
     // Check current permission
-    if (Notification.permission === 'denied') {
+    if (window.Notification.permission === 'denied') {
       console.log('Notifications are blocked');
       return { permission: 'denied', token: null };
     }
 
     // Request permission
-    const permission = await Notification.requestPermission();
+    const permission = await window.Notification.requestPermission();
     
     if (permission !== 'granted') {
       console.log('Notification permission not granted');

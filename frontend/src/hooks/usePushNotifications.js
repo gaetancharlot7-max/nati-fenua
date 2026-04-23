@@ -8,12 +8,25 @@ import { toast } from 'sonner';
 
 // Check if push notifications are supported
 const isPushSupported = () => {
-  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  return typeof window !== 'undefined'
+    && 'serviceWorker' in navigator
+    && 'PushManager' in window
+    && 'Notification' in window;
+};
+
+// Safe accessor for Notification.permission (iOS Safari has no Notification object)
+const getInitialPermission = () => {
+  try {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      return window.Notification.permission;
+    }
+  } catch {}
+  return 'default';
 };
 
 export const usePushNotifications = () => {
   const { user } = useAuth();
-  const [permission, setPermission] = useState(Notification.permission);
+  const [permission, setPermission] = useState(getInitialPermission());
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -43,7 +56,7 @@ export const usePushNotifications = () => {
 
     setLoading(true);
     try {
-      const result = await Notification.requestPermission();
+      const result = await window.Notification.requestPermission();
       setPermission(result);
 
       if (result === 'granted') {

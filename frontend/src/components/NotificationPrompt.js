@@ -23,13 +23,13 @@ const NotificationPrompt = () => {
     if (!('Notification' in window)) return;
     
     // Check if already granted
-    if (Notification.permission === 'granted') {
+    if (window.Notification.permission === 'granted') {
       setNotificationsEnabled(true);
       return;
     }
     
     // Check if already denied
-    if (Notification.permission === 'denied') return;
+    if (window.Notification.permission === 'denied') return;
     
     // Check if user has dismissed the prompt before
     const dismissed = localStorage.getItem('notification-prompt-dismissed');
