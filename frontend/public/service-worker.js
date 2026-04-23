@@ -1,7 +1,8 @@
 // Nati Fenua - Service Worker for Offline Mode
-const CACHE_NAME = 'nati-fenua-v2';
-const STATIC_CACHE = 'nati-static-v2';
-const DATA_CACHE = 'nati-data-v2';
+// BUMPED to v3 to force refresh on all iOS devices (fix blank page issue)
+const CACHE_NAME = 'nati-fenua-v3';
+const STATIC_CACHE = 'nati-static-v3';
+const DATA_CACHE = 'nati-data-v3';
 
 // Static assets to cache immediately
 const STATIC_ASSETS = [
@@ -36,6 +37,13 @@ self.addEventListener('install', (event) => {
       .then(() => self.skipWaiting())
       .catch((err) => console.log('[SW] Cache error:', err))
   );
+});
+
+// Listen for messages from client (e.g. SKIP_WAITING to force activation)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Activate event - clean old caches
