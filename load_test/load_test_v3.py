@@ -19,7 +19,7 @@ import psutil
 import os
 
 # Configuration
-BASE_URL = os.environ.get('TEST_URL', 'https://fenua-connect.preview.emergentagent.com')
+BASE_URL = os.environ.get('TEST_URL', 'https://fenua-chat-debug.preview.emergentagent.com')
 API_URL = f"{BASE_URL}/api"
 
 # Test credentials

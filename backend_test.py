@@ -4,7 +4,7 @@ from datetime import datetime
 import json
 
 class FenuaSocialAPITester:
-    def __init__(self, base_url="https://fenua-connect.preview.emergentagent.com"):
+    def __init__(self, base_url="https://fenua-chat-debug.preview.emergentagent.com"):
         self.base_url = base_url
         self.session_token = None
         self.user_id = None

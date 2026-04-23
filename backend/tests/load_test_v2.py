@@ -19,7 +19,7 @@ from collections import defaultdict
 import sys
 
 # Configuration
-API_URL = "https://fenua-connect.preview.emergentagent.com/api"
+API_URL = "https://fenua-chat-debug.preview.emergentagent.com/api"
 NUM_BOTS = 200
 BATCH_SIZE = 25  # Bots par batch
 MAX_CONCURRENT = 50  # Connexions simultanées max

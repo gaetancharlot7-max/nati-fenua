@@ -7,7 +7,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://fenua-connect.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://fenua-chat-debug.preview.emergentagent.com')
 
 # Test credentials
 TEST_USER_EMAIL = "user1@test.com"

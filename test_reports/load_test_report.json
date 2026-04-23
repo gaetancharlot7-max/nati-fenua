@@ -3,7 +3,7 @@
     "date": "2026-03-14T00:17:11.748910",
     "duration_seconds": 19.43,
     "num_bots": 200,
-    "api_url": "https://fenua-connect.preview.emergentagent.com/api"
+    "api_url": "https://fenua-chat-debug.preview.emergentagent.com/api"
   },
   "summary": {
     "total_requests": 530,

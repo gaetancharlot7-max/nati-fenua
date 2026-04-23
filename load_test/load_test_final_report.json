@@ -1,6 +1,6 @@
 {
   "date": "2026-03-28T20:33:32.962310",
-  "url": "https://fenua-connect.preview.emergentagent.com",
+  "url": "https://fenua-chat-debug.preview.emergentagent.com",
   "total_requests": 15775,
   "overall_real_error_rate": 25.2,
   "degradation_threshold": 5,

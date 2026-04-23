@@ -10,7 +10,7 @@ from datetime import datetime
 import json
 
 # Configuration
-BASE_URL = "https://fenua-connect.preview.emergentagent.com/api"
+BASE_URL = "https://fenua-chat-debug.preview.emergentagent.com/api"
 TOTAL_REQUESTS = 500
 CONCURRENT_USERS = [10, 50, 100, 200, 500]
 

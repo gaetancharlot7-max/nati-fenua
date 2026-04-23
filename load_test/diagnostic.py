@@ -9,7 +9,7 @@ import time
 import json
 from datetime import datetime
 
-BASE_URL = "https://fenua-connect.preview.emergentagent.com"
+BASE_URL = "https://fenua-chat-debug.preview.emergentagent.com"
 API_URL = f"{BASE_URL}/api"
 
 # All public endpoints to test

@@ -2,7 +2,7 @@
 ## Application Nati Fenua - Test de Charge
 
 **Date :** 28 Mars 2026  
-**Environnement testé :** Preview Emergent (https://fenua-connect.preview.emergentagent.com)  
+**Environnement testé :** Preview Emergent (https://fenua-chat-debug.preview.emergentagent.com)  
 **Durée totale du test :** ~4 minutes (6 paliers)
 
 ---

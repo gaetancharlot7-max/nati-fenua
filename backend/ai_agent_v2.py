@@ -892,8 +892,9 @@ async def get_history(session_id: str, limit: int = 20):
     docs = await db.ai_conversations.find({"session_id": session_id}).sort("created_at", -1).limit(limit).to_list(limit)
     for d in docs:
         d["_id"] = str(d["_id"])
-        if d.get("created_at"):
-            d["created_at"] = d["created_at"].isoformat()
+        ca = d.get("created_at")
+        if ca and hasattr(ca, "isoformat"):
+            d["created_at"] = ca.isoformat()
     return {"session_id": session_id, "messages": list(reversed(docs))}
 
 
@@ -905,8 +906,9 @@ async def get_memory(category: str = None, limit: int = 20):
     docs = await db.ai_long_term_memory.find(fq).sort("created_at", -1).limit(limit).to_list(limit)
     for d in docs:
         d["_id"] = str(d["_id"])
-        if d.get("created_at"):
-            d["created_at"] = d["created_at"].isoformat()
+        ca = d.get("created_at")
+        if ca and hasattr(ca, "isoformat"):
+            d["created_at"] = ca.isoformat()
     return {"memories": docs, "count": len(docs)}
 
 
@@ -915,12 +917,21 @@ async def get_reports(limit: int = 50):
     """Recuperer les rapports generes"""
     db = get_db()
     docs = await db.ai_conversations.find({"emergent_report": {"$ne": None}}).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    def _serialize_date(v):
+        """Handle both datetime and string created_at values"""
+        if not v:
+            return ""
+        if hasattr(v, "isoformat"):
+            return v.isoformat()
+        return str(v)
+    
     return {
         "reports": [
             {
                 "session_id": d.get("session_id"),
                 "report": d["emergent_report"],
-                "created_at": d.get("created_at", "").isoformat() if d.get("created_at") else ""
+                "created_at": _serialize_date(d.get("created_at"))
             }
             for d in docs if d.get("emergent_report")
         ]

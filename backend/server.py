@@ -181,7 +181,7 @@ else:
         "https://nati-fenua.com",
         "https://www.nati-fenua.com",
         "https://nati-fenua-frontend.onrender.com",
-        "https://fenua-connect.preview.emergentagent.com",
+        "https://fenua-chat-debug.preview.emergentagent.com",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
     ]
@@ -1225,7 +1225,7 @@ async def request_password_reset(request: Request):
     })
     
     # Get frontend URL for reset link
-    frontend_url = os.environ.get("REACT_APP_BACKEND_URL", "https://fenua-connect.preview.emergentagent.com")
+    frontend_url = os.environ.get("REACT_APP_BACKEND_URL", "https://fenua-chat-debug.preview.emergentagent.com")
     reset_link = f"{frontend_url}/reset-password?token={token}"
     
     # Send email via Resend

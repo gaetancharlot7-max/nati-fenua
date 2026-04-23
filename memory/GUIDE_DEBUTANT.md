@@ -28,9 +28,9 @@
 
 | Fichier | Lien | Usage |
 |---------|------|-------|
-| **Logo 512x512** | [Télécharger](https://fenua-connect.preview.emergentagent.com/logo-playstore.html) | Icône de l'app |
-| **Drapeau PNG** | [Télécharger](https://fenua-connect.preview.emergentagent.com/icons/drapeau-polynesie.png) | Si besoin |
-| **Charte graphique** | [Télécharger PDF](https://fenua-connect.preview.emergentagent.com/charte-graphique.html) | Référence |
+| **Logo 512x512** | [Télécharger](https://fenua-chat-debug.preview.emergentagent.com/logo-playstore.html) | Icône de l'app |
+| **Drapeau PNG** | [Télécharger](https://fenua-chat-debug.preview.emergentagent.com/icons/drapeau-polynesie.png) | Si besoin |
+| **Charte graphique** | [Télécharger PDF](https://fenua-chat-debug.preview.emergentagent.com/charte-graphique.html) | Référence |
 
 ### Screenshots à créer :
 

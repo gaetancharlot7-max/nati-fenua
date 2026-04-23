@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // IMPORTANT: Remplacez par votre URL de production
-const API_URL = 'https://fenua-connect.preview.emergentagent.com/api';
+const API_URL = 'https://fenua-chat-debug.preview.emergentagent.com/api';
 
 export const api = axios.create({
   baseURL: API_URL,
