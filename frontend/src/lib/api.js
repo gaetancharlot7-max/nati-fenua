@@ -10,13 +10,28 @@ const api = axios.create({
   }
 });
 
-// Request interceptor to add admin token for admin routes
+// Request interceptor:
+//  - For admin routes, send admin_token Bearer
+//  - For all other routes, send the user session token (Bearer)
+//    so the API works on iOS Safari / Messenger WebView where
+//    third-party cookies are blocked (ITP).
 api.interceptors.request.use((config) => {
-  // Check if it's an admin route
+  // Admin routes: prefer admin_token
   if (config.url && config.url.includes('/admin')) {
     const adminToken = localStorage.getItem('admin_token');
     if (adminToken) {
       config.headers.Authorization = `Bearer ${adminToken}`;
+      return config;
+    }
+  }
+  // User routes: send Bearer if not already set
+  if (!config.headers.Authorization) {
+    let token = null;
+    try {
+      token = localStorage.getItem('nati_session_token') || sessionStorage.getItem('nati_session_token');
+    } catch {}
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
   }
   return config;
