@@ -1666,7 +1666,7 @@ async def get_posts(
         cache_key = f"smart_feed:{limit}:{cursor}:{user_id or 'anon'}"
     else:
         import time as _time
-        bucket = int(_time.time() / 30)  # bucket every 30 seconds
+        bucket = int(_time.time() / 10)  # fresh shuffle every 10 seconds
         cache_key = f"smart_feed:{limit}:start:{user_id or 'anon'}:{bucket}"
     
     # Try cache first (shorter TTL for fresh content)
@@ -1770,20 +1770,20 @@ async def get_posts(
     user_posts_sorted = sorted(user_posts, key=lambda x: x.get('created_at', ''), reverse=True)
     rss_posts_sorted = sorted(rss_posts, key=lambda x: x.get('created_at', ''), reverse=True)
     
-    # On FIRST page (no cursor): shuffle the top recent posts so feed varies each open
-    # while still bubbling up recent content. We keep the newest ~5 pinned at top for freshness,
-    # then shuffle the rest of the window to avoid "same feed every time".
+    # On FIRST page (no cursor): shuffle ALL top posts so feed varies on every open
+    # (previously we pinned the 5 most recent at the top, which always showed the same profiles).
+    # We now pick a window of recent-ish posts and shuffle the entire window so different
+    # profiles appear at the top on each visit, while still prioritizing fresh content via
+    # the already-applied created_at sort + LIMIT.
     if not cursor:
-        if len(user_posts_sorted) > 5:
-            head = user_posts_sorted[:5]
-            tail = user_posts_sorted[5:]
-            random.shuffle(tail)
-            user_posts_sorted = head + tail
-        if len(rss_posts_sorted) > 3:
-            head_r = rss_posts_sorted[:3]
-            tail_r = rss_posts_sorted[3:]
-            random.shuffle(tail_r)
-            rss_posts_sorted = head_r + tail_r
+        # Work on a generous window of candidates
+        window_user = user_posts_sorted[:60] if len(user_posts_sorted) > 60 else user_posts_sorted[:]
+        window_rss = rss_posts_sorted[:20] if len(rss_posts_sorted) > 20 else rss_posts_sorted[:]
+        random.shuffle(window_user)
+        random.shuffle(window_rss)
+        # Replace the first N with the shuffled window so pagination stays consistent afterwards
+        user_posts_sorted = window_user + user_posts_sorted[len(window_user):]
+        rss_posts_sorted = window_rss + rss_posts_sorted[len(window_rss):]
     
     # Interleave: 2-3 user posts, then 1 RSS post (prioritizing users)
     u_idx, r_idx = 0, 0
@@ -1816,8 +1816,8 @@ async def get_posts(
         for post in mixed_posts:
             post['_cursor'] = f"{post.get('created_at', '')}:{post.get('post_id', '')}"
     
-    # Cache for 2 minutes for paginated pages, 30s for first page (fresher variation)
-    cache_ttl = 30 if not cursor else 120
+    # Cache for 2 minutes for paginated pages, 10s for first page (fresher variation)
+    cache_ttl = 10 if not cursor else 120
     await cache.set(cache_key, mixed_posts, ttl=cache_ttl)
     
     logger.info(f"Smart feed: {len(user_posts)} user + {len(rss_posts)} RSS = {len(mixed_posts)} mixed (cursor: {cursor})")
@@ -7078,6 +7078,13 @@ async def seed_polynesian_content():
     """Automatically populate the database with Polynesian media content on startup"""
     try:
         from seed_data import POLYNESIAN_ACCOUNTS, build_seed_posts, build_seed_accounts
+        
+        # One-time cleanup: remove deprecated "Cuisine Tahitienne" account + its posts
+        try:
+            await db.users.delete_many({"user_id": "fenua_cuisine"})
+            await db.posts.delete_many({"user_id": "fenua_cuisine"})
+        except Exception as cleanup_err:
+            logger.warning(f"Cuisine cleanup skipped: {cleanup_err}")
         
         # Check if already seeded
         existing_seeded = await db.users.find_one({"is_seeded": True})

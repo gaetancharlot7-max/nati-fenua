@@ -113,17 +113,6 @@ POLYNESIAN_ACCOUNTS = [
         "is_verified": True,
         "followers_count": 38000,
         "following_count": 280
-    },
-    {
-        "user_id": "fenua_cuisine",
-        "email": "contact@cuisine-tahitienne.pf",
-        "name": "Cuisine Tahitienne",
-        "username": "ma_a_tahiti",
-        "picture": "https://ui-avatars.com/api/?name=CT&background=E97C07&color=fff&bold=true&size=200",
-        "bio": "Recettes traditionnelles polynésiennes 🐟🥥 Poisson cru • Po'e • Fafa",
-        "is_verified": True,
-        "followers_count": 52000,
-        "following_count": 320
     }
 ]
 
@@ -241,28 +230,6 @@ POLYNESIAN_POSTS = [
         "coordinates": {"lat": -17.8539, "lng": -149.2572},
         "likes_count": 9876,
         "comments_count": 567
-    },
-    
-    # Cuisine Tahitienne
-    {
-        "user_id": "fenua_cuisine",
-        "content_type": "photo",
-        "media_url": "https://images.unsplash.com/photo-1559847844-5315695dadae?w=800",
-        "caption": "🐟 Recette du jour : Poisson cru au lait de coco ! Ingrédients : thon frais, citron vert, lait de coco, concombre, tomate, oignon. La vraie recette tahitienne ! #PoissonCru #CuisineTahitienne #Recette",
-        "location": "Tahiti",
-        "coordinates": {"lat": -17.5516, "lng": -149.5585},
-        "likes_count": 3456,
-        "comments_count": 189
-    },
-    {
-        "user_id": "fenua_cuisine",
-        "content_type": "photo",
-        "media_url": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800",
-        "caption": "🥥 Po'e banane-papaye servi ce midi ! Ce dessert traditionnel polynésien fait le bonheur des petits et des grands. Qui veut la recette ? 👇 #Poe #DessertTahitien #Tradition",
-        "location": "Papeete",
-        "coordinates": {"lat": -17.5516, "lng": -149.5585},
-        "likes_count": 2345,
-        "comments_count": 156
     },
     
     # Musique Polynésienne

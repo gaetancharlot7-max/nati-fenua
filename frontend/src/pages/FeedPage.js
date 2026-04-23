@@ -168,9 +168,13 @@ const ArticleLinkPreview = ({ url, imageUrl, title, source, onClick }) => {
   const hasImage = imageUrl && imageUrl.startsWith('http');
   
   return (
-    <div 
-      className="relative rounded-xl overflow-hidden border border-gray-200 bg-white cursor-pointer hover:shadow-lg transition-all group"
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
       onClick={onClick}
+      data-testid="article-link-preview"
+      className="relative block rounded-xl overflow-hidden border border-gray-200 bg-white cursor-pointer hover:shadow-lg transition-all group no-underline text-inherit"
     >
       {/* Image Section */}
       {hasImage ? (
@@ -220,7 +224,7 @@ const ArticleLinkPreview = ({ url, imageUrl, title, source, onClick }) => {
           <p className="text-sm font-medium text-[#1A1A2E] line-clamp-2">{title}</p>
         </div>
       )}
-    </div>
+    </a>
   );
 };
 

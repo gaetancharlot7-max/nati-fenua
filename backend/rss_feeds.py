@@ -52,6 +52,70 @@ RSS_FEEDS = [
         "categories": ["actualité", "international"],
         "feed_type": "media"
     },
+    # === AJOUTS 2026 : MEDIAS POLYNESIENS PUBLICS ===
+    {
+        "name": "Radio 1 Tahiti",
+        "url": "https://www.radio1.pf/feed/",
+        "island": "tahiti",
+        "account_id": "radio1_tahiti",
+        "logo": "https://www.radio1.pf/favicon.ico",
+        "categories": ["radio", "actualité", "musique"],
+        "feed_type": "media"
+    },
+    {
+        "name": "Tahiti News",
+        "url": "https://www.tahiti-news.com/feed/",
+        "island": "tahiti",
+        "account_id": "tahiti_news",
+        "logo": "https://www.tahiti-news.com/favicon.ico",
+        "categories": ["actualité", "politique"],
+        "feed_type": "media"
+    },
+    {
+        "name": "La Dépêche de Tahiti",
+        "url": "https://www.ladepeche.pf/feed/",
+        "island": "tahiti",
+        "account_id": "ladepeche_tahiti",
+        "logo": "https://www.ladepeche.pf/favicon.ico",
+        "categories": ["actualité", "société", "culture"],
+        "feed_type": "media"
+    },
+    {
+        "name": "Actu.fr Pacifique",
+        "url": "https://actu.fr/polynesie-francaise/rss.xml",
+        "island": "tahiti",
+        "account_id": "actu_pacifique",
+        "logo": "https://actu.fr/favicon.ico",
+        "categories": ["actualité", "pacifique"],
+        "feed_type": "media"
+    },
+    {
+        "name": "Air Tahiti Nui Magazine",
+        "url": "https://www.airtahitinui.com/tahiti-fr/blog/rss.xml",
+        "island": "tahiti",
+        "account_id": "airtahitinui_mag",
+        "logo": "https://www.airtahitinui.com/favicon.ico",
+        "categories": ["tourisme", "culture", "voyage"],
+        "feed_type": "media"
+    },
+    {
+        "name": "Google News Polynésie",
+        "url": "https://news.google.com/rss/search?q=polyn%C3%A9sie+fran%C3%A7aise&hl=fr&gl=FR&ceid=FR%3Afr",
+        "island": "tahiti",
+        "account_id": "gnews_polynesie",
+        "logo": "https://news.google.com/favicon.ico",
+        "categories": ["actualité", "agrégateur"],
+        "feed_type": "media"
+    },
+    {
+        "name": "Google News Tahiti",
+        "url": "https://news.google.com/rss/search?q=tahiti&hl=fr&gl=FR&ceid=FR%3Afr",
+        "island": "tahiti",
+        "account_id": "gnews_tahiti",
+        "logo": "https://news.google.com/favicon.ico",
+        "categories": ["actualité", "tahiti"],
+        "feed_type": "media"
+    },
     
     # === SPORT & SURF ===
     {

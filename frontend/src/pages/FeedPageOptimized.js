@@ -42,9 +42,12 @@ const ArticleLinkPreview = ({ url, onClick }) => {
   const domain = url ? new URL(url).hostname.replace('www.', '') : '';
   
   return (
-    <div 
-      className="relative rounded-xl overflow-hidden border border-gray-200 bg-gradient-to-br from-blue-50 to-purple-50 p-4 cursor-pointer hover:shadow-md transition-shadow"
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
       onClick={onClick}
+      className="relative block rounded-xl overflow-hidden border border-gray-200 bg-gradient-to-br from-blue-50 to-purple-50 p-4 cursor-pointer hover:shadow-md transition-shadow no-underline text-inherit"
     >
       <div className="flex items-start gap-3">
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
@@ -56,7 +59,7 @@ const ArticleLinkPreview = ({ url, onClick }) => {
         </div>
         <ExternalLink size={18} className="text-gray-400 flex-shrink-0" />
       </div>
-    </div>
+    </a>
   );
 };
 
