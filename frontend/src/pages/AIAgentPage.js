@@ -224,12 +224,13 @@ const AIAgentPage = () => {
 
       const data = await res.json();
       
-      // v2 API returns { response, session_id, report, ... }
+      // v2 API returns { response, session_id, report, report_id, ... }
       if (data.response) {
         setMessages(prev => [...prev, { 
           role: 'assistant', 
           content: data.response,
-          report: data.report || data.emergent_report
+          report: data.report || data.emergent_report,
+          report_id: data.report_id,
         }]);
         if (data.report || data.emergent_report) loadEmergentReports();
         loadSessions();
@@ -657,7 +658,7 @@ const AIAgentPage = () => {
                     </div>
                   </div>
                   {msg.role === 'assistant' && (
-                    <div className="flex items-center gap-3 mt-2">
+                    <div className="flex items-center gap-3 mt-2 flex-wrap">
                       <button
                         onClick={() => copyToClipboard(msg.content, i)}
                         className="text-xs text-white/40 hover:text-white/60 flex items-center gap-1"
@@ -673,6 +674,30 @@ const AIAgentPage = () => {
                           <FileText size={12} />
                           Copier rapport JSON
                         </button>
+                      )}
+                      {msg.report_id && (
+                        <>
+                          <a
+                            href={`${API}/api/ai/audit/${msg.report_id}/download?format=markdown`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-testid={`download-md-${i}`}
+                            className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors"
+                          >
+                            <Download size={12} />
+                            Télécharger .md
+                          </a>
+                          <a
+                            href={`${API}/api/ai/audit/${msg.report_id}/download?format=json`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-testid={`download-json-${i}`}
+                            className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 px-2 py-1 rounded-md bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
+                          >
+                            <Download size={12} />
+                            Télécharger .json
+                          </a>
+                        </>
                       )}
                     </div>
                   )}

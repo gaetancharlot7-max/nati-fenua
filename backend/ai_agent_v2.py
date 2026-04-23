@@ -11,7 +11,7 @@ import time
 import hashlib
 import subprocess
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
@@ -59,6 +59,7 @@ class TaskRequest(BaseModel):
 class AuditRequest(BaseModel):
     audit_type: str = "full_app"
     target_path: Optional[str] = None
+    session_id: Optional[str] = None
 
 class CodeGenRequest(BaseModel):
     description: str
@@ -863,19 +864,109 @@ async def execute_task(req: TaskRequest):
     return await NatiFenuaAgentV2(get_db()).run(msg, req.session_id, autonomous_mode=True)
 
 
-@router.post("/audit", response_model=AgentResponse)
+@router.post("/audit")
 async def run_audit(req: AuditRequest):
-    """Lancer un audit automatique"""
-    prompts = {
-        "security": "Audit securite OWASP Top 10 complet. security_scan sur backend/ et frontend/src/. Cherche secrets hardcodes et CVE. Rapport JSON.",
-        "performance": "Analyse performance. N+1 MongoDB, endpoints sans pagination, lazy loading React. performance_profile sur backend/ et frontend/src/.",
-        "code_quality": "Audit qualite code. analyze_code_quality sur backend/ et frontend/src/. Type hints, PropTypes, DRY, try/catch.",
-        "accessibility": "Audit accessibilite WCAG 2.1 AA complet. Analyse les composants frontend/src/ : attributs aria-*, alt sur images, labels sur inputs, contraste couleurs, navigation clavier, roles semantiques. Rapport JSON avec score /100 et liste des ameliorations prioritaires.",
-        "full_app": "Audit COMPLET : 1) list_directory 2) security_scan 3) performance_profile 4) analyze_code_quality. Rapport JSON avec score /100 et roadmap priorisee."
+    """Lancer un audit deterministe (scanning direct du code, sans dependance LLM)."""
+    from audit_engine import run_audit as deterministic_audit
+    import uuid as _uuid
+    
+    audit_type = (req.audit_type or "full_app").lower()
+    try:
+        # Run audit in a worker thread because scanning can take several seconds
+        report = await asyncio.to_thread(deterministic_audit, audit_type)
+    except Exception as e:
+        return {
+            "response": f"Erreur pendant l'audit : {e}",
+            "session_id": req.session_id or "",
+            "report": None,
+            "error": str(e),
+            "actions_taken": [],
+            "files_modified": [],
+            "iterations": 0,
+            "execution_time_ms": 0,
+        }
+
+    # Persist report so it can be listed in /reports and downloaded
+    report_id = f"audit_{audit_type}_{_uuid.uuid4().hex[:10]}"
+    try:
+        db = get_db()
+        await db.ai_conversations.insert_one({
+            "session_id": req.session_id or f"audit_{_uuid.uuid4().hex[:8]}",
+            "role": "assistant",
+            "content": f"Audit {audit_type} terminé — score {report.get('score', 0)}/100",
+            "emergent_report": {
+                "report_id": report_id,
+                "audit_type": audit_type,
+                **report,
+            },
+            "created_at": datetime.now(timezone.utc),
+        })
+    except Exception:
+        pass
+
+    # Build human-readable summary for the chat UI
+    summary_lines = [
+        f"Audit `{audit_type}` terminé.",
+        f"Score global : **{report.get('score', 0)}/100**",
+        f"{report.get('total_issues', 0)} problème(s) détecté(s).",
+    ]
+    if report.get("breakdown"):
+        summary_lines.append("")
+        summary_lines.append("**Détail par catégorie :**")
+        for k, v in report["breakdown"].items():
+            summary_lines.append(f"- {k} : {v}/100")
+    # Top 3 issues preview
+    top = sorted(report.get("issues", []), key=lambda i: {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}.get(i.get("severity", "low"), 5))[:5]
+    if top:
+        summary_lines.append("")
+        summary_lines.append("**Top 5 issues :**")
+        for it in top:
+            loc = f" ({it.get('file','')}:{it.get('line','')})" if it.get("file") else ""
+            summary_lines.append(f"- [{it.get('severity','').upper()}] {it.get('message','')}{loc}")
+    summary_lines.append("")
+    summary_lines.append("_Téléchargez le rapport complet via le bouton ci-dessous._")
+
+    return {
+        "response": "\n".join(summary_lines),
+        "session_id": req.session_id or "",
+        "report": report,
+        "report_id": report_id,
+        "download_url": f"/api/ai/audit/{report_id}/download",
+        "actions_taken": [f"scan:{audit_type}"],
+        "files_modified": [],
+        "iterations": 1,
+        "execution_time_ms": 0,
     }
-    target = f" Focus : {req.target_path}" if req.target_path else ""
-    msg = prompts.get(req.audit_type, prompts["full_app"]) + target
-    return await NatiFenuaAgentV2(get_db()).run(msg, autonomous_mode=True)
+
+
+@router.get("/audit/{report_id}/download")
+async def download_audit_report(report_id: str, format: str = "markdown"):
+    """Telecharger un rapport d'audit (markdown ou json)."""
+    from fastapi import Response, HTTPException
+    db = get_db()
+    doc = await db.ai_conversations.find_one({"emergent_report.report_id": report_id})
+    if not doc or not doc.get("emergent_report"):
+        raise HTTPException(status_code=404, detail="Report not found")
+    report = doc["emergent_report"]
+    audit_type = report.get("audit_type", "audit")
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M")
+    
+    if format == "json":
+        # Return a clean JSON report (without markdown duplication)
+        clean = {k: v for k, v in report.items() if k != "markdown"}
+        body = json.dumps(clean, indent=2, ensure_ascii=False, default=str)
+        return Response(
+            content=body,
+            media_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="nati_fenua_audit_{audit_type}_{ts}.json"'},
+        )
+    
+    md = report.get("markdown") or f"# Audit {audit_type}\n\nNo report content."
+    return Response(
+        content=md,
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="nati_fenua_audit_{audit_type}_{ts}.md"'},
+    )
 
 
 @router.post("/generate-code", response_model=AgentResponse)
