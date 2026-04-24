@@ -141,9 +141,17 @@ const PWAInstallBannerCompact = () => {
 };
 
 // YouTube Embed Component
-const YouTubeEmbed = ({ videoId, onClick }) => {
+const YouTubeEmbed = ({ videoId, url, onClick }) => {
+  const href = url || (videoId ? `https://www.youtube.com/watch?v=${videoId}` : '#');
   return (
-    <div className="relative aspect-video bg-black rounded-xl overflow-hidden cursor-pointer" onClick={onClick}>
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={onClick}
+      data-testid="youtube-video-preview"
+      className="relative block aspect-video bg-black rounded-xl overflow-hidden cursor-pointer no-underline"
+    >
       <img 
         src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
         alt="YouTube video"
@@ -158,7 +166,7 @@ const YouTubeEmbed = ({ videoId, onClick }) => {
         <Youtube size={16} />
         YouTube
       </div>
-    </div>
+    </a>
   );
 };
 
@@ -869,8 +877,8 @@ const FeedPage = () => {
               {/* YouTube Video */}
               {post.link_type === 'youtube' && post.external_link ? (
                 <YouTubeEmbed 
+                  url={post.external_link}
                   videoId={post.external_link.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&#?]*)/)?.[1]}
-                  onClick={() => window.open(post.external_link, '_blank')}
                 />
               ) : post.link_type === 'article' && post.external_link ? (
                 /* Article Link with thumbnail */

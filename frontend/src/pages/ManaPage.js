@@ -512,7 +512,7 @@ const PulsePage = () => {
 
   if (loading) {
     return (
-      <div className="h-[calc(100vh-140px)] flex items-center justify-center bg-gray-100">
+      <div className="h-[calc(100dvh-9rem)] lg:h-[calc(100dvh-4rem)] flex items-center justify-center bg-gray-100 pb-[env(safe-area-inset-bottom)]">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#FF6B35] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
               <p className="text-gray-600">Chargement de Fenua Mana...</p>
@@ -524,7 +524,9 @@ const PulsePage = () => {
   const mapCenter = islands.find(i => i.id === selectedIsland) || defaultCenter;
 
   return (
-    <div className="h-[calc(100vh-140px)] lg:h-[calc(100vh-80px)] flex flex-col bg-gradient-to-b from-[#E6F7FF] to-white">
+    <div
+      className="h-[calc(100dvh-9rem)] lg:h-[calc(100dvh-4rem)] flex flex-col bg-gradient-to-b from-[#E6F7FF] to-white pb-[env(safe-area-inset-bottom)]"
+    >
       {/* Header with Pulse Status */}
       <div className="bg-white/90 backdrop-blur-xl shadow-sm z-20 px-4 py-2 border-b border-[#00CED1]/20 flex-shrink-0">
         <div className="flex items-center justify-between">
