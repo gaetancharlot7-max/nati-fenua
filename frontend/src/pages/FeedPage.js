@@ -1034,10 +1034,23 @@ const FeedPage = () => {
 
               {/* Caption */}
               <div className="space-y-2">
-                <p className="text-[#1A1A2E] text-sm">
-                  <span className="font-bold">{post.user?.name}</span>{' '}
-                  {post.translatedCaption || post.caption}
-                </p>
+                {(post.content_type === 'link' || post.link_type === 'article' || post.link_type === 'youtube' || post.is_rss_article) && post.external_link ? (
+                  <a
+                    href={post.external_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid={`rss-caption-link-${post.post_id}`}
+                    className="block text-[#1A1A2E] text-sm no-underline hover:underline"
+                  >
+                    <span className="font-bold">{post.user?.name}</span>{' '}
+                    {post.translatedCaption || post.caption}
+                  </a>
+                ) : (
+                  <p className="text-[#1A1A2E] text-sm">
+                    <span className="font-bold">{post.user?.name}</span>{' '}
+                    {post.translatedCaption || post.caption}
+                  </p>
+                )}
                 
                 {/* Translation Button */}
                 {post.caption && (

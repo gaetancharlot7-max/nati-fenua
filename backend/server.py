@@ -2242,7 +2242,7 @@ async def like_post(post_id: str, request: Request):
         await db.posts.update_one({"post_id": post_id}, {"$inc": {"likes_count": 1}})
         
         # Send push notification to post owner (async, don't wait)
-        asyncio.create_task(send_like_notification(post_id, user.user_id, user.display_name))
+        asyncio.create_task(send_like_notification(post_id, user.user_id, user.name))
         
         return {"liked": True}
 
@@ -2384,7 +2384,7 @@ async def create_comment(post_id: str, comment_data: CommentCreate, request: Req
     await db.posts.update_one({"post_id": post_id}, {"$inc": {"comments_count": 1}})
     
     # Send push notification to post owner (async, don't wait)
-    asyncio.create_task(send_comment_notification(post_id, user.user_id, user.display_name, comment_data.content[:50]))
+    asyncio.create_task(send_comment_notification(post_id, user.user_id, user.name, comment_data.content[:50]))
     
     comment_dict.pop("_id", None)
     return comment_dict
@@ -3636,7 +3636,7 @@ async def follow_user(user_id: str, request: Request):
         await db.users.update_one({"user_id": user_id}, {"$inc": {"followers_count": 1}})
         
         # Send push notification to followed user (async, don't wait)
-        asyncio.create_task(send_follow_notification(user_id, current_user.user_id, current_user.display_name))
+        asyncio.create_task(send_follow_notification(user_id, current_user.user_id, current_user.name))
         
         return {"following": True}
 
