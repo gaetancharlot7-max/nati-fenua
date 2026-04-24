@@ -13,7 +13,9 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
-# Real Polynesian RSS feeds - Only WORKING sources
+# Real Polynesian RSS feeds - Only WORKING sources (validated 2026-04)
+# Broken feeds removed: Polynésie 1ère, Outremers 360, Radio 1, Tahiti News,
+# La Dépêche, Air Tahiti Nui, World Surf League, TNTV (DNS errors, 403, 404 or empty RSS)
 RSS_FEEDS = [
     # === MÉDIAS D'ACTUALITÉ FIABLES ===
     {
@@ -26,58 +28,12 @@ RSS_FEEDS = [
         "feed_type": "media"
     },
     {
-        "name": "Polynésie 1ère",
-        "url": "https://la1ere.francetvinfo.fr/polynesie/rss",
-        "island": "tahiti",
-        "account_id": "polynesie_1ere",
-        "logo": "https://la1ere.francetvinfo.fr/image/dpvm2y6n3-d0c6/600/315/16779527.png",
-        "categories": ["actualité", "télévision", "info"],
-        "feed_type": "media"
-    },
-    {
-        "name": "Outremers 360",
-        "url": "https://outremers360.com/feed/",
-        "island": "tahiti",
-        "account_id": "outremers360",
-        "logo": "https://outremers360.com/wp-content/uploads/2020/01/logo-outremers360.png",
-        "categories": ["actualité", "outre-mer", "économie"],
-        "feed_type": "media"
-    },
-    {
         "name": "Le Monde Pacifique",
         "url": "https://www.lemonde.fr/asie-pacifique/rss_full.xml",
         "island": "tahiti",
         "account_id": "lemonde_pacifique",
         "logo": "https://www.lemonde.fr/img/favicon/icon-180.png",
         "categories": ["actualité", "international"],
-        "feed_type": "media"
-    },
-    # === AJOUTS 2026 : MEDIAS POLYNESIENS PUBLICS ===
-    {
-        "name": "Radio 1 Tahiti",
-        "url": "https://www.radio1.pf/feed/",
-        "island": "tahiti",
-        "account_id": "radio1_tahiti",
-        "logo": "https://www.radio1.pf/favicon.ico",
-        "categories": ["radio", "actualité", "musique"],
-        "feed_type": "media"
-    },
-    {
-        "name": "Tahiti News",
-        "url": "https://www.tahiti-news.com/feed/",
-        "island": "tahiti",
-        "account_id": "tahiti_news",
-        "logo": "https://www.tahiti-news.com/favicon.ico",
-        "categories": ["actualité", "politique"],
-        "feed_type": "media"
-    },
-    {
-        "name": "La Dépêche de Tahiti",
-        "url": "https://www.ladepeche.pf/feed/",
-        "island": "tahiti",
-        "account_id": "ladepeche_tahiti",
-        "logo": "https://www.ladepeche.pf/favicon.ico",
-        "categories": ["actualité", "société", "culture"],
         "feed_type": "media"
     },
     {
@@ -89,17 +45,9 @@ RSS_FEEDS = [
         "categories": ["actualité", "pacifique"],
         "feed_type": "media"
     },
+    # === AGRÉGATEURS GOOGLE NEWS (haute densité d'articles) ===
     {
-        "name": "Air Tahiti Nui Magazine",
-        "url": "https://www.airtahitinui.com/tahiti-fr/blog/rss.xml",
-        "island": "tahiti",
-        "account_id": "airtahitinui_mag",
-        "logo": "https://www.airtahitinui.com/favicon.ico",
-        "categories": ["tourisme", "culture", "voyage"],
-        "feed_type": "media"
-    },
-    {
-        "name": "Google News Polynésie",
+        "name": "Actualités Polynésie",
         "url": "https://news.google.com/rss/search?q=polyn%C3%A9sie+fran%C3%A7aise&hl=fr&gl=FR&ceid=FR%3Afr",
         "island": "tahiti",
         "account_id": "gnews_polynesie",
@@ -108,7 +56,7 @@ RSS_FEEDS = [
         "feed_type": "media"
     },
     {
-        "name": "Google News Tahiti",
+        "name": "Actualités Tahiti",
         "url": "https://news.google.com/rss/search?q=tahiti&hl=fr&gl=FR&ceid=FR%3Afr",
         "island": "tahiti",
         "account_id": "gnews_tahiti",
@@ -116,15 +64,41 @@ RSS_FEEDS = [
         "categories": ["actualité", "tahiti"],
         "feed_type": "media"
     },
-    
+    {
+        "name": "Actualités Bora Bora",
+        "url": "https://news.google.com/rss/search?q=bora+bora&hl=fr&gl=FR&ceid=FR%3Afr",
+        "island": "bora-bora",
+        "account_id": "gnews_borabora",
+        "logo": "https://news.google.com/favicon.ico",
+        "categories": ["actualité", "bora-bora", "tourisme"],
+        "feed_type": "media"
+    },
+    {
+        "name": "Actualités Moorea",
+        "url": "https://news.google.com/rss/search?q=moorea+polyn%C3%A9sie&hl=fr&gl=FR&ceid=FR%3Afr",
+        "island": "moorea",
+        "account_id": "gnews_moorea",
+        "logo": "https://news.google.com/favicon.ico",
+        "categories": ["actualité", "moorea"],
+        "feed_type": "media"
+    },
     # === SPORT & SURF ===
     {
-        "name": "World Surf League",
-        "url": "https://www.worldsurfleague.com/rss/news",
+        "name": "Teahupo'o Surf",
+        "url": "https://news.google.com/rss/search?q=teahupoo+surf&hl=fr&gl=FR&ceid=FR%3Afr",
         "island": "tahiti",
-        "account_id": "wsl_surf",
-        "logo": "https://www.worldsurfleague.com/favicon.ico",
-        "categories": ["surf", "sport", "compétition"],
+        "account_id": "gnews_teahupoo",
+        "logo": "https://news.google.com/favicon.ico",
+        "categories": ["surf", "sport", "teahupoo"],
+        "feed_type": "sport"
+    },
+    {
+        "name": "Va'a Polynésie",
+        "url": "https://news.google.com/rss/search?q=va%27a+polyn%C3%A9sie+pirogue&hl=fr&gl=FR&ceid=FR%3Afr",
+        "island": "tahiti",
+        "account_id": "gnews_vaa",
+        "logo": "https://news.google.com/favicon.ico",
+        "categories": ["sport", "va'a", "pirogue"],
         "feed_type": "sport"
     },
     {
@@ -136,7 +110,16 @@ RSS_FEEDS = [
         "categories": ["surf", "sport", "lifestyle"],
         "feed_type": "sport"
     },
-    
+    # === CULTURE ===
+    {
+        "name": "Heiva & Culture",
+        "url": "https://news.google.com/rss/search?q=heiva+tahiti&hl=fr&gl=FR&ceid=FR%3Afr",
+        "island": "tahiti",
+        "account_id": "gnews_heiva",
+        "logo": "https://news.google.com/favicon.ico",
+        "categories": ["culture", "danse", "heiva"],
+        "feed_type": "culture"
+    },
     # === ENVIRONNEMENT ===
     {
         "name": "Ocean Conservancy",
@@ -146,17 +129,6 @@ RSS_FEEDS = [
         "logo": "https://oceanconservancy.org/favicon.ico",
         "categories": ["environnement", "océan", "conservation"],
         "feed_type": "environnement"
-    },
-    
-    # === SOURCES LOCALES (si disponibles) ===
-    {
-        "name": "TNTV",
-        "url": "https://www.tntv.pf/feed/",
-        "island": "tahiti",
-        "account_id": "tntv_polynesie",
-        "logo": "https://www.tntv.pf/wp-content/uploads/2019/07/tntv-logo.png",
-        "categories": ["actualité", "télévision"],
-        "feed_type": "media"
     },
 ]
 
