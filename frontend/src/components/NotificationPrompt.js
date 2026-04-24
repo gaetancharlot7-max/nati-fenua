@@ -124,12 +124,14 @@ const NotificationPrompt = () => {
 
   return (
     <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50 animate-in slide-in-from-bottom-4">
-      <div className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] rounded-2xl p-4 shadow-xl shadow-orange-500/20">
+      <div className="relative bg-gradient-to-r from-[#FF6B35] to-[#FF1493] rounded-2xl p-4 shadow-xl shadow-orange-500/20">
         <button 
           onClick={dismissPrompt}
-          className="absolute top-2 right-2 p-1 rounded-full hover:bg-white/20 transition-colors"
+          data-testid="notification-prompt-close"
+          aria-label="Fermer"
+          className="absolute top-2 right-2 w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition-colors z-10"
         >
-          <X className="w-4 h-4 text-white" />
+          <X className="w-5 h-5 text-white" />
         </button>
         
         <div className="flex items-start gap-3">

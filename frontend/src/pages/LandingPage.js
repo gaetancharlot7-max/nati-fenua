@@ -16,20 +16,29 @@ const PWAInstallBanner = ({ onClose }) => {
   useEffect(() => {
     // Vérifier si déjà installé
     const installed = window.matchMedia('(display-mode: standalone)').matches;
-    
     if (installed) {
       return;
     }
+    
+    // Vérifier si dismissé récemment (24h)
+    try {
+      const dismissedAt = localStorage.getItem('pwa_banner_dismissed_at');
+      if (dismissedAt) {
+        const age = Date.now() - parseInt(dismissedAt, 10);
+        if (age < 24 * 60 * 60 * 1000) {
+          return; // ne pas réafficher pendant 24h
+        }
+      }
+    } catch {}
 
     // Détecter iOS
     const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     setIsIOS(iOS);
 
-    // Toujours afficher la bannière (sauf si déjà installé)
+    // Afficher la bannière (sauf si déjà installé ou dismissée)
     setShowBanner(true);
 
     if (!iOS) {
-      // Pour Android/Desktop
       const handler = (e) => {
         e.preventDefault();
         setDeferredPrompt(e);
@@ -41,22 +50,27 @@ const PWAInstallBanner = ({ onClose }) => {
 
   const handleInstall = async () => {
     if (deferredPrompt) {
+      // Prompt natif disponible (Chrome, Edge, Android)
       deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setShowBanner(false);
-        localStorage.setItem('pwa_installed', 'true');
-      }
+      try {
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setShowBanner(false);
+          localStorage.setItem('pwa_installed', 'true');
+        }
+      } catch {}
       setDeferredPrompt(null);
     } else {
-      // Rediriger vers l'application en production
-      window.open('https://nati-fenua.com', '_blank');
+      // Pas de prompt natif : afficher les instructions manuelles
+      setShowInstructions(true);
     }
   };
 
   const handleDismiss = () => {
     setShowBanner(false);
-    // Ne pas sauvegarder le dismiss - réapparaîtra à la prochaine visite
+    try {
+      localStorage.setItem('pwa_banner_dismissed_at', String(Date.now()));
+    } catch {}
   };
 
   if (!showBanner) return null;
@@ -100,7 +114,9 @@ const PWAInstallBanner = ({ onClose }) => {
               </div>
               <button
                 onClick={handleDismiss}
-                className="text-white/30 hover:text-white transition-colors"
+                data-testid="pwa-instructions-close"
+                aria-label="Fermer"
+                className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"
               >
                 <X size={18} />
               </button>
@@ -165,7 +181,9 @@ const PWAInstallBanner = ({ onClose }) => {
             </div>
             <button
               onClick={handleDismiss}
-              className="text-white/30 hover:text-white transition-colors"
+              data-testid="pwa-banner-close"
+              aria-label="Fermer"
+              className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"
             >
               <X size={18} />
             </button>

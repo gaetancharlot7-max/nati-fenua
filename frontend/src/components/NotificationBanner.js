@@ -60,12 +60,14 @@ const NotificationBanner = () => {
           exit={{ y: 100, opacity: 0 }}
           className="fixed bottom-20 left-4 right-4 md:left-auto md:right-4 md:bottom-4 md:w-96 z-50"
         >
-          <div className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] rounded-2xl p-4 shadow-2xl">
+          <div className="relative bg-gradient-to-r from-[#FF6B35] to-[#FF1493] rounded-2xl p-4 shadow-2xl">
             <button 
               onClick={handleDismiss}
-              className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center text-white/80 hover:text-white"
+              data-testid="notification-banner-close"
+              aria-label="Fermer"
+              className="absolute top-2 right-2 w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors z-10"
             >
-              <X size={18} />
+              <X size={20} />
             </button>
 
             <div className="flex items-start gap-3">
