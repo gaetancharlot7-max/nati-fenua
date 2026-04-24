@@ -4290,6 +4290,16 @@ async def mark_notifications_read(request: Request):
     await db.notifications.update_many({"user_id": user.user_id, "read": False}, {"$set": {"read": True}})
     return {"success": True}
 
+@api_router.post("/notifications/{notification_id}/read")
+async def mark_one_notification_read(notification_id: str, request: Request):
+    """Mark a single notification as read."""
+    user = await require_auth(request)
+    await db.notifications.update_one(
+        {"notification_id": notification_id, "user_id": user.user_id},
+        {"$set": {"read": True}}
+    )
+    return {"success": True, "notification_id": notification_id}
+
 @api_router.get("/notifications/unread-count")
 async def get_unread_count(request: Request):
     user = await require_auth(request)

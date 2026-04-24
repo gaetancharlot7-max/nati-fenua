@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Heart, MessageCircle, UserPlus, Film, Image, Radio, X, Settings } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { notificationsApi } from '../lib/api';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
@@ -9,6 +9,7 @@ import { fr } from 'date-fns/locale';
 import soundManager from '../lib/soundManager';
 
 const NotificationBell = () => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -111,6 +112,30 @@ const NotificationBell = () => {
     }
   };
 
+  // On click: close dropdown instantly, remove notif from list, mark read, navigate
+  const handleNotificationClick = (notification) => {
+    const link = getNotificationLink(notification);
+    
+    // 1. Close dropdown instantly
+    setIsOpen(false);
+    
+    // 2. Remove notification from UI list instantly (optimistic)
+    setNotifications(prev => prev.filter(n => n.notification_id !== notification.notification_id));
+    if (!notification.read) {
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    }
+    
+    // 3. Navigate immediately
+    navigate(link);
+    
+    // 4. Mark as read in background (fire-and-forget)
+    if (!notification.read && notification.notification_id) {
+      notificationsApi.markOne(notification.notification_id).catch(() => {
+        // silent failure; user experience is not blocked
+      });
+    }
+  };
+
   return (
     <div className="relative">
       {/* Bell Button */}
@@ -190,11 +215,12 @@ const NotificationBell = () => {
                   </div>
                 ) : (
                   notifications.map((notification) => (
-                    <Link
+                    <button
                       key={notification.notification_id}
-                      to={getNotificationLink(notification)}
-                      onClick={() => setIsOpen(false)}
-                      className={`block p-4 hover:bg-gray-50 border-b border-gray-50 transition-colors ${
+                      type="button"
+                      onClick={() => handleNotificationClick(notification)}
+                      data-testid={`notification-item-${notification.notification_id}`}
+                      className={`w-full text-left block p-4 hover:bg-gray-50 border-b border-gray-50 transition-colors cursor-pointer ${
                         !notification.read ? 'bg-[#FF6B35]/5' : ''
                       }`}
                     >
@@ -228,7 +254,7 @@ const NotificationBell = () => {
                           <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493] flex-shrink-0 mt-1.5"></div>
                         )}
                       </div>
-                    </Link>
+                    </button>
                   ))
                 )}
               </div>

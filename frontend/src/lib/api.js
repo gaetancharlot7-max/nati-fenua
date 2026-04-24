@@ -153,6 +153,7 @@ export const analyticsApi = {
 export const notificationsApi = {
   getAll: (params) => api.get('/notifications', { params }),
   markRead: () => api.post('/notifications/read'),
+  markOne: (notificationId) => api.post(`/notifications/${notificationId}/read`),
   getUnreadCount: () => api.get('/notifications/unread-count'),
   subscribe: (subscription) => api.post('/notifications/subscribe', subscription),
   unsubscribe: () => api.delete('/notifications/unsubscribe'),
