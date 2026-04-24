@@ -85,9 +85,73 @@ const CookieBanner = () => {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-4 left-4 right-4 lg:bottom-6 lg:left-auto lg:right-6 z-[60] max-w-md lg:max-w-lg"
+        className="fixed bottom-0 left-0 right-0 lg:bottom-6 lg:left-auto lg:right-6 lg:max-w-lg z-[60] p-2 lg:p-0"
+        style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
       >
-        <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+        {/* ===== MOBILE: compact single-line banner ===== */}
+        <div className="lg:hidden bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+          {!showDetails ? (
+            <div className="px-3 py-2.5 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF6B35] to-[#FF1493] flex items-center justify-center flex-shrink-0">
+                <Cookie className="text-white" size={16} />
+              </div>
+              <p className="flex-1 text-[11px] leading-tight text-gray-700">
+                Nous utilisons des cookies.{' '}
+                <Link to="/legal#cookies" className="text-[#FF6B35] underline">En savoir plus</Link>
+              </p>
+              <button
+                onClick={() => setShowDetails(true)}
+                data-testid="cookie-customize-mobile"
+                aria-label="Personnaliser"
+                className="p-1.5 rounded-full hover:bg-gray-100 flex-shrink-0"
+              >
+                <Settings size={14} className="text-gray-500" />
+              </button>
+              <Button
+                onClick={handleAcceptAll}
+                data-testid="cookie-accept-mobile"
+                size="sm"
+                className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:opacity-90 text-[11px] px-3 py-1.5 h-auto rounded-full flex-shrink-0"
+              >
+                Accepter
+              </Button>
+            </div>
+          ) : (
+            <div className="p-3 space-y-2 max-h-[50vh] overflow-y-auto">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-[#1A1A2E]">Préférences cookies</p>
+                <button onClick={() => setShowDetails(false)} className="p-1 rounded-full hover:bg-gray-100">
+                  <ChevronDown size={16} className="text-gray-500" />
+                </button>
+              </div>
+              <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-xs">
+                <span className="font-medium">Nécessaires</span>
+                <Switch checked={true} disabled />
+              </div>
+              <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-xs">
+                <span className="font-medium">Analytiques</span>
+                <Switch
+                  checked={preferences.analytics}
+                  onCheckedChange={(c) => setPreferences(p => ({ ...p, analytics: c }))}
+                />
+              </div>
+              <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-xs">
+                <span className="font-medium">Marketing</span>
+                <Switch
+                  checked={preferences.marketing}
+                  onCheckedChange={(c) => setPreferences(p => ({ ...p, marketing: c }))}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleAcceptNecessary} variant="outline" size="sm" className="flex-1 text-xs">Essentiels</Button>
+                <Button onClick={handleSavePreferences} size="sm" className="flex-1 text-xs bg-gradient-to-r from-[#FF6B35] to-[#FF1493]">Enregistrer</Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ===== DESKTOP: original full card ===== */}
+        <div className="hidden lg:block bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
             {/* Main Content */}
             <div className="p-6">
               <div className="flex items-start gap-4">
