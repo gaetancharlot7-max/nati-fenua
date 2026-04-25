@@ -339,13 +339,18 @@ const PostCard = ({ post, index, onReaction, onSave, onShare, onReport, onBlock,
         {post.link_type === 'youtube' && post.external_link ? (
           <YouTubeEmbed 
             videoId={post.external_link.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&#?]*)/)?.[1]}
-            onClick={() => window.open(post.external_link, '_blank')}
+            url={post.external_link}
           />
         ) : post.link_type === 'article' && post.external_link ? (
           <div className="p-4">
             <ArticleLinkPreview 
               url={post.external_link}
-              onClick={() => window.open(post.external_link, '_blank')}
+            />
+          </div>
+        ) : post.content_type === 'link' && post.external_link ? (
+          <div className="p-4">
+            <ArticleLinkPreview 
+              url={post.external_link}
             />
           </div>
         ) : post.content_type === 'video' ? (

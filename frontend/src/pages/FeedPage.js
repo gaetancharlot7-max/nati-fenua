@@ -888,7 +888,6 @@ const FeedPage = () => {
                     imageUrl={post.media_url || post.thumbnail_url}
                     title={post.link_title}
                     source={post.link_source}
-                    onClick={() => window.open(post.external_link, '_blank')}
                   />
                 </div>
               ) : post.content_type === 'link' && post.external_link ? (
@@ -899,7 +898,6 @@ const FeedPage = () => {
                     imageUrl={post.media_url || post.thumbnail_url}
                     title={post.link_title}
                     source={post.link_source}
-                    onClick={() => window.open(post.external_link, '_blank')}
                   />
                 </div>
               ) : post.media_url ? (

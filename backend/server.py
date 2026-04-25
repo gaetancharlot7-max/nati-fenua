@@ -1717,6 +1717,8 @@ async def get_posts(
             "post_id": 1, "user_id": 1, "content_type": 1, "media_url": 1, "caption": 1,
             "likes_count": 1, "comments_count": 1, "created_at": 1, "location": 1,
             "article_url": 1, "article_title": 1, "article_source": 1,
+            "external_link": 1, "link_type": 1, "link_title": 1, "link_source": 1,
+            "thumbnail_url": 1, "reactions": 1, "is_ad": 1, "is_rss_article": 1,
             "user": {
                 "user_id": "$user_data.user_id",
                 "name": "$user_data.name",
@@ -1746,6 +1748,8 @@ async def get_posts(
             "post_id": 1, "user_id": 1, "content_type": 1, "media_url": 1, "caption": 1,
             "likes_count": 1, "comments_count": 1, "created_at": 1,
             "article_url": 1, "article_title": 1, "article_source": 1, "is_rss_article": 1,
+            "external_link": 1, "link_type": 1, "link_title": 1, "link_source": 1,
+            "thumbnail_url": 1, "reactions": 1,
             "user": {
                 "user_id": "$user_data.user_id",
                 "name": "$user_data.name",
