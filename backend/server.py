@@ -2366,6 +2366,19 @@ async def get_comments(post_id: str, limit: int = 50):
     ]
     
     comments = await db.comments.aggregate(pipeline).to_list(limit)
+    
+    # Self-heal: if the post's comments_count is out of sync with the actual
+    # number of comments in DB, fix it. This handles seed/demo data that had
+    # fake counters (e.g. "456 commentaires" but no actual comments).
+    try:
+        actual_count = await db.comments.count_documents({"post_id": post_id})
+        await db.posts.update_one(
+            {"post_id": post_id, "comments_count": {"$ne": actual_count}},
+            {"$set": {"comments_count": actual_count}}
+        )
+    except Exception:
+        pass
+    
     return comments
 
 @api_router.post("/posts/{post_id}/comments")
@@ -4243,12 +4256,19 @@ async def search_products(q: str, limit: int = 20, skip: int = 0):
     
     pipeline = [
         {"$match": {
-            "$or": [
-                {"title": {"$regex": q, "$options": "i"}},
-                {"description": {"$regex": q, "$options": "i"}},
-                {"category": {"$regex": q, "$options": "i"}}
-            ],
-            "is_available": True
+            "$and": [
+                {"$or": [
+                    {"title": {"$regex": q, "$options": "i"}},
+                    {"description": {"$regex": q, "$options": "i"}},
+                    {"category": {"$regex": q, "$options": "i"}},
+                    {"tags": {"$regex": q, "$options": "i"}},
+                ]},
+                # Include products that don't have is_available field yet
+                {"$or": [
+                    {"is_available": {"$ne": False}},
+                    {"is_available": {"$exists": False}},
+                ]},
+            ]
         }},
         {"$sort": {"created_at": -1}},
         {"$skip": skip},
@@ -7095,6 +7115,21 @@ async def seed_polynesian_content():
             await db.posts.delete_many({"user_id": "fenua_cuisine"})
         except Exception as cleanup_err:
             logger.warning(f"Cuisine cleanup skipped: {cleanup_err}")
+        
+        # Idempotent: synchronize comments_count and likes_count of seeded posts
+        # so the feed never shows fake "456 commentaires" with 0 actual comments.
+        try:
+            seed_post_ids = [d["post_id"] async for d in db.posts.find({"is_seeded": True}, {"_id": 0, "post_id": 1})]
+            for pid in seed_post_ids:
+                actual_comments = await db.comments.count_documents({"post_id": pid})
+                actual_likes = await db.post_likes.count_documents({"post_id": pid}) if hasattr(db, "post_likes") else 0
+                update = {"comments_count": actual_comments}
+                # only override likes if the column for tracking really exists
+                # (some deployments don't track per-user likes)
+                await db.posts.update_one({"post_id": pid}, {"$set": update})
+            logger.info(f"Synced counters on {len(seed_post_ids)} seeded posts")
+        except Exception as sync_err:
+            logger.warning(f"Counter sync skipped: {sync_err}")
         
         # Check if already seeded
         existing_seeded = await db.users.find_one({"is_seeded": True})

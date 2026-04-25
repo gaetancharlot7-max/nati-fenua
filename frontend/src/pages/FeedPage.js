@@ -1109,13 +1109,16 @@ const FeedPage = () => {
                     data-testid="translate-post-btn"
                   >
                     {post.isTranslating ? (
-                      <Loader2 size={12} className="animate-spin" />
+                      <>
+                        <Loader2 size={12} className="animate-spin" />
+                        <span>Traduction en cours…</span>
+                      </>
                     ) : (
-                      <Languages size={12} />
+                      <>
+                        <Languages size={12} />
+                        <span>{post.translatedCaption ? "Voir l'original" : 'Traduire'}</span>
+                      </>
                     )}
-                    {post.translatedCaption 
-                      ? 'Voir l\'original' 
-                      : 'Traduire'}
                   </button>
                 )}
               </div>

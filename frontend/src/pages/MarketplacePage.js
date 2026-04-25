@@ -623,7 +623,14 @@ const MarketplacePage = () => {
           >
             Tout
           </button>
-          {currentCategories.map((cat) => {
+          {currentCategories
+            .filter((cat) => {
+              // Hide categories that have no products/services in the current
+              // dataset (e.g. "Perles de Tahiti" empty until vendors arrive).
+              const items = activeTab === 'products' ? products : services;
+              return items.some((item) => item.category === cat.id);
+            })
+            .map((cat) => {
             const IconComponent = iconMap[cat.icon] || Package;
             return (
               <button

@@ -431,12 +431,8 @@ const ChatPage = () => {
               whileTap={{ scale: 0.98 }}
               onClick={() => setSelectedConversation(conv)}
             >
-              <Link 
-                to={`/profile/${conv.other_user?.user_id}`} 
-                className="relative"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Avatar className="w-14 h-14 hover:ring-2 hover:ring-[#FF6B35] transition-all">
+              <div className="relative">
+                <Avatar className="w-14 h-14">
                   <AvatarImage src={conv.other_user?.picture} />
                   <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white font-bold">
                     {conv.other_user?.name?.[0]}
@@ -444,17 +440,13 @@ const ChatPage = () => {
                 </Avatar>
                 {/* Online indicator */}
                 <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
-              </Link>
+              </div>
               
               <div className="flex-1 text-left min-w-0">
                 <div className="flex items-center justify-between">
-                  <Link 
-                    to={`/profile/${conv.other_user?.user_id}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="font-semibold text-[#1A1A2E] truncate hover:text-[#FF6B35] transition-colors"
-                  >
+                  <span className="font-semibold text-[#1A1A2E] truncate">
                     {conv.other_user?.name}
-                  </Link>
+                  </span>
                   <span className="text-xs text-gray-400">{formatDate(conv.last_message_at)}</span>
                 </div>
                 <p className={`text-sm truncate ${conv.unread > 0 ? 'text-[#1A1A2E] font-medium' : 'text-gray-500'}`}>

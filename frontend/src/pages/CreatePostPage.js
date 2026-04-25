@@ -906,13 +906,17 @@ const CreatePostPage = () => {
           </Button>
         </form>
 
-        {/* Privacy Policy Modal */}
+        {/* Privacy Policy Modal — shown only once per user (stored in localStorage) */}
         <PrivacyPolicyModal
-          isOpen={showPrivacyPolicy}
-          onClose={() => setShowPrivacyPolicy(false)}
+          isOpen={showPrivacyPolicy && !privacyAccepted}
+          onClose={() => {
+            // Closing without accepting: do NOT persist, so it re-shows next visit
+            setShowPrivacyPolicy(false);
+          }}
           onAccept={() => {
             localStorage.setItem('privacy_accepted', 'true');
             setPrivacyAccepted(true);
+            setShowPrivacyPolicy(false);
           }}
         />
       </motion.div>

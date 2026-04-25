@@ -330,7 +330,7 @@ const FriendsPage = () => {
             {sentRequests.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-3xl">
                 <Clock size={48} className="mx-auto text-gray-300 mb-4" />
-                <p className="text-gray-500">Aucune demande en attente</p>
+                <p className="text-gray-500">Aucune demande envoyée</p>
               </div>
             ) : (
               sentRequests.map((request) => (

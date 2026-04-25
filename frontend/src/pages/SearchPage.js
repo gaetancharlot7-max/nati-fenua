@@ -47,13 +47,20 @@ const SearchPage = () => {
 
   useEffect(() => {
     if (query.length >= 2) {
-      searchItems();
-      setShowSuggestions(false);
+      // Debounce: wait 350ms after the user stops typing to fire the API call.
+      // This avoids spamming the backend on every keystroke and gives a smooth
+      // "search-as-you-type" UX without needing to press Enter.
+      const handle = setTimeout(() => {
+        searchItems();
+        setShowSuggestions(false);
+      }, 350);
+      return () => clearTimeout(handle);
     } else {
       setResults(null);
       setShowSuggestions(true);
     }
-  }, [query]);
+    // re-run when the active tab changes too (Tout / Profils / Posts / Produits)
+  }, [query, activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const searchItems = async () => {
     setLoading(true);

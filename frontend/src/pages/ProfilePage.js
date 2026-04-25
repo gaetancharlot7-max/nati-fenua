@@ -314,7 +314,8 @@ const ProfilePage = () => {
             {isOwnProfile ? (
               <div className="flex gap-2 justify-center md:justify-start">
                 <Button
-                  onClick={() => navigate('/settings')}
+                  onClick={() => navigate('/profile/edit')}
+                  data-testid="edit-profile-btn"
                   variant="outline"
                   className="rounded-full"
                 >
