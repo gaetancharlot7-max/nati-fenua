@@ -32,6 +32,15 @@
     <link rel="apple-touch-startup-image" href="%PUBLIC_URL%/splash/splash-1242x2208.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" />
     <link rel="apple-touch-startup-image" href="%PUBLIC_URL%/splash/splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" />
     
+    <!-- Preconnect to image CDNs (saves ~200ms per image on first load) -->
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
+    <link rel="dns-prefetch" href="https://images.unsplash.com" />
+    <link rel="preconnect" href="https://ui-avatars.com" crossorigin />
+    <link rel="dns-prefetch" href="https://ui-avatars.com" />
+    <link rel="preconnect" href="https://img.youtube.com" crossorigin />
+    <link rel="dns-prefetch" href="https://img.youtube.com" />
+    <link rel="preconnect" href="https://news.google.com" crossorigin />
+    
     <!-- Manifest -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     
