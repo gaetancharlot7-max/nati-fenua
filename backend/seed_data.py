@@ -308,7 +308,7 @@ def build_seed_posts():
             "external_link": post_data.get("external_link"),
             "link_type": post_data.get("link_type"),
             "likes_count": post_data.get("likes_count", random.randint(100, 5000)),
-            "comments_count": post_data.get("comments_count", random.randint(10, 200)),
+            "comments_count": 0,  # always start at 0 — sync with real comments collection
             "shares_count": random.randint(5, 100),
             "views_count": random.randint(500, 10000),
             "reactions": {
@@ -341,3 +341,84 @@ def build_seed_accounts():
         }
         accounts.append(user)
     return accounts
+
+
+# ====== Demo products for the Polynesian marketplace ======
+# These are showcase products so the marketplace is not empty in production.
+# Vendors can replace them with their own listings later.
+SEED_PRODUCTS = [
+    {
+        "title": "Collier Perle de Tahiti AAA",
+        "description": "Magnifique collier en or 18k orné d'une perle noire de Tahiti grade AAA. Provenance Rangiroa.",
+        "price": 45000, "currency": "XPF", "category": "perles",
+        "image_url": "https://images.unsplash.com/photo-1535632787350-4e68ef0ac584?w=600",
+        "location": "Papeete, Tahiti", "stock": 5,
+    },
+    {
+        "title": "Monoï de Tahiti pur Tiare",
+        "description": "Monoï de Tahiti AOC 100% naturel parfumé à la fleur de Tiare. 100ml.",
+        "price": 1800, "currency": "XPF", "category": "monoi",
+        "image_url": "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600",
+        "location": "Moorea", "stock": 50,
+    },
+    {
+        "title": "Paréo traditionnel tahitien",
+        "description": "Paréo en coton imprimé motifs polynésiens. Tissu doux, idéal plage et lagon.",
+        "price": 2500, "currency": "XPF", "category": "vetements",
+        "image_url": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600",
+        "location": "Bora Bora", "stock": 30,
+    },
+    {
+        "title": "Sculpture Tiki en bois de tou",
+        "description": "Tiki sculpté à la main par un artisan des îles Marquises. Bois de tou, 25cm.",
+        "price": 12000, "currency": "XPF", "category": "artisanat",
+        "image_url": "https://images.unsplash.com/photo-1582058091505-f87a2e55a40f?w=600",
+        "location": "Hiva Oa, Marquises", "stock": 8,
+    },
+    {
+        "title": "Bracelet en nacre de Tahiti",
+        "description": "Bracelet artisanal serti de nacre polynésienne. Cordon ajustable.",
+        "price": 6500, "currency": "XPF", "category": "bijoux",
+        "image_url": "https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?w=600",
+        "location": "Tahaa", "stock": 15,
+    },
+    {
+        "title": "Pareo de fête en tissu tapa",
+        "description": "Pièce d'exception en tapa, peinte main avec motifs polynésiens traditionnels.",
+        "price": 18000, "currency": "XPF", "category": "vetements",
+        "image_url": "https://images.unsplash.com/photo-1493236272-d44b3a3a8e63?w=600",
+        "location": "Tahiti", "stock": 4,
+    },
+    {
+        "title": "Vanille de Tahaa premium",
+        "description": "Gousses de vanille de Tahaa AOC, séchées au soleil. Sachet de 5 gousses.",
+        "price": 3500, "currency": "XPF", "category": "artisanat",
+        "image_url": "https://images.unsplash.com/photo-1611070960401-1b4c5b8b3ed1?w=600",
+        "location": "Tahaa", "stock": 25,
+    },
+    {
+        "title": "Huile précieuse de Tamanu",
+        "description": "Huile de Tamanu pure, vertus cicatrisantes. Issue d'arbres centenaires.",
+        "price": 2200, "currency": "XPF", "category": "monoi",
+        "image_url": "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=600",
+        "location": "Raiatea", "stock": 40,
+    },
+]
+
+
+def build_seed_products():
+    """Build a list of seed products for the marketplace."""
+    products = []
+    for i, p in enumerate(SEED_PRODUCTS):
+        products.append({
+            "product_id": f"prod_seed_{i:02d}_{random.randint(1000, 9999)}",
+            "vendor_id": "fenua_artisans",
+            "is_available": True,
+            "is_seeded": True,
+            "tags": [p["category"], "tahiti", "polynesie"],
+            "views_count": random.randint(50, 500),
+            "created_at": get_random_past_time().isoformat(),
+            **p,
+        })
+    return products
+

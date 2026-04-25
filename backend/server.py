@@ -7116,20 +7116,61 @@ async def seed_polynesian_content():
         except Exception as cleanup_err:
             logger.warning(f"Cuisine cleanup skipped: {cleanup_err}")
         
-        # Idempotent: synchronize comments_count and likes_count of seeded posts
-        # so the feed never shows fake "456 commentaires" with 0 actual comments.
+        # Idempotent: synchronize comments_count of ALL posts so the feed never
+        # shows fake "98 commentaires" with 0 actual comments.
+        # This also auto-heals user posts if their counter drifts.
         try:
-            seed_post_ids = [d["post_id"] async for d in db.posts.find({"is_seeded": True}, {"_id": 0, "post_id": 1})]
-            for pid in seed_post_ids:
-                actual_comments = await db.comments.count_documents({"post_id": pid})
-                actual_likes = await db.post_likes.count_documents({"post_id": pid}) if hasattr(db, "post_likes") else 0
-                update = {"comments_count": actual_comments}
-                # only override likes if the column for tracking really exists
-                # (some deployments don't track per-user likes)
-                await db.posts.update_one({"post_id": pid}, {"$set": update})
-            logger.info(f"Synced counters on {len(seed_post_ids)} seeded posts")
+            sync_count = 0
+            # Aggregate real comment counts per post in a single MongoDB query
+            agg = db.comments.aggregate([
+                {"$group": {"_id": "$post_id", "count": {"$sum": 1}}}
+            ])
+            real_counts = {doc["_id"]: doc["count"] async for doc in agg}
+            
+            # Walk all posts and fix the ones whose counter is wrong
+            cursor = db.posts.find({}, {"_id": 0, "post_id": 1, "comments_count": 1})
+            async for p in cursor:
+                pid = p.get("post_id")
+                if not pid:
+                    continue
+                actual = real_counts.get(pid, 0)
+                stored = p.get("comments_count", 0) or 0
+                if stored != actual:
+                    await db.posts.update_one({"post_id": pid}, {"$set": {"comments_count": actual}})
+                    sync_count += 1
+            logger.info(f"Synced comments_count on {sync_count} posts")
         except Exception as sync_err:
             logger.warning(f"Counter sync skipped: {sync_err}")
+        
+        # Insert demo products (so the marketplace and search are not empty)
+        # — runs OUTSIDE the "existing_seeded" check below, so it also fixes
+        # production DBs that were seeded before this feature existed.
+        try:
+            from seed_data import build_seed_products
+            existing_products = await db.products.count_documents({"is_seeded": True})
+            if existing_products == 0:
+                products = build_seed_products()
+                # Ensure the vendor account exists
+                vendor_exists = await db.users.find_one({"user_id": "fenua_artisans"})
+                if not vendor_exists:
+                    await db.users.insert_one({
+                        "user_id": "fenua_artisans",
+                        "email": "contact@artisans-polynesie.pf",
+                        "name": "Artisans de Polynésie",
+                        "username": "artisans_polynesie",
+                        "picture": "https://ui-avatars.com/api/?name=AP&background=8B4513&color=fff&bold=true&size=200",
+                        "bio": "Vitrine des artisans polynésiens — perles, monoï, sculptures, vanille",
+                        "is_verified": True,
+                        "is_seeded": True,
+                        "followers_count": 12000,
+                        "following_count": 80,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    })
+                for product in products:
+                    await db.products.insert_one(product)
+                logger.info(f"Seeded {len(products)} demo products")
+        except Exception as prod_err:
+            logger.warning(f"Product seeding skipped: {prod_err}")
         
         # Check if already seeded
         existing_seeded = await db.users.find_one({"is_seeded": True})
