@@ -186,17 +186,25 @@ const NotificationBell = () => {
                     </button>
                   )}
                   <Link
-                    to="/notifications/settings"
+                    to="/settings/notifications"
                     onClick={() => setIsOpen(false)}
+                    data-testid="notification-bell-settings-link"
                     className="p-1.5 rounded-full hover:bg-gray-100"
                   >
                     <Settings size={18} className="text-gray-500" />
                   </Link>
                   <button
-                    onClick={() => setIsOpen(false)}
-                    className="p-1.5 rounded-full hover:bg-gray-100"
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsOpen(false);
+                    }}
+                    data-testid="notification-bell-close"
+                    aria-label="Fermer"
+                    className="p-1.5 rounded-full hover:bg-gray-100 cursor-pointer"
                   >
-                    <X size={18} className="text-gray-500" />
+                    <X size={18} className="text-gray-500 pointer-events-none" />
                   </button>
                 </div>
               </div>

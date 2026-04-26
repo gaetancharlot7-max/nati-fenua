@@ -246,7 +246,7 @@ const MainLayout = ({ children, hideNav = false }) => {
                     <span className="text-[#1A1A2E]">Modifier le profil</span>
                   </Link>
                   <Link 
-                    to="/security" 
+                    to="/settings/security" 
                     onClick={() => setShowProfileMenu(false)}
                     className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
                   >

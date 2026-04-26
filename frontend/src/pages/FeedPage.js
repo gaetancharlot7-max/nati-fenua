@@ -628,7 +628,7 @@ const FeedPage = () => {
         toast.success('Publication enregistrée !', {
           action: {
             label: 'Voir',
-            onClick: () => navigate('/saved')
+            onClick: () => navigate('/profile?tab=saved')
           }
         });
       } else {
