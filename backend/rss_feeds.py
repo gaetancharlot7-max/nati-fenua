@@ -130,6 +130,16 @@ RSS_FEEDS = [
         "categories": ["environnement", "océan", "conservation"],
         "feed_type": "environnement"
     },
+    # === PODCASTS / RADIO ===
+    {
+        "name": "Radio 1 Tahiti Podcasts",
+        "url": "https://www.radio1.pf/custom-rss/rss-podcasts/",
+        "island": "tahiti",
+        "account_id": "radio1_tahiti_podcast",
+        "logo": "https://www.radio1.pf/wp-content/uploads/2019/05/logo-radio1.png",
+        "categories": ["podcast", "radio", "actualité"],
+        "feed_type": "media"
+    },
 ]
 
 # Note: Les sources .pf locales sont souvent instables
@@ -138,6 +148,9 @@ RSS_FEEDS = [
 # - surfingpolynesie.pf, tahitisurfclub.pf, emploi.pf, pole-emploi.pf
 # - environnement.pf, heiva.org, maisondelaculture.pf, museetahiti.pf
 # - farevanaa.pf, fifo-tahiti.com, sefi.pf, tahititourisme.pf, airtahitimagazine.com
+# - Tahiti Pacifique (404), La Dépêche (DNS), Polynésie 1ère/TNTV/Tiare FM (RSS vides),
+#   Radio 1 main feed (403), NRJ Tahiti (DNS) — testés 2026-04-27
+# - Tahiti Infos Podcasts (xml/podcast.xml) — contenu legacy 2016-2017, filtré par fraîcheur
 
 # Sources de secours
 BACKUP_FEEDS = []
