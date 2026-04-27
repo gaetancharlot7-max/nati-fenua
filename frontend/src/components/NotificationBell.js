@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Heart, MessageCircle, UserPlus, Film, Image, Radio, X, Settings } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { notificationsApi } from '../lib/api';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
@@ -10,11 +10,42 @@ import soundManager from '../lib/soundManager';
 
 const NotificationBell = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const previousCountRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+  // Auto-close dropdown when route changes (after a notification click navigates)
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname]);
+
+  // Close on Escape key (desktop)
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e) => { if (e.key === 'Escape') setIsOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen]);
+
+  // Close on outside click / outside touch (covers iOS Safari edge cases)
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('touchstart', handleOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('touchstart', handleOutside);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     fetchUnreadCount();
@@ -137,19 +168,21 @@ const NotificationBell = () => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       {/* Bell Button */}
       <button
-        onClick={handleOpen}
+        type="button"
+        onClick={() => (isOpen ? setIsOpen(false) : handleOpen())}
         data-testid="notification-bell"
+        aria-label="Notifications"
         className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
       >
-        <Bell size={24} className="text-gray-700" />
+        <Bell size={24} className="text-gray-700 pointer-events-none" />
         {unreadCount > 0 && (
           <motion.span
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] rounded-full text-white text-xs font-bold flex items-center justify-center"
+            className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] rounded-full text-white text-xs font-bold flex items-center justify-center pointer-events-none"
           >
             {unreadCount > 9 ? '9+' : unreadCount}
           </motion.span>
@@ -160,18 +193,23 @@ const NotificationBell = () => {
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Backdrop */}
-            <div 
-              className="fixed inset-0 z-40"
+            {/* Backdrop - clickable to close */}
+            <div
+              className="fixed inset-0 z-40 bg-black/0"
               onClick={() => setIsOpen(false)}
+              onTouchStart={() => setIsOpen(false)}
+              aria-hidden="true"
             />
             
             {/* Dropdown */}
             <motion.div
+              key="notif-dropdown"
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              className="absolute right-0 top-full mt-2 w-96 max-h-[70vh] bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden"
+              transition={{ duration: 0.15 }}
+              className="absolute right-0 top-full mt-2 w-[calc(100vw-1rem)] sm:w-96 max-h-[70vh] bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
               <div className="p-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">

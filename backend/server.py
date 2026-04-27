@@ -1679,19 +1679,25 @@ async def get_posts(
     user_posts_limit = int(limit * 0.7) + 5
     rss_posts_limit = int(limit * 0.3) + 5
     
+    # Freshness filters: user posts max 3 days, RSS articles max 7 days on feed
+    three_days_ago = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
+    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    
     # Build match filter with cursor
     user_match = {
         "moderation_status": {"$ne": "rejected"},
         "is_rss_article": {"$ne": True},
         "is_auto_published": {"$ne": True},
-        "post_id": {"$not": {"$regex": "^auto_"}}
+        "post_id": {"$not": {"$regex": "^auto_"}},
+        "created_at": {"$gte": three_days_ago}
     }
     if cursor_filter:
         user_match.update(cursor_filter)
     
     rss_match = {
         "moderation_status": {"$ne": "rejected"},
-        "is_rss_article": True
+        "is_rss_article": True,
+        "created_at": {"$gte": seven_days_ago}
     }
     if cursor_filter:
         rss_match.update(cursor_filter)
@@ -1852,13 +1858,18 @@ async def get_fresh_posts(request: Request, limit: int = 20, seen_ids: str = "")
     if seen_list:
         base_filter["post_id"] = {"$nin": seen_list}
     
+    # Freshness filters: user posts max 3 days, RSS articles max 7 days
+    three_days_ago = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
+    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    
     # Fetch fresh REAL user posts (exclude auto-generated)
     user_posts_pipeline = [
         {"$match": {
             **base_filter,
             "is_rss_article": {"$ne": True},
             "is_auto_published": {"$ne": True},
-            "post_id": {"$not": {"$regex": "^auto_"}}
+            "post_id": {"$not": {"$regex": "^auto_"}},
+            "created_at": {"$gte": three_days_ago}
         }},
         {"$sort": {"created_at": -1}},
         {"$limit": limit},
@@ -1892,7 +1903,8 @@ async def get_fresh_posts(request: Request, limit: int = 20, seen_ids: str = "")
     rss_posts_pipeline = [
         {"$match": {
             **base_filter,
-            "is_rss_article": True
+            "is_rss_article": True,
+            "created_at": {"$gte": seven_days_ago}
         }},
         {"$sort": {"created_at": -1}},
         {"$limit": limit},
@@ -8104,17 +8116,17 @@ async def start_auto_publisher():
             return 0
     
     async def cleanup_old_rss_posts():
-        """Delete RSS posts older than 2 days"""
+        """Delete RSS posts older than 7 days (max 1 week on feed)"""
         try:
-            two_days_ago = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+            seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
             
             result = await db.posts.delete_many({
                 "is_rss_article": True,
-                "created_at": {"$lt": two_days_ago}
+                "created_at": {"$lt": seven_days_ago}
             })
             
             if result.deleted_count > 0:
-                logger.info(f"🗑️ Supprimé {result.deleted_count} posts RSS de plus de 2 jours")
+                logger.info(f"🗑️ Supprimé {result.deleted_count} posts RSS de plus de 7 jours")
                 await feed_cache.clear()
             
             return result.deleted_count
