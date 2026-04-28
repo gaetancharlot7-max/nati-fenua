@@ -113,23 +113,33 @@ export const PrivacyPolicyModal = ({ isOpen, onClose, onAccept }) => {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white w-full max-w-lg rounded-3xl overflow-hidden max-h-[90vh] flex flex-col"
+          className="bg-white w-full max-w-lg rounded-3xl overflow-hidden flex flex-col"
+          style={{
+            maxHeight: '85vh',
+            paddingBottom: 'env(safe-area-inset-bottom)'
+          }}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between p-5 border-b">
+          {/* Header (sticky/fixed top) */}
+          <div className="flex items-center justify-between p-5 border-b flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493] flex items-center justify-center">
                 <Shield size={20} className="text-white" />
               </div>
-              <h2 className="text-xl font-bold text-[#1A1A2E]">Politique de Confidentialité</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-[#1A1A2E]">Politique de Confidentialité</h2>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
-              <X size={20} />
+            <button
+              type="button"
+              onClick={onClose}
+              data-testid="privacy-modal-close"
+              aria-label="Fermer"
+              className="p-2 hover:bg-gray-100 rounded-full flex-shrink-0"
+            >
+              <X size={20} className="pointer-events-none" />
             </button>
           </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {/* Content (scrollable) */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-4 min-h-0">
             <section>
               <h3 className="font-bold text-[#1A1A2E] mb-2">📸 Photos et Vidéos</h3>
               <p className="text-gray-600 text-sm">
@@ -185,20 +195,22 @@ export const PrivacyPolicyModal = ({ isOpen, onClose, onAccept }) => {
             </section>
           </div>
 
-          {/* Footer */}
-          <div className="p-5 border-t bg-gray-50">
-            <label className="flex items-center gap-3 mb-4 cursor-pointer">
+          {/* Footer (sticky/fixed bottom) */}
+          <div className="p-4 sm:p-5 border-t bg-gray-50 flex-shrink-0">
+            <label className="flex items-center gap-3 mb-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={accepted}
                 onChange={(e) => setAccepted(e.target.checked)}
-                className="w-5 h-5 rounded border-gray-300 text-[#FF6B35] focus:ring-[#FF6B35]"
+                data-testid="privacy-accept-checkbox"
+                className="w-5 h-5 rounded border-gray-300 text-[#FF6B35] focus:ring-[#FF6B35] flex-shrink-0"
               />
               <span className="text-sm text-gray-700">
                 J'ai lu et j'accepte la politique de confidentialité
               </span>
             </label>
             <Button
+              type="button"
               onClick={() => {
                 if (accepted) {
                   onAccept();
@@ -206,7 +218,8 @@ export const PrivacyPolicyModal = ({ isOpen, onClose, onAccept }) => {
                 }
               }}
               disabled={!accepted}
-              className="w-full py-3 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:from-[#FF5722] hover:to-[#E91E63] disabled:opacity-50"
+              data-testid="privacy-accept-btn"
+              className="w-full py-3 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:from-[#FF5722] hover:to-[#E91E63] disabled:opacity-50 text-white font-bold rounded-xl"
             >
               Accepter et Continuer
             </Button>

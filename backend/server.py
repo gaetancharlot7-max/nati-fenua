@@ -3541,6 +3541,57 @@ async def search_users_for_chat(q: str = "", limit: int = 10):
     
     return users
 
+
+@api_router.get("/users/discover")
+async def discover_users(request: Request, limit: int = 20):
+    """Discover users to add as friends - excludes self, current friends, blocked users, and bot accounts."""
+    user = await require_auth(request)
+    
+    # Get IDs to exclude: self, current friends, sent/received pending requests, blocked
+    exclude_ids = {user.user_id}
+    
+    # Friends + pending requests
+    friendships = await db.friendships.find({
+        "$or": [{"user_id": user.user_id}, {"friend_id": user.user_id}]
+    }, {"_id": 0, "user_id": 1, "friend_id": 1}).to_list(1000)
+    for f in friendships:
+        exclude_ids.add(f.get("user_id"))
+        exclude_ids.add(f.get("friend_id"))
+    
+    requests_sent = await db.friend_requests.find({
+        "from_user_id": user.user_id, "status": "pending"
+    }, {"_id": 0, "to_user_id": 1}).to_list(1000)
+    for r in requests_sent:
+        exclude_ids.add(r.get("to_user_id"))
+    
+    requests_received = await db.friend_requests.find({
+        "to_user_id": user.user_id, "status": "pending"
+    }, {"_id": 0, "from_user_id": 1}).to_list(1000)
+    for r in requests_received:
+        exclude_ids.add(r.get("from_user_id"))
+    
+    blocked = await db.blocked_users.find({
+        "$or": [{"user_id": user.user_id}, {"blocked_user_id": user.user_id}]
+    }, {"_id": 0, "user_id": 1, "blocked_user_id": 1}).to_list(1000)
+    for b in blocked:
+        exclude_ids.add(b.get("user_id"))
+        exclude_ids.add(b.get("blocked_user_id"))
+    
+    exclude_ids.discard(None)
+    
+    # Find users not in exclusion list, excluding bots and unverified-private profiles
+    cursor = db.users.find(
+        {
+            "user_id": {"$nin": list(exclude_ids)},
+            "is_bot": {"$ne": True},
+            "profile_visibility.is_private": {"$ne": True}
+        },
+        {"_id": 0, "password_hash": 0, "email": 0}
+    ).sort("created_at", -1).limit(limit)
+    
+    users = await cursor.to_list(limit)
+    return {"users": users, "count": len(users)}
+
 @api_router.get("/users/{user_id}")
 async def get_user_profile(user_id: str, request: Request):
     """Get user profile with privacy handling"""
@@ -4315,10 +4366,28 @@ async def search_products(q: str, limit: int = 20, skip: int = 0):
 # ==================== NOTIFICATIONS ====================
 
 @api_router.get("/notifications")
-async def get_notifications(request: Request, limit: int = 50):
+async def get_notifications(request: Request, limit: int = 50, page: int = 1, skip: int = 0):
+    """Get user notifications with pagination support."""
     user = await require_auth(request)
-    notifications = await db.notifications.find({"user_id": user.user_id}, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
-    return notifications
+    
+    # Calculate skip from page if page > 1
+    if page > 1:
+        skip = (page - 1) * limit
+    
+    # Fetch one extra to determine has_more
+    notifs = await db.notifications.find(
+        {"user_id": user.user_id}, {"_id": 0}
+    ).sort("created_at", -1).skip(skip).limit(limit + 1).to_list(limit + 1)
+    
+    has_more = len(notifs) > limit
+    notifs = notifs[:limit]
+    
+    return {
+        "notifications": notifs,
+        "page": page,
+        "limit": limit,
+        "has_more": has_more
+    }
 
 @api_router.post("/notifications/read")
 async def mark_notifications_read(request: Request):

@@ -76,7 +76,9 @@ const NotificationBell = () => {
     setLoading(true);
     try {
       const response = await notificationsApi.getAll({ limit: 20 });
-      setNotifications(response.data);
+      // New paginated response: { notifications, has_more, page }
+      const list = Array.isArray(response.data) ? response.data : (response.data?.notifications || []);
+      setNotifications(list);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {

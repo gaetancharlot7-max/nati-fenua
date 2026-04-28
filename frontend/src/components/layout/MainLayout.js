@@ -6,6 +6,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import NotificationBell from '../NotificationBell';
 import NotificationPrompt from '../NotificationPrompt';
+import HeaderSearchBar from '../HeaderSearchBar';
 import { useUnreadMessages } from '../../hooks/useUnreadMessages';
 import soundManager from '../../lib/soundManager';
 
@@ -300,14 +301,7 @@ const MainLayout = ({ children, hideNav = false }) => {
       {/* Desktop Top Bar */}
       <header className={`hidden lg:flex fixed top-0 left-72 right-72 h-16 backdrop-blur-xl border-b z-30 items-center justify-between px-6 ${isDark ? 'bg-[#1A1A2E]/80 border-white/10' : 'bg-white/80 border-gray-100'}`}>
         <div className="flex-1 max-w-lg">
-          <Link 
-            to="/search"
-            data-testid="search-bar"
-            className={`flex items-center gap-3 w-full px-5 py-2.5 rounded-2xl transition-all ${isDark ? 'bg-white/10 text-white/60 hover:bg-white/15' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-          >
-            <Search size={20} strokeWidth={1.5} />
-            <span>Rechercher sur Nati Fenua...</span>
-          </Link>
+          <HeaderSearchBar />
         </div>
         
         <div className="flex items-center gap-3">
