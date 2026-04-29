@@ -1679,9 +1679,10 @@ async def get_posts(
     user_posts_limit = int(limit * 0.7) + 5
     rss_posts_limit = int(limit * 0.3) + 5
     
-    # Freshness filters: user posts max 3 days, RSS articles max 7 days on feed
+    # Freshness filters: user posts max 3 days, RSS articles max 14 days on feed
+    # (RSS extended to 14 days while we don't have regular rotation yet)
     three_days_ago = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
-    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
     
     # Build match filter with cursor
     user_match = {
@@ -1858,9 +1859,9 @@ async def get_fresh_posts(request: Request, limit: int = 20, seen_ids: str = "")
     if seen_list:
         base_filter["post_id"] = {"$nin": seen_list}
     
-    # Freshness filters: user posts max 3 days, RSS articles max 7 days
+    # Freshness filters: user posts max 3 days, RSS articles max 14 days
     three_days_ago = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
-    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
     
     # Fetch fresh REAL user posts (exclude auto-generated)
     user_posts_pipeline = [
@@ -8185,17 +8186,18 @@ async def start_auto_publisher():
             return 0
     
     async def cleanup_old_rss_posts():
-        """Delete RSS posts older than 7 days (max 1 week on feed)"""
+        """Delete RSS posts older than 14 days (min 7 days, kept longer while
+        we don't have enough rotation/regular publishing volume)."""
         try:
-            seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
             
             result = await db.posts.delete_many({
                 "is_rss_article": True,
-                "created_at": {"$lt": seven_days_ago}
+                "created_at": {"$lt": cutoff}
             })
             
             if result.deleted_count > 0:
-                logger.info(f"🗑️ Supprimé {result.deleted_count} posts RSS de plus de 7 jours")
+                logger.info(f"🗑️ Supprimé {result.deleted_count} posts RSS de plus de 14 jours")
                 await feed_cache.clear()
             
             return result.deleted_count

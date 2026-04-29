@@ -260,14 +260,31 @@ def clean_html(html_content: str) -> str:
 
 
 def extract_image_from_content(content: str, entry: dict, feed_config: dict = None) -> Optional[str]:
-    """Extract first image URL from RSS content with multiple fallback strategies"""
+    """Extract first image URL from RSS content with multiple fallback strategies.
+    
+    Filters out junk images: favicons, tracking pixels, tiny icons, Google News default favicons.
+    Always returns a usable image URL (falls back to feed logo or category placeholder).
+    """
+    
+    def is_junk_image(url: str) -> bool:
+        """Reject favicons, Google News default icons and tracking pixels."""
+        if not url:
+            return True
+        u = url.lower()
+        # Google News default favicons (tiny 16x16) used when no real image
+        if 'news.google.com' in u and ('favicon' in u or '.ico' in u):
+            return True
+        # Generic junk
+        junk_keywords = ['favicon', 'spacer.gif', 'spacer.png', 'pixel.gif',
+                         'tracking', '1x1', 'blank.gif', 'transparent.gif']
+        return any(k in u for k in junk_keywords)
     
     # Try media:content first
     if hasattr(entry, 'media_content') and entry.media_content:
         for media in entry.media_content:
             url = media.get('url', '')
             if media.get('medium') == 'image' or url.lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.gif')):
-                if url.startswith('http'):
+                if url.startswith('http') and not is_junk_image(url):
                     return url
     
     # Try enclosures (common in podcasts and media RSS)
@@ -275,22 +292,22 @@ def extract_image_from_content(content: str, entry: dict, feed_config: dict = No
         for enc in entry.enclosures:
             enc_type = enc.get('type', '')
             enc_url = enc.get('href') or enc.get('url', '')
-            if enc_type.startswith('image/') and enc_url.startswith('http'):
+            if enc_type.startswith('image/') and enc_url.startswith('http') and not is_junk_image(enc_url):
                 return enc_url
     
     # Try media:thumbnail
     if hasattr(entry, 'media_thumbnail') and entry.media_thumbnail:
         thumb_url = entry.media_thumbnail[0].get('url', '')
-        if thumb_url.startswith('http'):
+        if thumb_url.startswith('http') and not is_junk_image(thumb_url):
             return thumb_url
     
     # Try image element (common in atom feeds)
     if hasattr(entry, 'image') and entry.image:
         if isinstance(entry.image, dict):
             img_url = entry.image.get('href') or entry.image.get('url', '')
-            if img_url.startswith('http'):
+            if img_url.startswith('http') and not is_junk_image(img_url):
                 return img_url
-        elif isinstance(entry.image, str) and entry.image.startswith('http'):
+        elif isinstance(entry.image, str) and entry.image.startswith('http') and not is_junk_image(entry.image):
             return entry.image
     
     # Parse HTML content for images
@@ -299,12 +316,12 @@ def extract_image_from_content(content: str, entry: dict, feed_config: dict = No
         
         # Look for og:image meta tag first (highest quality)
         og_image = soup.find('meta', property='og:image')
-        if og_image and og_image.get('content', '').startswith('http'):
+        if og_image and og_image.get('content', '').startswith('http') and not is_junk_image(og_image['content']):
             return og_image['content']
         
         # Look for twitter:image
         twitter_image = soup.find('meta', attrs={'name': 'twitter:image'})
-        if twitter_image and twitter_image.get('content', '').startswith('http'):
+        if twitter_image and twitter_image.get('content', '').startswith('http') and not is_junk_image(twitter_image['content']):
             return twitter_image['content']
         
         # Find all images and pick the best one (skip tiny icons)
@@ -313,6 +330,8 @@ def extract_image_from_content(content: str, entry: dict, feed_config: dict = No
             src = img.get('src', '')
             # Skip data URIs, tracking pixels, and tiny images
             if not src.startswith('http'):
+                continue
+            if is_junk_image(src):
                 continue
             if 'pixel' in src.lower() or 'tracking' in src.lower() or 'spacer' in src.lower():
                 continue
@@ -329,9 +348,11 @@ def extract_image_from_content(content: str, entry: dict, feed_config: dict = No
                     pass
             return src
     
-    # Fallback: Use the feed's logo as placeholder if available
+    # Fallback: Use the feed's logo if available (and not a junk URL)
     if feed_config and feed_config.get('logo'):
-        return feed_config.get('logo')
+        logo = feed_config['logo']
+        if not is_junk_image(logo):
+            return logo
     
     # Generate a themed placeholder based on category
     categories = feed_config.get('categories', []) if feed_config else []
@@ -348,6 +369,23 @@ def extract_image_from_content(content: str, entry: dict, feed_config: dict = No
     else:
         # Default Polynesian themed placeholder
         return 'https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=800&q=80'
+
+
+def _normalize_title(title: str) -> str:
+    """Normalize title for cross-source duplicate detection.
+    Lowercase, strip punctuation/diacritics, collapse whitespace.
+    Returns first 80 chars to handle truncation differences."""
+    import unicodedata
+    if not title:
+        return ""
+    # Strip diacritics
+    nfkd = unicodedata.normalize('NFKD', title)
+    ascii_title = ''.join(c for c in nfkd if not unicodedata.combining(c))
+    # Lowercase, remove punctuation
+    cleaned = re.sub(r'[^\w\s]', '', ascii_title.lower())
+    # Collapse whitespace
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    return cleaned[:80]
 
 
 class RSSFeedService:
@@ -427,8 +465,8 @@ class RSSFeedService:
                     else:
                         pub_date = datetime.now(timezone.utc)
                     
-                    # Skip articles older than 7 days
-                    if pub_date < datetime.now(timezone.utc) - timedelta(days=7):
+                    # Skip articles older than 14 days
+                    if pub_date < datetime.now(timezone.utc) - timedelta(days=14):
                         continue
                     
                     # Get content
@@ -520,33 +558,55 @@ class RSSFeedService:
         if not all_articles:
             return {"success": False, "message": "No articles found", "posts_created": 0}
         
-        # STEP 1: Get ALL existing article URLs from database to prevent ANY duplicates
+        # STEP 1: Get ALL existing article URLs AND title hashes from database to prevent duplicates
         existing_links = set()
+        existing_title_keys = set()
         existing_posts = await self.db.posts.find(
-            {"external_link": {"$ne": None}},
-            {"external_link": 1, "_id": 0}
-        ).to_list(10000)
+            {"$or": [
+                {"external_link": {"$ne": None}},
+                {"link_title": {"$ne": None}}
+            ]},
+            {"external_link": 1, "link_title": 1, "_id": 0}
+        ).to_list(20000)
         for p in existing_posts:
             if p.get("external_link"):
                 existing_links.add(p["external_link"])
+            if p.get("link_title"):
+                tk = _normalize_title(p["link_title"])
+                if tk:
+                    existing_title_keys.add(tk)
         
-        logger.info(f"Found {len(existing_links)} existing article URLs in database")
+        logger.info(f"Found {len(existing_links)} existing URLs and {len(existing_title_keys)} title keys in database")
         
-        # STEP 2: Filter out articles that already exist in database
+        # STEP 2: Filter out articles that already exist (by URL OR by normalized title)
         new_articles = []
+        skipped_url = skipped_title = 0
         for article in all_articles:
-            if article["link"] not in existing_links:
-                new_articles.append(article)
+            if article["link"] in existing_links:
+                skipped_url += 1
+                continue
+            tk = _normalize_title(article["title"])
+            if tk and tk in existing_title_keys:
+                skipped_title += 1
+                continue
+            new_articles.append(article)
         
-        logger.info(f"Filtered to {len(new_articles)} NEW articles (removed {len(all_articles) - len(new_articles)} existing)")
+        logger.info(f"Filtered: {len(new_articles)} NEW (skipped {skipped_url} by URL, {skipped_title} by title)")
         
-        # STEP 3: Remove duplicates within the new articles (by URL)
+        # STEP 3: Remove duplicates within the new articles (by URL AND title)
         seen_urls = set()
+        seen_titles = set()
         unique_articles = []
         for article in sorted(new_articles, key=lambda x: x["pub_date"], reverse=True):
-            if article["link"] not in seen_urls:
-                seen_urls.add(article["link"])
-                unique_articles.append(article)
+            if article["link"] in seen_urls:
+                continue
+            tk = _normalize_title(article["title"])
+            if tk and tk in seen_titles:
+                continue
+            seen_urls.add(article["link"])
+            if tk:
+                seen_titles.add(tk)
+            unique_articles.append(article)
         
         logger.info(f"Deduplicated to {len(unique_articles)} unique new articles")
         
