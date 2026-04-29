@@ -148,8 +148,8 @@ const NotificationBell = () => {
     <>
       {/* Full-screen invisible backdrop to capture taps anywhere */}
       <div
-        onClick={closeDropdown}
-        onTouchEnd={closeDropdown}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); closeDropdown(); }}
+        onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); closeDropdown(); }}
         data-testid="notification-bell-backdrop"
         className="fixed inset-0 z-[9998]"
         style={{ background: 'transparent' }}
