@@ -1,5 +1,8 @@
-// Nati Fenua - Service Worker v4
+// Nati Fenua - Service Worker v5
 // MINIMAL passthrough SW to fix iOS Safari stale-cache issues.
+// v5 bump (2026-04-28): force re-activation to deliver the
+// notifications dropdown rewrite on iPhone PWA installs which
+// were still serving the v4 cached bundle.
 // Previous versions aggressively cached JS/CSS assets which caused
 // users (especially on iPhone Safari / installed PWAs) to keep
 // loading an old broken bundle even after a fresh Render deploy.
@@ -17,7 +20,7 @@
 // cache strategy — but ONLY for known-safe static assets, never for
 // HTML and never for the main JS bundle.
 
-const CACHE_NAME = 'nati-fenua-v4';
+const CACHE_NAME = 'nati-fenua-v5';
 
 self.addEventListener('install', () => {
   // Activate immediately without waiting for the old SW to stop
