@@ -288,12 +288,6 @@ const AdvertisingPage = () => {
               </p>
             </div>
             <div className="bg-white rounded-xl p-4 shadow">
-              <p className="font-semibold text-[#1A1A2E]">Puis-je annuler ma campagne ?</p>
-              <p className="text-sm text-gray-600 mt-1">
-                Oui, vous pouvez annuler à tout moment et être remboursé au prorata du temps restant.
-              </p>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow">
               <p className="font-semibold text-[#1A1A2E]">Qu'est-ce que Mana Alert ?</p>
               <p className="text-sm text-gray-600 mt-1">
                 Mana Alert envoie une notification push instantanée à tous les utilisateurs d'une île. 
