@@ -55,6 +55,57 @@ PROMPTS = {
         "fresh tamanu nuts and green leaves arranged around, natural beauty product, "
         "soft studio lighting on white background, organic skincare 4k product shot"
     ),
+    "Couronne de fleurs tiare": (
+        "Professional product photography of a traditional Polynesian flower crown, "
+        "fresh white tiare gardenia flowers woven with tropical green leaves and fern fronds, "
+        "displayed on a light wood surface, soft warm natural lighting, festive Tahitian hei, 4k product shot"
+    ),
+    "Sel de Tahiti Tumu": (
+        "Professional product photography of artisanal Tahitian sea salt, "
+        "coarse white crystals in a small wooden bowl, natural sea salt with mineral sparkle, "
+        "bamboo spoon, volcanic black sand accents, white linen background, soft lighting, gourmet 4k product shot"
+    ),
+    "Huile de coco vierge bio": (
+        "Professional product photography of virgin coconut oil bottle, clear glass bottle with "
+        "translucent oil and coconut pieces around, halved fresh coconut with white flesh, "
+        "green palm leaves, organic bio label, white background, soft natural lighting, 4k product shot"
+    ),
+    "Bijoux en coquillage cauri": (
+        "Professional product photography of handmade Polynesian cauri shell jewelry set, "
+        "polished white cowrie shells on natural brown cord, matching necklace and bracelet, "
+        "displayed on white sand with tropical leaves, soft beach lighting, 4k product shot"
+    ),
+    "T-shirt Manu oiseau polynésien": (
+        "Professional product photography of an organic cotton t-shirt, flat lay, white color with "
+        "bold black Polynesian Manu bird tribal tattoo design printed on the front, "
+        "tropical green leaves accent, white background, soft studio lighting, fashion 4k product shot"
+    ),
+    "Savon au monoï de Tahiti": (
+        "Professional product photography of an artisanal handmade soap bar, creamy white color with "
+        "embedded white tiare flower petals, Monoi de Tahiti label, displayed on light wood slab with fresh tiare "
+        "gardenia flowers around, soft natural lighting, spa aesthetic, 4k product shot"
+    ),
+    "Panier tressé en pandanus": (
+        "Professional product photography of a traditional Polynesian pandanus woven basket, "
+        "natural beige color with geometric weaving pattern, rectangular shape with sturdy handles, "
+        "displayed on white linen with tropical leaves, soft natural lighting, artisanal craft 4k product shot"
+    ),
+    "Ukulélé tahitien 8 cordes": (
+        "Professional product photography of a traditional Tahitian 8-string ukulele, "
+        "dark tou wood body with warm grain, polished finish, 8 nylon strings, "
+        "displayed on white background with subtle shadow, soft studio lighting highlighting wood texture, 4k product shot"
+    ),
+    "Hei mata'i - bijou hameçon": (
+        "Professional product photography of a traditional Polynesian hei matau fish hook pendant, "
+        "carved from polished ivory bone, intricate traditional curves, on a brown leather cord, "
+        "displayed on dark wood surface, soft dramatic lighting, museum quality Maori style, 4k product shot"
+    ),
+    "Café de Taravao premium": (
+        "Professional product photography of premium arabica coffee beans, "
+        "dark roasted glossy beans spilling from a brown burlap sack, wooden spoon, "
+        "'Café de Taravao' burlap label, displayed on dark wood surface with coffee flowers, "
+        "warm moody lighting, gourmet 4k product shot"
+    ),
 }
 
 OUTPUT_DIR = Path("/app/frontend/public/products")
@@ -102,14 +153,32 @@ async def main():
     client = AsyncIOMotorClient(os.environ["MONGO_URL"])
     db = client[os.environ["DB_NAME"]]
 
+    # First make sure DB has all seed products (re-seed if needed)
+    import sys
+    sys.path.insert(0, "/app/backend")
+    from seed_data import build_seed_products
+    seed_products = build_seed_products()
+    existing_ids = {
+        p["product_id"]
+        for p in await db.products.find({}, {"product_id": 1, "_id": 0}).to_list(1000)
+    }
+    missing = [p for p in seed_products if p["product_id"] not in existing_ids]
+    if missing:
+        await db.products.insert_many(missing)
+        print(f"Inserted {len(missing)} new seed products into DB")
+
     products = await db.products.find(
         {}, {"_id": 0, "product_id": 1, "title": 1}
     ).to_list(100)
 
-    print(f"Generating images for {len(products)} products...")
+    print(f"Checking images for {len(products)} products...")
     for p in products:
         title = p["title"]
         pid = p["product_id"]
+        out_path = OUTPUT_DIR / f"{pid}.png"
+        if out_path.exists() and out_path.stat().st_size > 10_000:
+            print(f"  SKIP {pid} (image already exists, {out_path.stat().st_size} bytes)")
+            continue
         print(f"\n>>> {title} ({pid})")
         url = await generate_one(title, pid)
         if url:
