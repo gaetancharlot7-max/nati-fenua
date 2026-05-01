@@ -473,6 +473,60 @@ SEED_PRODUCTS = [
         "image_url": "/products/prod_seed_17.png",
         "location": "Taravao, Tahiti", "stock": 30,
     },
+    # === IMMOBILIER ===
+    {
+        "title": "Villa vue lagon - Moorea",
+        "description": "Magnifique villa 3 chambres avec vue sur le lagon de Moorea. Piscine privée, jardin tropical, accès direct à la plage. 150m².",
+        "price": 85000000, "currency": "XPF", "category": "immobilier",
+        "image_url": "/products/prod_seed_18.png",
+        "location": "Moorea", "stock": 1,
+    },
+    {
+        "title": "Appartement T2 centre Papeete",
+        "description": "Appartement T2 rénové en plein centre de Papeete. 55m², balcon, parking couvert. Proche commerces et marché.",
+        "price": 28000000, "currency": "XPF", "category": "immobilier",
+        "image_url": "/products/prod_seed_19.png",
+        "location": "Papeete, Tahiti", "stock": 1,
+    },
+    # === TERRAINS ===
+    {
+        "title": "Terrain constructible Paea",
+        "description": "Terrain plat de 1200m² avec vue mer à Paea. Viabilisé, certificat d'urbanisme positif. Idéal projet de vie.",
+        "price": 15000000, "currency": "XPF", "category": "terrains",
+        "image_url": "/products/prod_seed_20.png",
+        "location": "Paea, Tahiti", "stock": 1,
+    },
+    {
+        "title": "Terrain agricole Taravao",
+        "description": "3 hectares de terres fertiles sur le plateau de Taravao. Idéal maraîchage bio, agriculture ou élevage. Eau disponible.",
+        "price": 22000000, "currency": "XPF", "category": "terrains",
+        "image_url": "/products/prod_seed_21.png",
+        "location": "Taravao, Tahiti", "stock": 1,
+    },
+    # === VÉHICULES - VOITURES ===
+    {
+        "title": "Toyota Hilux 4x4 double cabine",
+        "description": "Pick-up Toyota Hilux 2020, 4x4, 45000 km, boîte manuelle, climatisation. Idéal Polynésie, très bien entretenu.",
+        "price": 3800000, "currency": "XPF", "category": "voitures",
+        "image_url": "/products/prod_seed_22.png",
+        "location": "Papeete, Tahiti", "stock": 1,
+    },
+    # === VÉHICULES - BATEAUX ===
+    {
+        "title": "Bateau polyester 6m avec moteur",
+        "description": "Bateau polyester 6 mètres, moteur Yamaha 90cv, remorque incluse. Parfait pêche et excursions dans le lagon. Révisé.",
+        "price": 2500000, "currency": "XPF", "category": "bateaux",
+        "image_url": "/products/prod_seed_23.png",
+        "location": "Arue, Tahiti", "stock": 1,
+    },
+    # === VÉHICULES - SCOOTERS ===
+    {
+        "title": "Scooter Yamaha XMAX 125cc",
+        "description": "Scooter Yamaha XMAX 125cc, année 2022, 8000 km, top case inclus. Idéal pour circuler à Tahiti. Entretien à jour.",
+        "price": 680000, "currency": "XPF", "category": "scooters",
+        "image_url": "/products/prod_seed_24.png",
+        "location": "Papeete, Tahiti", "stock": 1,
+    },
 ]
 
 

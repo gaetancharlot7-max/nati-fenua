@@ -106,6 +106,43 @@ PROMPTS = {
         "'Café de Taravao' burlap label, displayed on dark wood surface with coffee flowers, "
         "warm moody lighting, gourmet 4k product shot"
     ),
+    "Villa vue lagon - Moorea": (
+        "Professional real estate photography of a modern tropical villa in Moorea, "
+        "exterior view with white walls, wooden details, private pool, palm trees, "
+        "overwater deck with lagoon view, golden hour lighting, azure turquoise lagoon in background, "
+        "lush green mountains, drone-style composition, luxury property listing 4k"
+    ),
+    "Appartement T2 centre Papeete": (
+        "Professional real estate photography of a renovated modern apartment interior in Papeete, "
+        "bright living room with white walls, parquet floor, light furniture, balcony with tropical view, "
+        "natural daylight through large windows, minimalist Scandinavian-Polynesian style, 4k property listing"
+    ),
+    "Terrain constructible Paea": (
+        "Professional aerial photography of a flat constructible land parcel in Paea Tahiti, "
+        "green grass terrain with coconut palm trees, ocean view in background, blue sky, "
+        "clean cleared plot ready to build, drone shot, sunny tropical lighting, real estate 4k"
+    ),
+    "Terrain agricole Taravao": (
+        "Professional landscape photography of fertile agricultural farmland on Taravao plateau Tahiti, "
+        "rolling green pastures with mountain backdrop, small water stream, tropical cloud, "
+        "organic farm ready for cultivation, vibrant colors, 4k real estate listing"
+    ),
+    "Toyota Hilux 4x4 double cabine": (
+        "Professional automotive photography of a Toyota Hilux double cab 4x4 pickup truck, "
+        "white color, well maintained, parked on a tropical Tahitian road with palm trees, "
+        "side-front three quarter view, clean showroom quality, bright daylight, 4k marketplace shot"
+    ),
+    "Bateau polyester 6m avec moteur": (
+        "Professional marine photography of a 6m polyester motorboat with Yamaha 90hp outboard engine, "
+        "white hull, parked on trailer near Tahitian lagoon, blue ocean in background, "
+        "clean sunny day, ready for fishing or lagoon excursions, 4k marketplace shot"
+    ),
+    "Scooter Yamaha XMAX 125cc": (
+        "Professional product photography of a Yamaha XMAX 125cc scooter motorcycle, "
+        "black and silver color, with top case, shown three quarter side view, "
+        "parked on a clean driveway with palm trees in the background, bright daylight, "
+        "showroom quality 4k marketplace shot"
+    ),
 }
 
 OUTPUT_DIR = Path("/app/frontend/public/products")

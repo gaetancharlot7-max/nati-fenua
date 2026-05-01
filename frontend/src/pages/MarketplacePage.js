@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, MapPin, Star, Plus, ShoppingBag, Briefcase, Package, Utensils, Compass, Sparkles, Gem, Droplet, Shirt, Home, Calendar, Car, Book, X, MessageCircle, Heart, Share2, ImagePlus, Loader2, Flag, Zap, Check } from 'lucide-react';
+import { Search, Filter, MapPin, Star, Plus, ShoppingBag, Briefcase, Package, Utensils, Compass, Sparkles, Gem, Droplet, Shirt, Home, Calendar, Car, Book, X, MessageCircle, Heart, Share2, ImagePlus, Loader2, Flag, Zap, Check, Building2, Map, Anchor, Bike } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -35,11 +35,15 @@ const ProductDetailModal = ({ product, onClose, onReport, onContact, onBoost, cu
         className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
       >
         {/* Header Image */}
-        <div className="relative aspect-video">
+        <div className="relative aspect-video bg-gray-100">
           <img 
-            src={product.images?.[0]} 
+            key={product.images?.[0] || product.product_id}
+            src={product.images?.[0] || '/placeholder-post.svg'} 
             alt={product.title}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover"
+            onError={(e) => { e.currentTarget.src = '/placeholder-post.svg'; }}
           />
           {/* Boosted Badge */}
           {product.is_boosted && (
@@ -258,7 +262,11 @@ const iconMap = {
   calendar: Calendar,
   car: Car,
   book: Book,
-  briefcase: Briefcase
+  briefcase: Briefcase,
+  building: Building2,
+  map: Map,
+  anchor: Anchor,
+  bike: Bike
 };
 
 // Demo products with authentic Polynesian images
@@ -663,11 +671,15 @@ const MarketplacePage = () => {
                 onClick={() => setSelectedProduct(product)}
                 className="bg-white rounded-2xl overflow-hidden shadow-sm card-hover cursor-pointer"
               >
-                <div className="aspect-product relative">
+                <div className="aspect-product relative bg-gray-100">
                   <img 
-                    src={product.images?.[0]} 
+                    key={product.images?.[0] || product.product_id}
+                    src={product.images?.[0] || '/placeholder-post.svg'} 
                     alt={product.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
+                    onError={(e) => { e.currentTarget.src = '/placeholder-post.svg'; }}
                   />
                 </div>
                 <div className="p-4">

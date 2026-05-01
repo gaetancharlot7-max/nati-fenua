@@ -3357,6 +3357,12 @@ async def get_categories():
             {"id": "bijoux", "name": "Bijoux", "icon": "sparkles", "color": "#9400D3"},
             {"id": "alimentaire", "name": "Produits Locaux", "icon": "utensils", "color": "#32CD32"},
             {"id": "decoration", "name": "Décoration", "icon": "home", "color": "#FF4500"},
+            {"id": "immobilier", "name": "Immobilier", "icon": "building", "color": "#0EA5E9"},
+            {"id": "terrains", "name": "Terrains", "icon": "map", "color": "#16A34A"},
+            {"id": "vehicules", "name": "Véhicules", "icon": "car", "color": "#DC2626"},
+            {"id": "bateaux", "name": "Bateaux", "icon": "anchor", "color": "#0284C7"},
+            {"id": "scooters", "name": "Scooters & Motos", "icon": "bike", "color": "#EA580C"},
+            {"id": "voitures", "name": "Voitures", "icon": "car", "color": "#7C3AED"},
             {"id": "autres", "name": "Autres", "icon": "package", "color": "#808080"}
         ],
         "services": [
