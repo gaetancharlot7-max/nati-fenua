@@ -49,12 +49,7 @@ export const authApi = {
   resetPassword: (data) => api.post('/auth/reset-password', data)
 };
 
-// Users API
-export const usersApi = {
-  discover: (limit) => api.get('/users/discover', { params: { limit } }),
-  getOnlineStatus: (userIds) => api.get('/users/online-status', { params: { user_ids: userIds.join(',') } }),
-  search: (q, limit = 20) => api.get('/users/search', { params: { q, limit } }),
-};
+// Users API (defined above)
 
 // Posts API
 export const postsApi = {
@@ -142,7 +137,9 @@ export const usersApi = {
   updateProfile: (data) => api.put('/users/profile', data),
   updatePrivacy: (settings) => api.put('/users/profile', { profile_visibility: settings }),
   searchUsers: (query) => api.get('/users/search', { params: { q: query } }),
-  search: (query) => api.get('/search/users', { params: { q: query, limit: 10 } })
+  search: (q, limit = 20) => api.get('/users/search', { params: { q, limit } }),
+  discover: (limit) => api.get('/users/discover', { params: { limit } }),
+  getOnlineStatus: (userIds) => api.get('/users/online-status', { params: { user_ids: userIds.join(',') } }),
 };
 
 // Search API
