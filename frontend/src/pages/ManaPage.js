@@ -649,6 +649,108 @@ const PulsePage = () => {
 
       {/* Map Container */}
       <div className="flex-1 relative">
+        {/* Webcam Live Panel - shows when 'webcam' filter is active, autoplays all live webcams */}
+        {activeFilters.includes('webcam') && (
+          <div className="absolute inset-0 z-[400] bg-[#0A0A1F]/95 backdrop-blur-sm overflow-y-auto">
+            <div className="p-4 max-w-7xl mx-auto">
+              <div className="flex items-center justify-between mb-4 sticky top-0 z-10 bg-[#0A0A1F]/95 backdrop-blur-sm py-2">
+                <div>
+                  <h2 className="text-white text-xl font-bold flex items-center gap-2">
+                    <Camera size={22} className="text-[#FF6B35]" />
+                    Webcams en direct
+                  </h2>
+                  <p className="text-white/60 text-xs mt-0.5">
+                    {markers.filter(m => m.marker_type === 'webcam' || m.is_webcam).length} webcam(s) live • Polynésie française
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  data-testid="webcam-panel-close"
+                  aria-label="Fermer"
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+                >
+                  <X size={18} className="pointer-events-none" />
+                </button>
+              </div>
+
+              {markers.filter(m => m.marker_type === 'webcam' || m.is_webcam).length === 0 ? (
+                <div className="text-center py-16">
+                  <Camera size={48} className="mx-auto text-white/20 mb-3" />
+                  <p className="text-white/60">Aucune webcam disponible</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {markers
+                    .filter(m => m.marker_type === 'webcam' || m.is_webcam)
+                    .map((webcam) => {
+                      const src = webcam.iframe_url || webcam.embed_url || webcam.video_url;
+                      const isVideo = src && (src.endsWith('.mp4') || src.endsWith('.m3u8'));
+                      return (
+                        <div
+                          key={webcam.marker_id}
+                          data-testid={`webcam-tile-${webcam.marker_id}`}
+                          className="bg-[#1A1A2E] rounded-2xl overflow-hidden shadow-2xl border border-white/5"
+                        >
+                          <div className="relative aspect-video bg-black">
+                            {isVideo ? (
+                              <video
+                                src={src}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                className="w-full h-full object-cover"
+                              />
+                            ) : src ? (
+                              <iframe
+                                src={src}
+                                title={webcam.title}
+                                loading="lazy"
+                                className="w-full h-full"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-white/40">
+                                <Camera size={32} />
+                              </div>
+                            )}
+                            <div className="absolute top-2 left-2 px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-lg flex items-center gap-1 pointer-events-none">
+                              <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                              LIVE
+                            </div>
+                          </div>
+                          <div className="p-3">
+                            <h3 className="text-white font-semibold text-sm truncate">{webcam.title}</h3>
+                            <div className="flex items-center justify-between mt-1">
+                              <p className="text-white/50 text-xs truncate">
+                                {webcam.island ? webcam.island.charAt(0).toUpperCase() + webcam.island.slice(1) : ''}
+                                {webcam.source ? ` • ${webcam.source}` : ''}
+                              </p>
+                              {webcam.external_url && (
+                                <a
+                                  href={webcam.external_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  data-testid={`webcam-fullscreen-${webcam.marker_id}`}
+                                  className="text-[#FF6B35] hover:underline text-xs flex items-center gap-1 flex-shrink-0"
+                                >
+                                  Plein écran <Video size={12} />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <MapContainer
           center={[mapCenter.lat, mapCenter.lng]}
           zoom={mapCenter.zoom || 11}
