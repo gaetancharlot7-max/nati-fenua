@@ -401,6 +401,9 @@ const MarketplacePage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  // Category-specific filters (only sent when relevant category is selected)
+  const [advancedFilters, setAdvancedFilters] = useState({});
+  const [showFilters, setShowFilters] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedService, setSelectedService] = useState(null);
   const [showCreateProduct, setShowCreateProduct] = useState(false);
@@ -413,17 +416,29 @@ const MarketplacePage = () => {
 
   useEffect(() => {
     loadMarketplace();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory, advancedFilters]);
+
+  // Reset filters when category changes
+  useEffect(() => {
+    setAdvancedFilters({});
+  }, [selectedCategory]);
 
   const loadMarketplace = async () => {
     try {
+      // Build product params with category + advanced filters
+      const productParams = { limit: 30 };
+      if (selectedCategory !== 'all') productParams.category = selectedCategory;
+      Object.entries(advancedFilters).forEach(([k, v]) => {
+        if (v !== '' && v !== null && v !== undefined) productParams[k] = v;
+      });
       const [productsRes, servicesRes, categoriesRes] = await Promise.all([
-        marketplaceApi.getProducts({ limit: 20 }),
+        marketplaceApi.getProducts(productParams),
         marketplaceApi.getServices({ limit: 20 }),
         marketplaceApi.getCategories()
       ]);
       
-      if (productsRes.data.length > 0) setProducts(productsRes.data);
+      setProducts(productsRes.data?.length > 0 ? productsRes.data : []);
       if (servicesRes.data.length > 0) setServices(servicesRes.data);
       if (categoriesRes.data) setCategories(categoriesRes.data);
     } catch (error) {
@@ -654,6 +669,143 @@ const MarketplacePage = () => {
           })}
         </div>
 
+        {/* Category-specific filters - shown only when an advanced category is selected */}
+        {activeTab === 'products' && ['immobilier','terrains','voitures','scooters','bateaux','vehicules'].includes(selectedCategory) && (
+          <div className="bg-white rounded-2xl shadow-sm p-4 mb-4 border border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-[#1A1A2E] flex items-center gap-2">
+                <Filter size={16} className="text-[#FF6B35]" />
+                Filtres avancés
+              </h3>
+              <button
+                type="button"
+                onClick={() => setAdvancedFilters({})}
+                data-testid="filters-reset"
+                className="text-xs text-[#FF6B35] hover:underline"
+              >
+                Réinitialiser
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <input
+                type="number"
+                placeholder="Prix min (XPF)"
+                value={advancedFilters.min_price || ''}
+                onChange={(e) => setAdvancedFilters(f => ({ ...f, min_price: e.target.value ? Number(e.target.value) : undefined }))}
+                data-testid="filter-min-price"
+                className="px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-[#FF6B35]"
+              />
+              <input
+                type="number"
+                placeholder="Prix max (XPF)"
+                value={advancedFilters.max_price || ''}
+                onChange={(e) => setAdvancedFilters(f => ({ ...f, max_price: e.target.value ? Number(e.target.value) : undefined }))}
+                data-testid="filter-max-price"
+                className="px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-[#FF6B35]"
+              />
+            </div>
+
+            {selectedCategory === 'immobilier' && (
+              <div className="grid grid-cols-3 gap-2">
+                <input type="number" placeholder="Chambres min"
+                  value={advancedFilters.min_rooms || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, min_rooms: e.target.value ? Number(e.target.value) : undefined }))}
+                  data-testid="filter-min-rooms"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-[#FF6B35]" />
+                <input type="number" placeholder="Surface min m²"
+                  value={advancedFilters.min_surface || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, min_surface: e.target.value ? Number(e.target.value) : undefined }))}
+                  data-testid="filter-min-surface"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-[#FF6B35]" />
+                <input type="number" placeholder="Surface max m²"
+                  value={advancedFilters.max_surface || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, max_surface: e.target.value ? Number(e.target.value) : undefined }))}
+                  data-testid="filter-max-surface"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-[#FF6B35]" />
+              </div>
+            )}
+
+            {selectedCategory === 'terrains' && (
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" placeholder="Surface min m²"
+                  value={advancedFilters.min_surface || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, min_surface: e.target.value ? Number(e.target.value) : undefined }))}
+                  data-testid="filter-min-surface"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-[#FF6B35]" />
+                <input type="number" placeholder="Surface max m²"
+                  value={advancedFilters.max_surface || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, max_surface: e.target.value ? Number(e.target.value) : undefined }))}
+                  data-testid="filter-max-surface"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-[#FF6B35]" />
+              </div>
+            )}
+
+            {selectedCategory === 'voitures' && (
+              <div className="grid grid-cols-3 gap-2">
+                <input type="number" placeholder="Km max"
+                  value={advancedFilters.max_km || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, max_km: e.target.value ? Number(e.target.value) : undefined }))}
+                  data-testid="filter-max-km"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-[#FF6B35]" />
+                <input type="number" placeholder="Année min"
+                  value={advancedFilters.min_year || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, min_year: e.target.value ? Number(e.target.value) : undefined }))}
+                  data-testid="filter-min-year"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-[#FF6B35]" />
+                <select value={advancedFilters.transmission || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, transmission: e.target.value || undefined }))}
+                  data-testid="filter-transmission"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-[#FF6B35] bg-white">
+                  <option value="">Boîte (toutes)</option>
+                  <option value="manuelle">Manuelle</option>
+                  <option value="auto">Automatique</option>
+                </select>
+              </div>
+            )}
+
+            {selectedCategory === 'scooters' && (
+              <div className="grid grid-cols-3 gap-2">
+                <input type="number" placeholder="Km max"
+                  value={advancedFilters.max_km || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, max_km: e.target.value ? Number(e.target.value) : undefined }))}
+                  data-testid="filter-max-km"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-[#FF6B35]" />
+                <input type="number" placeholder="Année min"
+                  value={advancedFilters.min_year || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, min_year: e.target.value ? Number(e.target.value) : undefined }))}
+                  data-testid="filter-min-year"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-[#FF6B35]" />
+                <input type="number" placeholder="Cylindrée min cc"
+                  value={advancedFilters.min_displacement || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, min_displacement: e.target.value ? Number(e.target.value) : undefined }))}
+                  data-testid="filter-min-displacement"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-[#FF6B35]" />
+              </div>
+            )}
+
+            {selectedCategory === 'bateaux' && (
+              <div className="grid grid-cols-3 gap-2">
+                <input type="number" placeholder="Long. min m" step="0.1"
+                  value={advancedFilters.min_length || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, min_length: e.target.value ? Number(e.target.value) : undefined }))}
+                  data-testid="filter-min-length"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-[#FF6B35]" />
+                <input type="number" placeholder="Puissance min cv"
+                  value={advancedFilters.min_hp || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, min_hp: e.target.value ? Number(e.target.value) : undefined }))}
+                  data-testid="filter-min-hp"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-[#FF6B35]" />
+                <input type="number" placeholder="Année min"
+                  value={advancedFilters.min_year || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, min_year: e.target.value ? Number(e.target.value) : undefined }))}
+                  data-testid="filter-min-year"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-[#FF6B35]" />
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Products Grid */}
         <TabsContent value="products">
           <div className="marketplace-grid">
@@ -687,6 +839,39 @@ const MarketplacePage = () => {
                   <p className="text-[#FF6B35] font-bold text-lg mb-2">
                     {formatPrice(product.price, product.currency)}
                   </p>
+                  {/* Category-specific specs row */}
+                  {(product.rooms || product.surface_m2 || product.km || product.year || product.length_m || product.hp_cv || product.displacement_cc || product.transmission) && (
+                    <div className="flex items-center gap-2 flex-wrap mb-2">
+                      {product.rooms ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{product.rooms} ch.</span>
+                      ) : null}
+                      {product.surface_m2 ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700">
+                          {product.surface_m2 >= 10000 ? `${(product.surface_m2/10000).toFixed(1)}ha` : `${product.surface_m2}m²`}
+                        </span>
+                      ) : null}
+                      {product.year ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-purple-50 text-purple-700">{product.year}</span>
+                      ) : null}
+                      {product.km ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-700">{product.km.toLocaleString()} km</span>
+                      ) : null}
+                      {product.transmission ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-pink-50 text-pink-700">
+                          {product.transmission === 'auto' ? 'Auto' : 'Manuelle'}
+                        </span>
+                      ) : null}
+                      {product.length_m ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-700">{product.length_m}m</span>
+                      ) : null}
+                      {product.hp_cv ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-700">{product.hp_cv}cv</span>
+                      ) : null}
+                      {product.displacement_cc ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">{product.displacement_cc}cc</span>
+                      ) : null}
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-gray-500 text-xs">
                     <MapPin size={12} />
                     {product.location}

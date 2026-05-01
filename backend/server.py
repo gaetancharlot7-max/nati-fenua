@@ -502,6 +502,18 @@ class ProductBase(BaseModel):
     is_available: bool = True
     views_count: int = 0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    # Category-specific specs (all optional)
+    # Immobilier / Terrains
+    rooms: Optional[int] = None              # Nombre de chambres
+    surface_m2: Optional[float] = None       # Surface en m²
+    # Voitures / Scooters
+    km: Optional[int] = None                 # Kilométrage
+    year: Optional[int] = None               # Année du véhicule
+    transmission: Optional[str] = None       # 'manuelle' / 'auto'
+    displacement_cc: Optional[int] = None    # Cylindrée scooter/moto
+    # Bateaux
+    length_m: Optional[float] = None         # Longueur en mètres
+    hp_cv: Optional[int] = None              # Puissance moteur cv
 
 class ProductCreate(BaseModel):
     title: str
@@ -510,6 +522,14 @@ class ProductCreate(BaseModel):
     category: str
     images: List[str] = []
     location: Optional[str] = None
+    rooms: Optional[int] = None
+    surface_m2: Optional[float] = None
+    km: Optional[int] = None
+    year: Optional[int] = None
+    transmission: Optional[str] = None
+    displacement_cc: Optional[int] = None
+    length_m: Optional[float] = None
+    hp_cv: Optional[int] = None
 
 class ServiceBase(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -3093,12 +3113,32 @@ async def get_feed(page: int = 1, per_page: int = 10, request: Request = None):
 # ==================== MARKETPLACE ROUTES ====================
 
 @api_router.get("/marketplace/products")
-async def get_products(category: Optional[str] = None, limit: int = 20, skip: int = 0):
-    """Get marketplace products (optimized with cache)"""
+async def get_products(
+    category: Optional[str] = None,
+    limit: int = 20,
+    skip: int = 0,
+    # Generic price range
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    # Real estate / land
+    min_rooms: Optional[int] = None,
+    min_surface: Optional[float] = None,
+    max_surface: Optional[float] = None,
+    # Vehicles
+    max_km: Optional[int] = None,
+    min_year: Optional[int] = None,
+    transmission: Optional[str] = None,  # 'manuelle' | 'auto'
+    min_displacement: Optional[int] = None,
+    # Boats
+    min_length: Optional[float] = None,
+    min_hp: Optional[int] = None,
+):
+    """Get marketplace products with category-specific filters."""
     
-    cache_key = f"products:{category or 'all'}:{limit}:{skip}"
+    # Cache key includes ALL filters so different filter sets don't collide
+    filter_sig = f"{category or 'all'}:{min_price}:{max_price}:{min_rooms}:{min_surface}:{max_surface}:{max_km}:{min_year}:{transmission}:{min_displacement}:{min_length}:{min_hp}"
+    cache_key = f"products:{filter_sig}:{limit}:{skip}"
     
-    # Try cache first
     cached = await cache.get(cache_key)
     if cached:
         return cached
@@ -3106,6 +3146,38 @@ async def get_products(category: Optional[str] = None, limit: int = 20, skip: in
     query = {"is_available": True}
     if category:
         query["category"] = category
+    
+    # Generic price filter
+    if min_price is not None or max_price is not None:
+        price_q = {}
+        if min_price is not None: price_q["$gte"] = min_price
+        if max_price is not None: price_q["$lte"] = max_price
+        query["price"] = price_q
+    
+    # Real estate / terrains
+    if min_rooms is not None:
+        query["rooms"] = {"$gte": min_rooms}
+    if min_surface is not None or max_surface is not None:
+        s_q = {}
+        if min_surface is not None: s_q["$gte"] = min_surface
+        if max_surface is not None: s_q["$lte"] = max_surface
+        query["surface_m2"] = s_q
+    
+    # Vehicles - cars / scooters
+    if max_km is not None:
+        query["km"] = {"$lte": max_km}
+    if min_year is not None:
+        query["year"] = {"$gte": min_year}
+    if transmission:
+        query["transmission"] = transmission
+    if min_displacement is not None:
+        query["displacement_cc"] = {"$gte": min_displacement}
+    
+    # Boats
+    if min_length is not None:
+        query["length_m"] = {"$gte": min_length}
+    if min_hp is not None:
+        query["hp_cv"] = {"$gte": min_hp}
     
     # Optimized: Use aggregation with $lookup to avoid N+1 queries
     pipeline = [
@@ -3158,7 +3230,7 @@ async def get_products(category: Optional[str] = None, limit: int = 20, skip: in
 @api_router.get("/market/products")
 async def get_market_products(category: Optional[str] = None, limit: int = 20, skip: int = 0):
     """Alias for /marketplace/products"""
-    return await get_products(category, limit, skip)
+    return await get_products(category=category, limit=limit, skip=skip)
 
 @api_router.get("/marketplace/products/{product_id}")
 async def get_product(product_id: str):
@@ -7304,6 +7376,15 @@ async def seed_polynesian_content():
                             "description": product["description"],
                             "is_seeded": True,
                             "is_available": True,
+                            # Category-specific specs (seed source of truth)
+                            "rooms": product.get("rooms"),
+                            "surface_m2": product.get("surface_m2"),
+                            "km": product.get("km"),
+                            "year": product.get("year"),
+                            "transmission": product.get("transmission"),
+                            "displacement_cc": product.get("displacement_cc"),
+                            "length_m": product.get("length_m"),
+                            "hp_cv": product.get("hp_cv"),
                         },
                         "$setOnInsert": {
                             "vendor_id": product.get("vendor_id", "fenua_artisans"),

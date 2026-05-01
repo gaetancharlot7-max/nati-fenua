@@ -480,6 +480,7 @@ SEED_PRODUCTS = [
         "price": 85000000, "currency": "XPF", "category": "immobilier",
         "image_url": "/products/prod_seed_18.png",
         "location": "Moorea", "stock": 1,
+        "rooms": 3, "surface_m2": 150,
     },
     {
         "title": "Appartement T2 centre Papeete",
@@ -487,6 +488,7 @@ SEED_PRODUCTS = [
         "price": 28000000, "currency": "XPF", "category": "immobilier",
         "image_url": "/products/prod_seed_19.png",
         "location": "Papeete, Tahiti", "stock": 1,
+        "rooms": 2, "surface_m2": 55,
     },
     # === TERRAINS ===
     {
@@ -495,6 +497,7 @@ SEED_PRODUCTS = [
         "price": 15000000, "currency": "XPF", "category": "terrains",
         "image_url": "/products/prod_seed_20.png",
         "location": "Paea, Tahiti", "stock": 1,
+        "surface_m2": 1200,
     },
     {
         "title": "Terrain agricole Taravao",
@@ -502,6 +505,7 @@ SEED_PRODUCTS = [
         "price": 22000000, "currency": "XPF", "category": "terrains",
         "image_url": "/products/prod_seed_21.png",
         "location": "Taravao, Tahiti", "stock": 1,
+        "surface_m2": 30000,
     },
     # === VÉHICULES - VOITURES ===
     {
@@ -510,6 +514,7 @@ SEED_PRODUCTS = [
         "price": 3800000, "currency": "XPF", "category": "voitures",
         "image_url": "/products/prod_seed_22.png",
         "location": "Papeete, Tahiti", "stock": 1,
+        "km": 45000, "year": 2020, "transmission": "manuelle",
     },
     # === VÉHICULES - BATEAUX ===
     {
@@ -518,6 +523,7 @@ SEED_PRODUCTS = [
         "price": 2500000, "currency": "XPF", "category": "bateaux",
         "image_url": "/products/prod_seed_23.png",
         "location": "Arue, Tahiti", "stock": 1,
+        "length_m": 6, "hp_cv": 90, "year": 2018,
     },
     # === VÉHICULES - SCOOTERS ===
     {
@@ -526,6 +532,7 @@ SEED_PRODUCTS = [
         "price": 680000, "currency": "XPF", "category": "scooters",
         "image_url": "/products/prod_seed_24.png",
         "location": "Papeete, Tahiti", "stock": 1,
+        "km": 8000, "year": 2022, "displacement_cc": 125, "transmission": "auto",
     },
 ]
 
