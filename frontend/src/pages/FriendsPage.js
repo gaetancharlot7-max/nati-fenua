@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, UserPlus, UserCheck, UserX, Clock, ArrowLeft,
-  Check, X, Loader2, MessageCircle, ChevronRight
+  Check, X, Loader2, MessageCircle, ChevronRight, Search, Compass
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { usersApi } from '../lib/api';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -135,8 +136,63 @@ const FriendsPage = () => {
   const tabs = [
     { id: 'friends', label: 'Amis', icon: Users, count: friends.length },
     { id: 'received', label: 'Reçues', icon: UserPlus, count: receivedRequests.length },
-    { id: 'sent', label: 'Envoyées', icon: Clock, count: sentRequests.length }
+    { id: 'sent', label: 'Envoyées', icon: Clock, count: sentRequests.length },
+    { id: 'discover', label: 'Découvrir', icon: Compass, count: 0 }
   ];
+
+  // Friend discovery: browse/search all registered users
+  const [discoverQuery, setDiscoverQuery] = useState('');
+  const [discoverUsers, setDiscoverUsers] = useState([]);
+  const [discoverLoading, setDiscoverLoading] = useState(false);
+  const [pendingAdd, setPendingAdd] = useState(null);
+  const debounceRef = useRef(null);
+
+  useEffect(() => {
+    if (activeTab !== 'discover') return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setDiscoverLoading(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await usersApi.search(discoverQuery.trim(), 30);
+        // Exclude self and existing friends
+        const friendIds = new Set(friends.map(f => f.user_id));
+        const sentIds = new Set(sentRequests.map(r => r.receiver?.user_id || r.to_user_id));
+        const filtered = (res.data || []).filter(u =>
+          u.user_id !== user?.user_id &&
+          !friendIds.has(u.user_id) &&
+          !sentIds.has(u.user_id)
+        );
+        setDiscoverUsers(filtered);
+      } catch {
+        setDiscoverUsers([]);
+      } finally {
+        setDiscoverLoading(false);
+      }
+    }, 300);
+    return () => debounceRef.current && clearTimeout(debounceRef.current);
+  }, [discoverQuery, activeTab, friends, sentRequests, user?.user_id]);
+
+  const handleSendFriendRequest = async (targetUserId, targetName) => {
+    setPendingAdd(targetUserId);
+    try {
+      const res = await fetch(`${API}/api/friends/request/${targetUserId}`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        toast.success(`Demande envoyée à ${targetName}`);
+        setDiscoverUsers(prev => prev.filter(u => u.user_id !== targetUserId));
+        loadData();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        toast.error(d.detail || "Erreur lors de l'envoi");
+      }
+    } catch {
+      toast.error("Erreur réseau");
+    } finally {
+      setPendingAdd(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -362,6 +418,83 @@ const FriendsPage = () => {
                       <Loader2 size={16} className="animate-spin" />
                     ) : (
                       'Annuler'
+                    )}
+                  </Button>
+                </div>
+              ))
+            )}
+          </motion.div>
+        )}
+
+        {/* Discover Tab - browse/search all registered users */}
+        {activeTab === 'discover' && (
+          <motion.div
+            key="discover"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-3"
+          >
+            {/* Search bar */}
+            <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-2xl shadow-sm mb-3">
+              <Search size={20} className="text-gray-400 flex-shrink-0 pointer-events-none" />
+              <input
+                type="text"
+                value={discoverQuery}
+                onChange={(e) => setDiscoverQuery(e.target.value)}
+                placeholder="Rechercher un utilisateur Nati Fenua..."
+                data-testid="friend-discover-search"
+                className="flex-1 bg-transparent outline-none text-sm"
+              />
+              {discoverLoading && (
+                <Loader2 size={16} className="animate-spin text-gray-400 flex-shrink-0" />
+              )}
+            </div>
+
+            {!discoverLoading && discoverUsers.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-3xl">
+                <Compass size={48} className="mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500">
+                  {discoverQuery ? `Aucun utilisateur pour "${discoverQuery}"` : 'Aucun utilisateur trouvé'}
+                </p>
+              </div>
+            ) : (
+              discoverUsers.map((u) => (
+                <div
+                  key={u.user_id}
+                  data-testid={`discover-user-${u.user_id}`}
+                  className="bg-white rounded-2xl p-4 shadow-sm flex items-center gap-4"
+                >
+                  <img
+                    src={u.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || '?')}&background=FF6B35&color=fff`}
+                    alt={u.name}
+                    className="w-14 h-14 rounded-full object-cover border-2 border-white shadow cursor-pointer"
+                    onClick={() => navigate(`/profile/${u.user_id}`)}
+                    onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || '?')}&background=FF6B35&color=fff`; }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className="font-bold text-[#1A1A2E] cursor-pointer hover:text-[#FF6B35] truncate"
+                      onClick={() => navigate(`/profile/${u.user_id}`)}
+                    >
+                      {u.name || 'Utilisateur'}
+                    </p>
+                    {u.bio && <p className="text-xs text-gray-500 truncate">{u.bio}</p>}
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => handleSendFriendRequest(u.user_id, u.name)}
+                    disabled={pendingAdd === u.user_id}
+                    data-testid={`add-friend-${u.user_id}`}
+                    className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white"
+                  >
+                    {pendingAdd === u.user_id ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <>
+                        <UserPlus size={16} className="mr-1" />
+                        Ajouter
+                      </>
                     )}
                   </Button>
                 </div>

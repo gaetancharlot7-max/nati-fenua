@@ -27,47 +27,70 @@ class SoundManager {
     this.initialized = true;
   }
 
-  // Play notification sound
+  // Play notification sound - Authentic ukulele pluck using Web Audio API
+  // Uses additive synthesis with harmonics + plucked-string envelope for a
+  // realistic ukulele-like "ting" on 3 notes (C-E-G arpeggio).
   playNotification() {
     if (!this.initialized) this.init();
-    
+
     try {
-      // Create a simple polynesian-style notification using Web Audio API
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      
-      // Create oscillators for a ukulele-like sound
-      const osc1 = audioContext.createOscillator();
-      const osc2 = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      osc1.type = 'sine';
-      osc2.type = 'triangle';
-      
-      // Polynesian-style melody (C, E, G arpeggio)
-      const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
-      
-      osc1.connect(gainNode);
-      osc2.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-      
-      // Play arpeggio
-      notes.forEach((freq, i) => {
-        setTimeout(() => {
-          osc1.frequency.setValueAtTime(freq, audioContext.currentTime);
-          osc2.frequency.setValueAtTime(freq * 2, audioContext.currentTime);
-        }, i * 100);
-      });
-      
-      osc1.start(audioContext.currentTime);
-      osc2.start(audioContext.currentTime);
-      osc1.stop(audioContext.currentTime + 0.5);
-      osc2.stop(audioContext.currentTime + 0.5);
-      
-    } catch (e) {
-      console.log('Audio notification not supported');
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+
+      // Resume context (required by browser autoplay policies)
+      if (ctx.state === 'suspended') ctx.resume();
+
+      // Master gain for the whole arpeggio
+      const master = ctx.createGain();
+      master.gain.value = this.notificationVolume;
+      // Gentle highpass to remove muddiness like a real ukulele
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 180;
+      master.connect(hp);
+      hp.connect(ctx.destination);
+
+      // Plucked-string tones: fundamental + 3 harmonics, short attack, long exponential decay
+      const pluck = (freq, startOffset) => {
+        const t0 = ctx.currentTime + startOffset;
+        const envDuration = 1.4; // total ring time
+        const voiceGain = ctx.createGain();
+        voiceGain.gain.setValueAtTime(0.0001, t0);
+        voiceGain.gain.exponentialRampToValueAtTime(0.6, t0 + 0.008); // fast attack ~8ms
+        voiceGain.gain.exponentialRampToValueAtTime(0.0001, t0 + envDuration);
+        voiceGain.connect(master);
+
+        // Harmonic stack (relative amplitudes mimic ukulele nylon string)
+        const harmonics = [
+          { mult: 1, gain: 1.0, type: 'triangle' },
+          { mult: 2, gain: 0.5, type: 'sine' },
+          { mult: 3, gain: 0.22, type: 'sine' },
+          { mult: 4, gain: 0.08, type: 'sine' },
+        ];
+        harmonics.forEach(h => {
+          const osc = ctx.createOscillator();
+          osc.type = h.type;
+          osc.frequency.setValueAtTime(freq * h.mult, t0);
+          // tiny pitch-bend at the start simulates a finger-nail pluck
+          osc.frequency.exponentialRampToValueAtTime(freq * h.mult * 1.002, t0 + 0.02);
+
+          const partialGain = ctx.createGain();
+          partialGain.gain.value = h.gain;
+          osc.connect(partialGain);
+          partialGain.connect(voiceGain);
+
+          osc.start(t0);
+          osc.stop(t0 + envDuration + 0.1);
+        });
+      };
+
+      // C5 - E5 - G5 arpeggio, slight timing variance for human feel
+      pluck(523.25, 0);      // C5
+      pluck(659.25, 0.12);   // E5
+      pluck(783.99, 0.24);   // G5
+    } catch {
+      // silent fallback - audio not critical
     }
   }
 

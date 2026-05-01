@@ -29,6 +29,7 @@ const ChatPage = () => {
   const [searchParams] = useSearchParams();
   const targetUserId = searchParams.get('user');
   const [conversations, setConversations] = useState(demoConversations);
+  const [onlineUserIds, setOnlineUserIds] = useState(new Set());
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -239,6 +240,30 @@ const ChatPage = () => {
     }
   };
 
+  // Poll online status of conversation partners every 20s
+  useEffect(() => {
+    const partnerIds = conversations
+      .map((c) => c.other_user?.user_id)
+      .filter(Boolean);
+    if (partnerIds.length === 0) return;
+
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const res = await usersApi.getOnlineStatus(partnerIds);
+        if (!cancelled) setOnlineUserIds(new Set(res.data?.online || []));
+      } catch {
+        // silent
+      }
+    };
+    refresh();
+    const interval = setInterval(refresh, 20000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [conversations]);
+
   const loadMessages = async (conversationId) => {
     try {
       const response = await chatApi.getMessages(conversationId);
@@ -438,8 +463,13 @@ const ChatPage = () => {
                     {conv.other_user?.name?.[0]}
                   </AvatarFallback>
                 </Avatar>
-                {/* Online indicator */}
-                <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                {/* Online indicator - shows only when partner is currently connected */}
+                {onlineUserIds.has(conv.other_user?.user_id) && (
+                  <div
+                    data-testid={`online-dot-${conv.other_user?.user_id}`}
+                    className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white"
+                  ></div>
+                )}
               </div>
               
               <div className="flex-1 text-left min-w-0">
@@ -514,15 +544,48 @@ const ChatPage = () => {
                 </Avatar>
                 <div>
                   <p className="font-semibold text-[#1A1A2E]">{selectedConversation.other_user?.name}</p>
-                  <p className="text-xs text-green-500">En ligne</p>
+                  {onlineUserIds.has(selectedConversation.other_user?.user_id) ? (
+                    <p className="text-xs text-green-500">En ligne</p>
+                  ) : (
+                    <p className="text-xs text-gray-400">Hors ligne</p>
+                  )}
                 </div>
               </Link>
             </div>
             
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="rounded-xl">
-                <MoreVertical size={20} />
-              </Button>
+              {/* 3-dots menu with conversation actions */}
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-xl"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowConvMenu(showConvMenu === selectedConversation.conversation_id ? null : selectedConversation.conversation_id);
+                  }}
+                  data-testid="chat-header-menu"
+                  aria-label="Options"
+                >
+                  <MoreVertical size={20} className="pointer-events-none" />
+                </Button>
+                {showConvMenu === selectedConversation.conversation_id && (
+                  <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 min-w-[200px]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowConvMenu(null);
+                        deleteConversation(selectedConversation.conversation_id);
+                      }}
+                      data-testid="chat-header-delete"
+                      className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
+                    >
+                      <X size={16} className="pointer-events-none" />
+                      Supprimer la conversation
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

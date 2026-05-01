@@ -3523,24 +3523,39 @@ async def get_ad_pricing():
 # ==================== USER ROUTES ====================
 
 @api_router.get("/users/search")
-async def search_users_for_chat(q: str = "", limit: int = 10):
-    """Search users by name or username for chat/messaging"""
-    if len(q) < 2:
-        return []
+async def search_users_for_chat(q: str = "", limit: int = 30):
+    """Search users by name/username/email for chat, friends, etc.
+    If q is empty or short, returns all non-bot users (recent first) so the
+    user can browse all registered accounts on Nati Fenua."""
+    filters = {
+        "is_bot": {"$ne": True},
+    }
+    q = (q or "").strip()
+    if len(q) >= 1:
+        filters["$or"] = [
+            {"name": {"$regex": q, "$options": "i"}},
+            {"username": {"$regex": q, "$options": "i"}},
+            {"email": {"$regex": f"^{q}", "$options": "i"}}
+        ]
     
-    # Search by name (case-insensitive)
     users = await db.users.find(
-        {
-            "$or": [
-                {"name": {"$regex": q, "$options": "i"}},
-                {"username": {"$regex": q, "$options": "i"}},
-                {"email": {"$regex": f"^{q}", "$options": "i"}}
-            ]
-        },
-        {"_id": 0, "password_hash": 0, "email": 0}
-    ).limit(limit).to_list(limit)
+        filters,
+        {"_id": 0, "password_hash": 0, "email": 0, "device_tokens": 0, "fcm_token": 0}
+    ).sort("created_at", -1).limit(min(limit, 100)).to_list(min(limit, 100))
     
     return users
+
+
+@api_router.get("/users/online-status")
+async def get_online_status(user_ids: str = ""):
+    """Return the subset of given user_ids that are currently connected via WebSocket.
+    Use case: chat list / friends list showing a green dot only for online users.
+    Query param: comma-separated user_ids. Returns {"online": [user_id, ...]}"""
+    if not user_ids:
+        return {"online": []}
+    ids = [u.strip() for u in user_ids.split(",") if u.strip()]
+    online = [uid for uid in ids if chat_manager.is_user_online(uid)]
+    return {"online": online}
 
 
 @api_router.get("/users/discover")

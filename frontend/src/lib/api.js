@@ -49,6 +49,13 @@ export const authApi = {
   resetPassword: (data) => api.post('/auth/reset-password', data)
 };
 
+// Users API
+export const usersApi = {
+  discover: (limit) => api.get('/users/discover', { params: { limit } }),
+  getOnlineStatus: (userIds) => api.get('/users/online-status', { params: { user_ids: userIds.join(',') } }),
+  search: (q, limit = 20) => api.get('/users/search', { params: { q, limit } }),
+};
+
 // Posts API
 export const postsApi = {
   getAll: (params) => api.get('/posts', { params }),
