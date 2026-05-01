@@ -45,9 +45,15 @@ const NotificationBanner = () => {
   };
 
   const handleEnable = async () => {
-    const success = await requestPermission();
-    if (success) {
-      setShow(false);
+    // Optimistic: close banner INSTANTLY so user has immediate feedback.
+    // Permission flow continues in the background.
+    setShow(false);
+    setDismissed(true);
+    sessionStorage.setItem('notification_banner_dismissed', 'true');
+    try {
+      await requestPermission();
+    } catch {
+      // silent - banner already closed
     }
   };
 

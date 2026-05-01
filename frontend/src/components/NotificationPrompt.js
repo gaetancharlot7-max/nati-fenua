@@ -83,6 +83,11 @@ const NotificationPrompt = () => {
   }, [notificationsEnabled]);
 
   const enableNotifications = useCallback(async () => {
+    // Optimistic UI: dismiss the prompt INSTANTLY so user gets immediate feedback.
+    // The actual Firebase permission + backend registration runs in the background
+    // (it may take 2–5s on slow networks or fail silently on iOS Safari non-PWA).
+    setShowPrompt(false);
+    localStorage.removeItem('notification-prompt-dismissed');
     setLoading(true);
     
     try {
@@ -93,23 +98,20 @@ const NotificationPrompt = () => {
         await registerTokenWithBackend(token, authToken);
         
         setNotificationsEnabled(true);
-        setShowPrompt(false);
-        localStorage.removeItem('notification-prompt-dismissed');
         
-        toast.success('Notifications activees !', {
-          description: 'Vous recevrez des alertes pour les messages et activites.'
+        toast.success('Notifications activées !', {
+          description: 'Vous recevrez des alertes pour les messages et activités.'
         });
       } else if (permission === 'denied') {
-        toast.error('Notifications bloquees', {
-          description: 'Activez les notifications dans les parametres de votre navigateur.'
+        toast.error('Notifications bloquées', {
+          description: 'Activez les notifications dans les paramètres de votre navigateur.'
         });
-        setShowPrompt(false);
       } else {
-        toast.error('Impossible d\'activer les notifications');
+        // User dismissed the browser permission prompt - silent, no toast needed
       }
     } catch (error) {
       console.error('Error enabling notifications:', error);
-      toast.error('Erreur lors de l\'activation des notifications');
+      // Silent failure - banner is already closed, no blocking toast
     } finally {
       setLoading(false);
     }
