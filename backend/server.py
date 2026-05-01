@@ -7231,30 +7231,75 @@ async def seed_polynesian_content():
         # Insert demo products (so the marketplace and search are not empty)
         # — runs OUTSIDE the "existing_seeded" check below, so it also fixes
         # production DBs that were seeded before this feature existed.
+        # Self-healing: removes legacy products with random suffix IDs
+        # (prod_seed_NN_NNNN) and upserts the canonical 18 products with
+        # deterministic IDs (prod_seed_NN). Safe to run on every startup.
         try:
+            import re as _re
             from seed_data import build_seed_products
-            existing_products = await db.products.count_documents({"is_seeded": True})
-            if existing_products == 0:
-                products = build_seed_products()
-                # Ensure the vendor account exists
-                vendor_exists = await db.users.find_one({"user_id": "fenua_artisans"})
-                if not vendor_exists:
-                    await db.users.insert_one({
-                        "user_id": "fenua_artisans",
-                        "email": "contact@artisans-polynesie.pf",
-                        "name": "Artisans de Polynésie",
-                        "username": "artisans_polynesie",
-                        "picture": "https://ui-avatars.com/api/?name=AP&background=8B4513&color=fff&bold=true&size=200",
-                        "bio": "Vitrine des artisans polynésiens — perles, monoï, sculptures, vanille",
-                        "is_verified": True,
-                        "is_seeded": True,
-                        "followers_count": 12000,
-                        "following_count": 80,
-                        "created_at": datetime.now(timezone.utc).isoformat(),
-                    })
-                for product in products:
-                    await db.products.insert_one(product)
-                logger.info(f"Seeded {len(products)} demo products")
+            
+            # Step 1: clean legacy seeded products with random-suffix IDs
+            # (e.g. prod_seed_00_7567) that pointed to broken Unsplash URLs
+            # or to /products/prod_seed_NN_NNNN.png images that don't exist.
+            legacy_filter = {
+                "is_seeded": True,
+                "product_id": {"$regex": "^prod_seed_[0-9]+_[0-9]+$"}
+            }
+            legacy_count = await db.products.count_documents(legacy_filter)
+            if legacy_count > 0:
+                await db.products.delete_many(legacy_filter)
+                logger.info(f"Removed {legacy_count} legacy seeded products with random-suffix IDs")
+            
+            # Step 2: upsert canonical seed products
+            products = build_seed_products()
+            # Ensure the vendor account exists
+            vendor_exists = await db.users.find_one({"user_id": "fenua_artisans"})
+            if not vendor_exists:
+                await db.users.insert_one({
+                    "user_id": "fenua_artisans",
+                    "email": "contact@artisans-polynesie.pf",
+                    "name": "Artisans de Polynésie",
+                    "username": "artisans_polynesie",
+                    "picture": "https://ui-avatars.com/api/?name=AP&background=8B4513&color=fff&bold=true&size=200",
+                    "bio": "Vitrine des artisans polynésiens — perles, monoï, sculptures, vanille",
+                    "is_verified": True,
+                    "is_seeded": True,
+                    "followers_count": 12000,
+                    "following_count": 80,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                })
+            upserted = 0
+            for product in products:
+                pid = product["product_id"]
+                # Upsert: insert if missing, update image_url + images if exists
+                # but never overwrite custom user data on a seeded product.
+                await db.products.update_one(
+                    {"product_id": pid},
+                    {
+                        "$set": {
+                            "image_url": product["image_url"],
+                            "images": product.get("images", [product["image_url"]]),
+                            "title": product["title"],
+                            "description": product["description"],
+                            "is_seeded": True,
+                            "is_available": True,
+                        },
+                        "$setOnInsert": {
+                            "vendor_id": product.get("vendor_id", "fenua_artisans"),
+                            "price": product.get("price"),
+                            "currency": product.get("currency", "XPF"),
+                            "category": product.get("category"),
+                            "location": product.get("location"),
+                            "stock": product.get("stock", 1),
+                            "tags": product.get("tags", []),
+                            "views_count": product.get("views_count", 0),
+                            "created_at": product.get("created_at"),
+                        }
+                    },
+                    upsert=True
+                )
+                upserted += 1
+            logger.info(f"Upserted {upserted} canonical seed products")
         except Exception as prod_err:
             logger.warning(f"Product seeding skipped: {prod_err}")
         
