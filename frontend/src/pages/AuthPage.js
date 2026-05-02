@@ -22,7 +22,7 @@ const AuthPage = () => {
   });
   const [searchParams] = useSearchParams();
 
-  const { login, register, loginWithGoogle, checkAuth } = useAuth();
+  const { login, register, loginWithGoogle, loginWithFacebook, checkAuth } = useAuth();
   const navigate = useNavigate();
 
   // Check for OAuth errors
@@ -66,7 +66,9 @@ const AuthPage = () => {
     loginWithGoogle();
   };
 
-  // Facebook login removed - using Google OAuth only
+  const handleFacebookLogin = () => {
+    loginWithFacebook();
+  };
 
   // Nati Fenua Logo Component - Logo personnalisé SVG
   const NatiFenuaLogo = ({ size = 'md' }) => {
@@ -152,7 +154,7 @@ const AuthPage = () => {
               variant="outline"
               data-testid="google-login-btn"
               onClick={handleGoogleLogin}
-              className="w-full mb-6 py-6 rounded-xl border-2 border-gray-200 hover:bg-gray-50 transition-all"
+              className="w-full mb-3 py-6 rounded-xl border-2 border-gray-200 hover:bg-gray-50 transition-all"
             >
               <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -163,7 +165,18 @@ const AuthPage = () => {
               Continuer avec Google
             </Button>
 
-            {/* Facebook login removed - Google OAuth only */}
+            {/* Facebook Login Button */}
+            <Button
+              type="button"
+              data-testid="facebook-login-btn"
+              onClick={handleFacebookLogin}
+              className="w-full mb-6 py-6 rounded-xl bg-[#1877F2] hover:bg-[#166FE5] text-white border-0 transition-all"
+            >
+              <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+              Continuer avec Facebook
+            </Button>
 
             <div className="relative mb-6">
               <div className="absolute inset-0 flex items-center">

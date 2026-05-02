@@ -150,6 +150,13 @@ export const AuthProvider = ({ children }) => {
     window.location.href = `${API}/auth/google`;
   };
 
+  const loginWithFacebook = () => {
+    // Store current URL to return after OAuth
+    sessionStorage.setItem('oauth_return_url', window.location.origin);
+    // Redirect to Facebook OAuth
+    window.location.href = `${API}/auth/facebook`;
+  };
+
   // Called from AuthCallback after OAuth
   const setSessionToken = (token) => {
     storeToken(token);
@@ -201,6 +208,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     loginWithGoogle,
+    loginWithFacebook,
     exchangeSession,
     setSessionToken,
     logout,
