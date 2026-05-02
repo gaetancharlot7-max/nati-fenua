@@ -1521,12 +1521,15 @@ async def facebook_callback(request: Request, response: Response, code: str = No
     """Handle Facebook OAuth callback"""
     from fastapi.responses import RedirectResponse
     
+    # Frontend URL for redirects (always use FRONTEND_URL env var, never the API domain)
+    frontend_url = os.environ.get("FRONTEND_URL", "https://nati-fenua.com").rstrip('/')
+    
     if error:
         logger.error(f"Facebook OAuth error: {error}")
-        return RedirectResponse(url="/auth?error=facebook_auth_failed")
+        return RedirectResponse(url=f"{frontend_url}/auth?error=facebook_auth_failed")
     
     if not code:
-        return RedirectResponse(url="/auth?error=no_code")
+        return RedirectResponse(url=f"{frontend_url}/auth?error=no_code")
     
     # Get the redirect URI (same as in login)
     forwarded_proto = request.headers.get('x-forwarded-proto', 'https')
@@ -1534,11 +1537,9 @@ async def facebook_callback(request: Request, response: Response, code: str = No
     
     if forwarded_host:
         redirect_uri = f"{forwarded_proto}://{forwarded_host}/api/auth/facebook/callback"
-        frontend_url = f"{forwarded_proto}://{forwarded_host}"
     else:
         base_url = str(request.base_url).rstrip('/').replace('http://', 'https://')
         redirect_uri = f"{base_url}/api/auth/facebook/callback"
-        frontend_url = base_url
     
     try:
         async with httpx.AsyncClient() as client:
@@ -1555,7 +1556,7 @@ async def facebook_callback(request: Request, response: Response, code: str = No
             
             if token_response.status_code != 200:
                 logger.error(f"Facebook token error: {token_response.text}")
-                return RedirectResponse(url="/auth?error=token_error")
+                return RedirectResponse(url=f"{frontend_url}/auth?error=token_error")
             
             token_data = token_response.json()
             access_token = token_data.get("access_token")
@@ -1571,7 +1572,7 @@ async def facebook_callback(request: Request, response: Response, code: str = No
             
             if user_response.status_code != 200:
                 logger.error(f"Facebook user info error: {user_response.text}")
-                return RedirectResponse(url="/auth?error=user_info_error")
+                return RedirectResponse(url=f"{frontend_url}/auth?error=user_info_error")
             
             fb_user = user_response.json()
             
@@ -1628,8 +1629,10 @@ async def facebook_callback(request: Request, response: Response, code: str = No
             }
             await db.user_sessions.insert_one(session)
             
-            # Set cookie and redirect to feed
-            redirect_response = RedirectResponse(url="/feed", status_code=302)
+            # Set cookie + redirect to frontend AuthCallback page with session_token in URL fragment
+            # This pattern matches Google OAuth and works cross-subdomain (api.nati-fenua.com → nati-fenua.com)
+            callback_url = f"{frontend_url}/auth/callback#session_token={session_token}"
+            redirect_response = RedirectResponse(url=callback_url, status_code=302)
             redirect_response.set_cookie(
                 key="session_token",
                 value=session_token,
@@ -1637,15 +1640,16 @@ async def facebook_callback(request: Request, response: Response, code: str = No
                 secure=True,
                 samesite="none",
                 path="/",
-                max_age=7*24*60*60
+                max_age=7*24*60*60,
+                domain=None
             )
             
-            logger.info(f"Facebook login successful for user: {email}")
+            logger.info(f"Facebook login successful for user: {email}, redirecting to {callback_url}")
             return redirect_response
             
     except Exception as e:
         logger.error(f"Facebook OAuth error: {str(e)}")
-        return RedirectResponse(url="/auth?error=oauth_error")
+        return RedirectResponse(url=f"{frontend_url}/auth?error=oauth_error")
 
 # ==================== POSTS ROUTES ====================
 
