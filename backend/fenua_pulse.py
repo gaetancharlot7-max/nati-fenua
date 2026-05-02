@@ -242,54 +242,7 @@ WEBCAMS = [
         "type": "external"
     },
     
-    # === MOOREA ===
-    {
-        "id": "webcam_moorea_ferry",
-        "name": "Moorea - Ferry Tahiti-Moorea",
-        "island": "moorea",
-        "lat": -17.4903,
-        "lng": -149.7620,
-        "video_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise/iles-du-vent/tahiti/ferry-tahiti-and-moorea-islands.html",
-        "embed_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise/iles-du-vent/tahiti/ferry-tahiti-and-moorea-islands.html",
-        "iframe_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise/iles-du-vent/tahiti/ferry-tahiti-and-moorea-islands.html",
-        "external_url": "https://www.skylinewebcams.com/fr/webcam/polynesie-francaise/iles-du-vent/tahiti/ferry-tahiti-and-moorea-islands.html",
-        "thumbnail": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400",
-        "is_live": True,
-        "source": "SkylineWebcams",
-        "type": "external"
-    },
-    
-    # === BORA BORA ===
-    {
-        "id": "webcam_borabora_1",
-        "name": "Bora Bora - Vue Lagon",
-        "island": "bora-bora",
-        "lat": -16.5004,
-        "lng": -151.7415,
-        "video_url": "https://www.windy.com/webcams/1342115286",
-        "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1342115286/day",
-        "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1342115286/day",
-        "external_url": "https://www.windy.com/webcams/1342115286",
-        "thumbnail": "https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?w=400",
-        "is_live": True,
-        "source": "Windy",
-        "type": "iframe"
-    },
-    {
-        "id": "webcam_borabora_2",
-        "name": "Bora Bora - Plage",
-        "island": "bora-bora",
-        "lat": -16.5282,
-        "lng": -151.7486,
-        "video_url": "https://www.windy.com/webcams/1342115287",
-        "embed_url": "https://webcams.windy.com/webcams/public/embed/player/1342115287/day",
-        "iframe_url": "https://webcams.windy.com/webcams/public/embed/player/1342115287/day",
-        "external_url": "https://www.windy.com/webcams/1342115287",
-        "thumbnail": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400",
-        "is_live": True,
-        "source": "Windy",
-        "type": "iframe"
-    },
+    # === MOOREA & BORA BORA webcams retirées sur demande utilisateur (2026-05) ===
     
     # === AUTRES ÎLES (liens vers portails webcam) ===
     {

@@ -465,8 +465,8 @@ class RSSFeedService:
                     else:
                         pub_date = datetime.now(timezone.utc)
                     
-                    # Skip articles older than 14 days
-                    if pub_date < datetime.now(timezone.utc) - timedelta(days=14):
+                    # Skip articles older than 30 days
+                    if pub_date < datetime.now(timezone.utc) - timedelta(days=30):
                         continue
                     
                     # Get content

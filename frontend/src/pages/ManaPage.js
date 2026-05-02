@@ -1066,7 +1066,15 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
   const [location, setLocation] = useState(userLocation);
   const [loading, setLoading] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
-  const [visibility, setVisibility] = useState('public'); // public, friends, private
+  const [visibility, setVisibility] = useState('public');
+  // Carpool-specific fields
+  const [carpoolDeparture, setCarpoolDeparture] = useState('');
+  const [carpoolDestination, setCarpoolDestination] = useState('');
+  const [carpoolDate, setCarpoolDate] = useState('');
+  const [carpoolTime, setCarpoolTime] = useState('');
+  const [carpoolSeats, setCarpoolSeats] = useState(2);
+  const [carpoolPrice, setCarpoolPrice] = useState('');
+  const [carpoolPhone, setCarpoolPhone] = useState('');
 
   useEffect(() => {
     if (isOpen && !location) {
@@ -1098,19 +1106,38 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
       toast.error('Veuillez remplir tous les champs');
       return;
     }
+    
+    // Carpool: extra validation
+    if (selectedType === 'carpool') {
+      if (!carpoolDeparture || !carpoolDestination || !carpoolDate || !carpoolTime) {
+        toast.error('Pour un trajet : départ, destination, date et heure sont requis');
+        return;
+      }
+    }
 
     setLoading(true);
     try {
+      const extra_data = { visibility };
+      if (selectedType === 'carpool') {
+        extra_data.departure = carpoolDeparture;
+        extra_data.destination = carpoolDestination;
+        extra_data.date = carpoolDate;
+        extra_data.time = carpoolTime;
+        extra_data.seats = Number(carpoolSeats) || 1;
+        if (carpoolPrice) extra_data.price = Number(carpoolPrice);
+        if (carpoolPhone) extra_data.phone = carpoolPhone;
+      }
+      
       await api.post('/pulse/markers', {
         marker_type: selectedType,
         lat: location.lat,
         lng: location.lng,
         title,
         description,
-        extra_data: { visibility }
+        extra_data
       });
       
-      toast.success('Signalement créé ! +5 Mana');
+      toast.success(selectedType === 'carpool' ? 'Trajet proposé ! +5 Mana' : 'Signalement créé ! +5 Mana');
       onSuccess();
       onClose();
       resetForm();
@@ -1127,6 +1154,13 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
     setTitle('');
     setDescription('');
     setVisibility('public');
+    setCarpoolDeparture('');
+    setCarpoolDestination('');
+    setCarpoolDate('');
+    setCarpoolTime('');
+    setCarpoolSeats(2);
+    setCarpoolPrice('');
+    setCarpoolPhone('');
   };
 
   if (!isOpen) return null;
@@ -1205,14 +1239,111 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
 
                 {/* Title */}
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Titre</label>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">
+                    {selectedType === 'carpool' ? 'Titre du trajet' : 'Titre'}
+                  </label>
                   <Input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Ex: Grosse houle à Teahupo'o"
+                    placeholder={selectedType === 'carpool' ? "Ex: Papeete → Punaauia tous les matins" : "Ex: Grosse houle à Teahupo'o"}
+                    data-testid="signal-title-input"
                     className="rounded-xl"
                   />
                 </div>
+
+                {/* Carpool-specific trip fields */}
+                {selectedType === 'carpool' && (
+                  <div className="bg-blue-50/50 rounded-2xl p-3 space-y-3 border border-blue-100">
+                    <p className="text-xs font-semibold text-[#FF6B35] uppercase tracking-wider">
+                      🚗 Détails du trajet
+                    </p>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1 block">📍 Départ</label>
+                        <Input
+                          value={carpoolDeparture}
+                          onChange={(e) => setCarpoolDeparture(e.target.value)}
+                          placeholder="Ex: Papeete"
+                          data-testid="carpool-departure"
+                          className="rounded-xl text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1 block">🏁 Destination</label>
+                        <Input
+                          value={carpoolDestination}
+                          onChange={(e) => setCarpoolDestination(e.target.value)}
+                          placeholder="Ex: Punaauia"
+                          data-testid="carpool-destination"
+                          className="rounded-xl text-sm"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1 block">📅 Date</label>
+                        <Input
+                          type="date"
+                          value={carpoolDate}
+                          onChange={(e) => setCarpoolDate(e.target.value)}
+                          data-testid="carpool-date"
+                          className="rounded-xl text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1 block">🕒 Heure</label>
+                        <Input
+                          type="time"
+                          value={carpoolTime}
+                          onChange={(e) => setCarpoolTime(e.target.value)}
+                          data-testid="carpool-time"
+                          className="rounded-xl text-sm"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1 block">👥 Places dispo</label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="9"
+                          value={carpoolSeats}
+                          onChange={(e) => setCarpoolSeats(e.target.value)}
+                          data-testid="carpool-seats"
+                          className="rounded-xl text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1 block">💰 Prix (XPF, optionnel)</label>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={carpoolPrice}
+                          onChange={(e) => setCarpoolPrice(e.target.value)}
+                          placeholder="Gratuit"
+                          data-testid="carpool-price"
+                          className="rounded-xl text-sm"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="text-xs font-medium text-gray-600 mb-1 block">📞 Téléphone (optionnel)</label>
+                      <Input
+                        type="tel"
+                        value={carpoolPhone}
+                        onChange={(e) => setCarpoolPhone(e.target.value)}
+                        placeholder="+689 89 XX XX XX"
+                        data-testid="carpool-phone"
+                        className="rounded-xl text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Description */}
                 <div>
@@ -1364,6 +1495,52 @@ const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, contac
           </div>
 
           <div className="p-4 space-y-4">
+            {/* Carpool trip details */}
+            {marker.marker_type === 'carpool' && marker.extra_data && (marker.extra_data.departure || marker.extra_data.destination) && (
+              <div className="rounded-2xl bg-gradient-to-br from-[#FF6B35]/10 to-[#FF1493]/10 p-4 border border-[#FF6B35]/20">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#FF6B35] mb-3">🚗 Trajet proposé</p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500 w-24">📍 Départ:</span>
+                    <span className="font-semibold text-[#1A1A2E]">{marker.extra_data.departure || '?'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500 w-24">🏁 Arrivée:</span>
+                    <span className="font-semibold text-[#1A1A2E]">{marker.extra_data.destination || '?'}</span>
+                  </div>
+                  {marker.extra_data.date && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500 w-24">📅 Date:</span>
+                      <span className="font-semibold text-[#1A1A2E]">
+                        {marker.extra_data.date} {marker.extra_data.time || ''}
+                      </span>
+                    </div>
+                  )}
+                  {marker.extra_data.seats != null && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500 w-24">👥 Places:</span>
+                      <span className="font-semibold text-[#1A1A2E]">{marker.extra_data.seats}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500 w-24">💰 Prix:</span>
+                    <span className="font-semibold text-[#1A1A2E]">
+                      {marker.extra_data.price ? `${marker.extra_data.price.toLocaleString()} XPF` : 'Gratuit / partage'}
+                    </span>
+                  </div>
+                  {marker.extra_data.phone && (
+                    <a
+                      href={`tel:${marker.extra_data.phone}`}
+                      className="flex items-center gap-2 mt-2 px-3 py-2 bg-[#FF6B35] text-white rounded-xl hover:bg-[#FF5722] transition-colors text-sm font-medium"
+                      data-testid="carpool-call-btn"
+                    >
+                      📞 Appeler {marker.extra_data.phone}
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Webcam Video - Full width iframe player for webcams */}
             {marker.is_webcam && (marker.iframe_url || marker.embed_url || marker.video_url) && (
               <div className="relative rounded-xl overflow-hidden bg-black">

@@ -1699,10 +1699,10 @@ async def get_posts(
     user_posts_limit = int(limit * 0.7) + 5
     rss_posts_limit = int(limit * 0.3) + 5
     
-    # Freshness filters: user posts max 3 days, RSS articles max 14 days on feed
-    # (RSS extended to 14 days while we don't have regular rotation yet)
+    # Freshness filters: user posts max 3 days, RSS articles max 30 days on feed
+    # (RSS extended to keep ~100 media posts visible at all times)
     three_days_ago = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
-    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
+    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
     
     # Build match filter with cursor
     user_match = {
@@ -1879,9 +1879,9 @@ async def get_fresh_posts(request: Request, limit: int = 20, seen_ids: str = "")
     if seen_list:
         base_filter["post_id"] = {"$nin": seen_list}
     
-    # Freshness filters: user posts max 3 days, RSS articles max 14 days
+    # Freshness filters: user posts max 3 days, RSS articles max 30 days
     three_days_ago = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
-    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
+    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
     
     # Fetch fresh REAL user posts (exclude auto-generated)
     user_posts_pipeline = [
@@ -8333,21 +8333,60 @@ async def start_auto_publisher():
             return 0
     
     async def cleanup_old_rss_posts():
-        """Delete RSS posts older than 14 days (min 7 days, kept longer while
-        we don't have enough rotation/regular publishing volume)."""
+        """Smart RSS cleanup:
+        - Always keep at least 100 RSS posts with media in DB for visibility
+        - Older posts kept up to 30 days max
+        - Only delete posts older than 14 days IF total > 100 posts remain
+        - Aggressive dedup by external_link to avoid same article twice."""
         try:
-            cutoff = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
+            soft_cutoff = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
+            hard_cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
             
-            result = await db.posts.delete_many({
+            # Step 1: ALWAYS delete posts older than 30 days (hard limit)
+            hard_result = await db.posts.delete_many({
                 "is_rss_article": True,
-                "created_at": {"$lt": cutoff}
+                "created_at": {"$lt": hard_cutoff}
             })
             
-            if result.deleted_count > 0:
-                logger.info(f"🗑️ Supprimé {result.deleted_count} posts RSS de plus de 14 jours")
+            # Step 2: Count current RSS posts
+            current_count = await db.posts.count_documents({"is_rss_article": True})
+            
+            # Step 3: If still too many (>100) AND some are older than 14 days,
+            # delete the oldest ones beyond 100. Otherwise keep them for visibility.
+            soft_deleted = 0
+            if current_count > 100:
+                # Find ids to delete: posts older than 14 days, oldest first, keep top 100
+                surplus = current_count - 100
+                old_posts = await db.posts.find(
+                    {"is_rss_article": True, "created_at": {"$lt": soft_cutoff}},
+                    {"_id": 0, "post_id": 1}
+                ).sort("created_at", 1).limit(surplus).to_list(surplus)
+                if old_posts:
+                    ids = [p["post_id"] for p in old_posts]
+                    res = await db.posts.delete_many({"post_id": {"$in": ids}})
+                    soft_deleted = res.deleted_count
+            
+            # Step 4: Dedup any leftover duplicates by external_link (keep oldest)
+            dedup_pipeline = [
+                {"$match": {"is_rss_article": True, "external_link": {"$exists": True, "$ne": None}}},
+                {"$group": {"_id": "$external_link", "ids": {"$push": "$post_id"}, "count": {"$sum": 1}}},
+                {"$match": {"count": {"$gt": 1}}}
+            ]
+            dupes = await db.posts.aggregate(dedup_pipeline).to_list(1000)
+            dupe_deleted = 0
+            for d in dupes:
+                # Keep first id (oldest), delete the rest
+                to_delete = d["ids"][1:]
+                if to_delete:
+                    res = await db.posts.delete_many({"post_id": {"$in": to_delete}})
+                    dupe_deleted += res.deleted_count
+            
+            total = (hard_result.deleted_count or 0) + soft_deleted + dupe_deleted
+            if total > 0:
+                logger.info(f"🗑️ RSS cleanup: hard={hard_result.deleted_count} soft={soft_deleted} dupes={dupe_deleted} (kept ~{current_count - soft_deleted})")
                 await feed_cache.clear()
             
-            return result.deleted_count
+            return total
         except Exception as e:
             logger.error(f"Error cleaning old RSS posts: {e}")
             return 0
