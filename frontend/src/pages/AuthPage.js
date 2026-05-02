@@ -229,9 +229,11 @@ const AuthPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    data-testid="toggle-password-visibility"
+                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full text-gray-500 hover:text-[#FF6B35] hover:bg-[#FF6B35]/10 active:bg-[#FF6B35]/20 transition-colors"
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showPassword ? <EyeOff size={22} className="pointer-events-none" /> : <Eye size={22} className="pointer-events-none" />}
                   </button>
                 </div>
               </div>
