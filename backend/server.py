@@ -3628,15 +3628,46 @@ async def search_users_for_chat(q: str = "", limit: int = 30):
     return users
 
 
+@api_router.post("/users/heartbeat")
+async def user_heartbeat(request: Request):
+    """Update the current user's last_seen_at timestamp.
+    Called periodically by the frontend (every 45s) to indicate the user is active.
+    Used for the online/offline indicator in chat & friends list."""
+    user = await require_auth(request)
+    now = datetime.now(timezone.utc).isoformat()
+    await db.users.update_one(
+        {"user_id": user.user_id},
+        {"$set": {"last_seen_at": now}}
+    )
+    return {"ok": True, "last_seen_at": now}
+
+
 @api_router.get("/users/online-status")
 async def get_online_status(user_ids: str = ""):
-    """Return the subset of given user_ids that are currently connected via WebSocket.
+    """Return the subset of given user_ids that are currently online.
+    A user is online if:
+    - They have an active WebSocket connection, OR
+    - Their last_seen_at is within the last 2 minutes (heartbeat-based)
     Use case: chat list / friends list showing a green dot only for online users.
     Query param: comma-separated user_ids. Returns {"online": [user_id, ...]}"""
     if not user_ids:
         return {"online": []}
     ids = [u.strip() for u in user_ids.split(",") if u.strip()]
-    online = [uid for uid in ids if chat_manager.is_user_online(uid)]
+    
+    # Threshold: user is "online" if active within last 2 minutes
+    threshold = (datetime.now(timezone.utc) - timedelta(seconds=120)).isoformat()
+    
+    # Find users with recent heartbeat
+    recent_users = await db.users.find(
+        {"user_id": {"$in": ids}, "last_seen_at": {"$gte": threshold}},
+        {"_id": 0, "user_id": 1}
+    ).to_list(len(ids))
+    recent_ids = {u["user_id"] for u in recent_users}
+    
+    # Also include users with active WebSocket (real-time chat users)
+    ws_online = {uid for uid in ids if chat_manager.is_user_online(uid)}
+    
+    online = list(recent_ids | ws_online)
     return {"online": online}
 
 
@@ -3946,11 +3977,22 @@ async def get_my_friends(request: Request):
 
 @api_router.post("/friends/request")
 async def send_friend_request(request: Request):
-    """Envoyer une demande d'ami"""
+    """Envoyer une demande d'ami (receiver_id dans le body)"""
     user = await require_auth(request)
     body = await request.json()
     receiver_id = body.get("user_id")
-    
+    return await _send_friend_request_impl(user, receiver_id)
+
+
+@api_router.post("/friends/request/{receiver_id}")
+async def send_friend_request_path(receiver_id: str, request: Request):
+    """Envoyer une demande d'ami (receiver_id dans l'URL) - variante REST friendly"""
+    user = await require_auth(request)
+    return await _send_friend_request_impl(user, receiver_id)
+
+
+async def _send_friend_request_impl(user, receiver_id: str):
+    """Logique commune pour envoyer une demande d'ami"""
     if not receiver_id:
         raise HTTPException(status_code=400, detail="user_id requis")
     
@@ -3964,10 +4006,10 @@ async def send_friend_request(request: Request):
     try:
         sender = await db.users.find_one({"user_id": user.user_id}, {"name": 1})
         receiver = await db.users.find_one({"user_id": receiver_id}, {"device_tokens": 1})
+        sender_name = sender.get('name', 'Quelqu un') if sender else 'Quelqu un'
         
         if receiver and receiver.get("device_tokens"):
             for token in receiver["device_tokens"]:
-                sender_name = sender.get('name', 'Quelqu un')
                 await push_service.send_to_device(
                     token,
                     "Demande d'ami",

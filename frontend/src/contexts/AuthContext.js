@@ -116,6 +116,32 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, [checkAuth]);
 
+  // Heartbeat: ping backend every 45s to mark user as online
+  // Used by chat / friends list to display accurate green dot indicator
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const sendHeartbeat = async () => {
+      try {
+        await authAxios.post(`${API}/users/heartbeat`);
+      } catch {
+        // silent — best effort
+      }
+    };
+    // Send immediately on login + when tab becomes visible
+    sendHeartbeat();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && !cancelled) sendHeartbeat();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    const interval = setInterval(sendHeartbeat, 45000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [user]);
+
   const login = async (email, password) => {
     const response = await axios.post(`${API}/auth/login`, { email, password }, {
       withCredentials: true

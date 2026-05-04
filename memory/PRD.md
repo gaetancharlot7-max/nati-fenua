@@ -33,10 +33,20 @@ Application sociale polynésienne (web + PWA) avec : feed RSS médias locaux, ch
 - Fallback placeholder par catégorie
 
 ### Chat & Friends
-- Online status dynamique : `/api/users/online-status` polled 20s, dot vert uniquement si user connecté WebSocket
+- **Online status v2 (mai 2026)** : heartbeat-based — frontend POST `/api/users/heartbeat` toutes les 45s via AuthContext + sur visibilitychange. Backend considère "online" si `last_seen_at < 2 min` OU WebSocket actif. Fix bug: avant, personne n'apparaissait en ligne car pas de client WS frontend.
 - Menu 3-points header chat : "Supprimer la conversation"
 - 4ᵉ onglet "Découvrir" sur /friends : recherche debounced + tous comptes inscrits + bouton "+ Ajouter"
 - `/api/users/search` accepte q vide → retourne tous users non-bot
+- **Fix 404 demande d'ami (mai 2026)** : Ajout route `POST /api/friends/request/{receiver_id}` (path param) en plus de l'existante `POST /api/friends/request` (body). Le frontend utilisait la variante path → causait 404 + demandes jamais créées en DB.
+
+### OAuth
+- Google OAuth : callback cross-subdomain via `{frontend_url}/auth/callback#session_token=XXX` (iOS Safari compatible)
+- **Facebook OAuth (mai 2026)** : réactivé. Bouton bleu #1877F2 dans AuthPage.js. `loginWithFacebook()` dans AuthContext. Redirection backend alignée sur le pattern Google (URL fragment). Env vars sur Render : `FACEBOOK_CLIENT_ID=892564653832475`, `FACEBOOK_CLIENT_SECRET`. Meta App ID `892564653832475` — mode dev, redirect URI `https://api.nati-fenua.com/api/auth/facebook/callback`.
+
+### Custom domain production
+- Frontend : `nati-fenua.com` (via Render)
+- Backend : `api.nati-fenua.com` (CNAME vers `nati-fenua-backend.onrender.com` — SSL auto Render)
+- `natifenua.com` (sans tiret) → redirection 301 vers `nati-fenua.com`
 
 ### Mana (Pulse)
 - 8 webcams (Tahiti × 5, Raiatea, Huahine, Rangiroa) — Bora Bora + Moorea retirées
