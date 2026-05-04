@@ -432,15 +432,29 @@ const MarketplacePage = () => {
       Object.entries(advancedFilters).forEach(([k, v]) => {
         if (v !== '' && v !== null && v !== undefined) productParams[k] = v;
       });
-      const [productsRes, servicesRes, categoriesRes] = await Promise.all([
-        marketplaceApi.getProducts(productParams),
-        marketplaceApi.getServices({ limit: 20 }),
-        marketplaceApi.getCategories()
+      // SWR cache: instant return on revisit, refresh in background
+      const { swrFetch } = await import('../lib/swrCache');
+      const filterKey = JSON.stringify(productParams);
+      await Promise.all([
+        swrFetch(
+          `marketplace:products:${filterKey}`,
+          () => marketplaceApi.getProducts(productParams).then(r => r.data),
+          (data) => { setProducts(data?.length > 0 ? data : []); setLoading(false); },
+          { ttl: 30_000 }
+        ),
+        swrFetch(
+          'marketplace:services',
+          () => marketplaceApi.getServices({ limit: 20 }).then(r => r.data),
+          (data) => { if (data?.length > 0) setServices(data); },
+          { ttl: 60_000 }
+        ),
+        swrFetch(
+          'marketplace:categories',
+          () => marketplaceApi.getCategories().then(r => r.data),
+          (data) => { if (data) setCategories(data); },
+          { ttl: 5 * 60_000 }
+        )
       ]);
-      
-      setProducts(productsRes.data?.length > 0 ? productsRes.data : []);
-      if (servicesRes.data.length > 0) setServices(servicesRes.data);
-      if (categoriesRes.data) setCategories(categoriesRes.data);
     } catch (error) {
       console.error('Error loading marketplace:', error);
     } finally {

@@ -566,17 +566,27 @@ const FeedPage = () => {
 
   const loadFeed = async () => {
     try {
-      const [postsRes, storiesRes] = await Promise.all([
-        postsApi.getAll({ limit: 20 }),
-        storiesApi.getAll()
+      // SWR pattern: instant render from cache + background refresh
+      const { swrFetch } = await import('../lib/swrCache');
+      await Promise.all([
+        swrFetch(
+          'feed:posts:20',
+          () => postsApi.getAll({ limit: 20 }).then(r => r.data),
+          (data) => {
+            if (data && data.length > 0) setPosts(data);
+            setLoading(false);
+          },
+          { ttl: 15_000 }
+        ),
+        swrFetch(
+          'feed:stories',
+          () => storiesApi.getAll().then(r => r.data),
+          (data) => {
+            if (data && data.length > 0) setStories(data);
+          },
+          { ttl: 30_000 }
+        )
       ]);
-      
-      if (postsRes.data.length > 0) {
-        setPosts(postsRes.data);
-      }
-      if (storiesRes.data.length > 0) {
-        setStories(storiesRes.data);
-      }
     } catch (error) {
       console.error('Error loading feed:', error);
     } finally {

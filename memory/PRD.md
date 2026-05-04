@@ -27,10 +27,14 @@ Application sociale polynésienne (web + PWA) avec : feed RSS médias locaux, ch
 
 ### Feed RSS
 - 12 sources actives (Tahiti Infos, Radio 1 podcasts, Google News Tahiti/Polynésie/Moorea/Bora-Bora, Le Monde Pacifique, Outre-mer La 1ère, etc.)
-- **Smart cleanup retention** : keep min 100 RSS posts, hard delete >30j, soft delete >14j seulement si total > 100
+- **RSS Pool 100 articles (mai 2026)** : feed pioche dans les 100 RSS les plus récents (sans filtre date), shuffle complet sur la page 1 → garantit variété (mix dates récentes + anciennes) et "feed toujours meublé" même les jours calmes. Cleanup ne supprime jamais sous le seuil de 100.
 - Dedup par `external_link` + titre normalisé (lowercase + sans accents)
 - Filtre images junk (Google News favicons rejetées)
 - Fallback placeholder par catégorie
+
+### Performance navigation (mai 2026)
+- **Cache SWR** (`/app/frontend/src/lib/swrCache.js` + `useSwrQuery.js`) : pattern stale-while-revalidate. Les pages Feed, Friends, Marketplace, Mana servent les données en cache instantanément + refresh en arrière-plan. Navigation entre pages = quasi-instantanée après 1ère visite. TTL : 15-30s par défaut, 5 min pour catégories.
+- Cache invalidé après actions mutatrices (accept/reject/cancel/add friend → `loadData(true)`).
 
 ### Chat & Friends
 - **Online status v2 (mai 2026)** : heartbeat-based — frontend POST `/api/users/heartbeat` toutes les 45s via AuthContext + sur visibilitychange. Backend considère "online" si `last_seen_at < 2 min` OU WebSocket actif. Fix bug: avant, personne n'apparaissait en ligne car pas de client WS frontend.

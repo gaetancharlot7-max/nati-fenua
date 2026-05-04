@@ -3,14 +3,34 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, UserPlus, UserCheck, UserX, Clock, ArrowLeft,
-  Check, X, Loader2, MessageCircle, ChevronRight, Search, Compass
+  Check, X, Loader2, MessageCircle, ChevronRight, Search, Compass, Sparkles
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { usersApi } from '../lib/api';
+import { swrFetch, cacheInvalidate } from '../lib/swrCache';
 
 const API = process.env.REACT_APP_BACKEND_URL;
+
+// "Nouveau" badge: user joined Nati Fenua less than 7 days ago
+const isNewUser = (createdAt) => {
+  if (!createdAt) return false;
+  const created = new Date(createdAt).getTime();
+  if (Number.isNaN(created)) return false;
+  return Date.now() - created < 7 * 24 * 60 * 60 * 1000;
+};
+
+const NewUserBadge = () => (
+  <span
+    data-testid="new-user-badge"
+    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-gradient-to-r from-[#00CED1] to-[#FF1493] text-white shadow-sm"
+    title="Vient d'arriver sur Nati Fenua"
+  >
+    <Sparkles size={10} className="-ml-0.5" />
+    Nouveau
+  </span>
+);
 
 const FriendsPage = () => {
   const navigate = useNavigate();
@@ -26,18 +46,33 @@ const FriendsPage = () => {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  // SWR-cached fetch helper: returns cached payload instantly + refreshes in background
+  const fetchJsonCached = (path, ttl = 30_000) =>
+    swrFetch(
+      `friends:${path}`,
+      async () => {
+        const res = await fetch(`${API}${path}`, { credentials: 'include' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      },
+      () => {},
+      { ttl }
+    );
+
+  const loadData = async (forceRefresh = false) => {
+    if (forceRefresh) cacheInvalidate('friends:');
     setLoading(true);
     try {
-      const [friendsRes, sentRes, receivedRes] = await Promise.all([
-        fetch(`${API}/api/friends`, { credentials: 'include' }),
-        fetch(`${API}/api/friends/requests/sent`, { credentials: 'include' }),
-        fetch(`${API}/api/friends/requests/received`, { credentials: 'include' })
+      // SWR pattern: hydrate UI from cache instantly via swrFetch then refresh
+      // Use Promise.all + handlers so UI updates as each request completes
+      const [friendsData, sentData, receivedData] = await Promise.all([
+        fetchJsonCached('/api/friends').catch(() => []),
+        fetchJsonCached('/api/friends/requests/sent').catch(() => []),
+        fetchJsonCached('/api/friends/requests/received').catch(() => [])
       ]);
-
-      if (friendsRes.ok) setFriends(await friendsRes.json());
-      if (sentRes.ok) setSentRequests(await sentRes.json());
-      if (receivedRes.ok) setReceivedRequests(await receivedRes.json());
+      setFriends(friendsData || []);
+      setSentRequests(sentData || []);
+      setReceivedRequests(receivedData || []);
     } catch (error) {
       console.error('Error loading friends data:', error);
       toast.error('Erreur lors du chargement');
@@ -56,7 +91,7 @@ const FriendsPage = () => {
 
       if (response.ok) {
         toast.success('Demande acceptée !');
-        loadData();
+        loadData(true);
       } else {
         const data = await response.json();
         toast.error(data.detail || 'Erreur');
@@ -182,7 +217,7 @@ const FriendsPage = () => {
       if (res.ok) {
         toast.success(`Demande envoyée à ${targetName}`);
         setDiscoverUsers(prev => prev.filter(u => u.user_id !== targetUserId));
-        loadData();
+        loadData(true);
       } else {
         const d = await res.json().catch(() => ({}));
         toast.error(d.detail || "Erreur lors de l'envoi");
@@ -271,10 +306,11 @@ const FriendsPage = () => {
                   />
                   <div className="flex-1 min-w-0">
                     <p
-                      className="font-bold text-[#1A1A2E] cursor-pointer hover:text-[#FF6B35] truncate"
+                      className="font-bold text-[#1A1A2E] cursor-pointer hover:text-[#FF6B35] truncate flex items-center gap-2"
                       onClick={() => navigate(`/profile/${friend.user_id}`)}
                     >
-                      {friend.name}
+                      <span className="truncate">{friend.name}</span>
+                      {isNewUser(friend.created_at) && <NewUserBadge />}
                     </p>
                     <p className="text-xs text-gray-400">
                       Amis depuis {new Date(friend.friends_since).toLocaleDateString('fr-FR')}
@@ -337,7 +373,10 @@ const FriendsPage = () => {
                       onClick={() => navigate(`/profile/${request.sender?.user_id}`)}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-[#1A1A2E] truncate">{request.sender?.name}</p>
+                      <p className="font-bold text-[#1A1A2E] truncate flex items-center gap-2">
+                        <span className="truncate">{request.sender?.name}</span>
+                        {isNewUser(request.sender?.created_at) && <NewUserBadge />}
+                      </p>
                       <p className="text-xs text-gray-400">
                         Demande reçue le {new Date(request.created_at).toLocaleDateString('fr-FR')}
                       </p>
@@ -474,10 +513,11 @@ const FriendsPage = () => {
                   />
                   <div className="flex-1 min-w-0">
                     <p
-                      className="font-bold text-[#1A1A2E] cursor-pointer hover:text-[#FF6B35] truncate"
+                      className="font-bold text-[#1A1A2E] cursor-pointer hover:text-[#FF6B35] truncate flex items-center gap-2"
                       onClick={() => navigate(`/profile/${u.user_id}`)}
                     >
-                      {u.name || 'Utilisateur'}
+                      <span className="truncate">{u.name || 'Utilisateur'}</span>
+                      {isNewUser(u.created_at) && <NewUserBadge />}
                     </p>
                     {u.bio && <p className="text-xs text-gray-500 truncate">{u.bio}</p>}
                   </div>

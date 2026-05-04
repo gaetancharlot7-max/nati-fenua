@@ -298,9 +298,15 @@ const PulsePage = () => {
       if (selectedIsland) {
         params.append('island', selectedIsland);
       }
-      
-      const response = await api.get(`/pulse/markers?${params.toString()}`);
-      setMarkers(response.data);
+      const queryStr = params.toString();
+      // SWR cache: instant render from cache + background refresh
+      const { swrFetch } = await import('../lib/swrCache');
+      await swrFetch(
+        `mana:markers:${queryStr}`,
+        () => api.get(`/pulse/markers?${queryStr}`).then(r => r.data),
+        (data) => { if (data) setMarkers(data); },
+        { ttl: 20_000 }
+      );
     } catch (error) {
       console.error('Error loading markers:', error);
     }

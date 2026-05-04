@@ -1703,10 +1703,16 @@ async def get_posts(
     user_posts_limit = int(limit * 0.7) + 5
     rss_posts_limit = int(limit * 0.3) + 5
     
-    # Freshness filters: user posts max 3 days, RSS articles max 30 days on feed
-    # (RSS extended to keep ~100 media posts visible at all times)
+    # Pool size for RSS: we always work with the 100 most recent RSS articles in DB.
+    # This ensures the feed feels "filled" with media even on quiet days,
+    # and that older articles still get exposure (they renew naturally as new ones arrive).
+    rss_pool_size = 100
+    
+    # Freshness filters:
+    # - user posts: max 3 days (fresh community content)
+    # - RSS articles: NO date filter (always keep ~100 latest media posts visible,
+    #   renewed by cleanup job as new articles arrive)
     three_days_ago = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
-    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
     
     # Build match filter with cursor
     user_match = {
@@ -1721,8 +1727,7 @@ async def get_posts(
     
     rss_match = {
         "moderation_status": {"$ne": "rejected"},
-        "is_rss_article": True,
-        "created_at": {"$gte": seven_days_ago}
+        "is_rss_article": True
     }
     if cursor_filter:
         rss_match.update(cursor_filter)
@@ -1763,7 +1768,7 @@ async def get_posts(
     rss_posts_pipeline = [
         {"$match": rss_match},
         {"$sort": {"created_at": -1, "post_id": -1}},
-        {"$limit": rss_posts_limit},
+        {"$limit": rss_pool_size},  # always fetch top 100 RSS for shuffling pool
         {"$lookup": {
             "from": "users",
             "localField": "user_id",
@@ -1795,7 +1800,7 @@ async def get_posts(
     # Execute both queries in parallel
     user_posts, rss_posts = await asyncio.gather(
         db.posts.aggregate(user_posts_pipeline).to_list(user_posts_limit),
-        db.posts.aggregate(rss_posts_pipeline).to_list(rss_posts_limit)
+        db.posts.aggregate(rss_posts_pipeline).to_list(rss_pool_size)
     )
     
     # Smart mixing: prioritize user posts, then RSS
@@ -1805,15 +1810,14 @@ async def get_posts(
     user_posts_sorted = sorted(user_posts, key=lambda x: x.get('created_at', ''), reverse=True)
     rss_posts_sorted = sorted(rss_posts, key=lambda x: x.get('created_at', ''), reverse=True)
     
-    # On FIRST page (no cursor): shuffle ALL top posts so feed varies on every open
-    # (previously we pinned the 5 most recent at the top, which always showed the same profiles).
-    # We now pick a window of recent-ish posts and shuffle the entire window so different
-    # profiles appear at the top on each visit, while still prioritizing fresh content via
-    # the already-applied created_at sort + LIMIT.
+    # On FIRST page (no cursor): shuffle the WHOLE 100-RSS pool so older articles also
+    # surface on page 1. This makes the feed feel "filled" even on quiet news days and
+    # gives older media exposure rather than always pinning today's articles at the top.
     if not cursor:
         # Work on a generous window of candidates
         window_user = user_posts_sorted[:60] if len(user_posts_sorted) > 60 else user_posts_sorted[:]
-        window_rss = rss_posts_sorted[:20] if len(rss_posts_sorted) > 20 else rss_posts_sorted[:]
+        # Use the entire RSS pool (up to 100) for shuffling on page 1
+        window_rss = rss_posts_sorted[:]
         random.shuffle(window_user)
         random.shuffle(window_rss)
         # Replace the first N with the shuffled window so pagination stays consistent afterwards
@@ -1883,9 +1887,10 @@ async def get_fresh_posts(request: Request, limit: int = 20, seen_ids: str = "")
     if seen_list:
         base_filter["post_id"] = {"$nin": seen_list}
     
-    # Freshness filters: user posts max 3 days, RSS articles max 30 days
+    # Freshness filters:
+    # - user posts: max 3 days (fresh community)
+    # - RSS articles: NO date filter (always show 100 latest)
     three_days_ago = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
-    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
     
     # Fetch fresh REAL user posts (exclude auto-generated)
     user_posts_pipeline = [
@@ -1924,12 +1929,11 @@ async def get_fresh_posts(request: Request, limit: int = 20, seen_ids: str = "")
         {"$project": {"user_data": 0}}
     ]
     
-    # Fetch fresh RSS posts
+    # Fetch fresh RSS posts (no date filter — always serve latest 100)
     rss_posts_pipeline = [
         {"$match": {
             **base_filter,
-            "is_rss_article": True,
-            "created_at": {"$gte": seven_days_ago}
+            "is_rss_article": True
         }},
         {"$sort": {"created_at": -1}},
         {"$limit": limit},
@@ -8379,40 +8383,28 @@ async def start_auto_publisher():
             return 0
     
     async def cleanup_old_rss_posts():
-        """Smart RSS cleanup:
-        - Always keep at least 100 RSS posts with media in DB for visibility
-        - Older posts kept up to 30 days max
-        - Only delete posts older than 14 days IF total > 100 posts remain
+        """Smart RSS cleanup — ALWAYS keep at least 100 RSS posts visible:
+        - Never delete anything if total RSS count <= 100 (preserve visibility)
+        - If count > 100: delete oldest surplus to keep exactly 100 most recent
         - Aggressive dedup by external_link to avoid same article twice."""
         try:
-            soft_cutoff = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
-            hard_cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
-            
-            # Step 1: ALWAYS delete posts older than 30 days (hard limit)
-            hard_result = await db.posts.delete_many({
-                "is_rss_article": True,
-                "created_at": {"$lt": hard_cutoff}
-            })
-            
-            # Step 2: Count current RSS posts
+            # Step 1: Count current RSS posts
             current_count = await db.posts.count_documents({"is_rss_article": True})
             
-            # Step 3: If still too many (>100) AND some are older than 14 days,
-            # delete the oldest ones beyond 100. Otherwise keep them for visibility.
-            soft_deleted = 0
+            # Step 2: Only delete surplus if we have more than 100 posts
+            hard_deleted = 0
             if current_count > 100:
-                # Find ids to delete: posts older than 14 days, oldest first, keep top 100
                 surplus = current_count - 100
                 old_posts = await db.posts.find(
-                    {"is_rss_article": True, "created_at": {"$lt": soft_cutoff}},
+                    {"is_rss_article": True},
                     {"_id": 0, "post_id": 1}
                 ).sort("created_at", 1).limit(surplus).to_list(surplus)
                 if old_posts:
                     ids = [p["post_id"] for p in old_posts]
                     res = await db.posts.delete_many({"post_id": {"$in": ids}})
-                    soft_deleted = res.deleted_count
+                    hard_deleted = res.deleted_count
             
-            # Step 4: Dedup any leftover duplicates by external_link (keep oldest)
+            # Step 3: Dedup any leftover duplicates by external_link (keep oldest)
             dedup_pipeline = [
                 {"$match": {"is_rss_article": True, "external_link": {"$exists": True, "$ne": None}}},
                 {"$group": {"_id": "$external_link", "ids": {"$push": "$post_id"}, "count": {"$sum": 1}}},
@@ -8427,9 +8419,10 @@ async def start_auto_publisher():
                     res = await db.posts.delete_many({"post_id": {"$in": to_delete}})
                     dupe_deleted += res.deleted_count
             
-            total = (hard_result.deleted_count or 0) + soft_deleted + dupe_deleted
+            total = hard_deleted + dupe_deleted
             if total > 0:
-                logger.info(f"🗑️ RSS cleanup: hard={hard_result.deleted_count} soft={soft_deleted} dupes={dupe_deleted} (kept ~{current_count - soft_deleted})")
+                final_count = await db.posts.count_documents({"is_rss_article": True})
+                logger.info(f"🗑️ RSS cleanup: surplus={hard_deleted} dupes={dupe_deleted} (kept {final_count})")
                 await feed_cache.clear()
             
             return total
