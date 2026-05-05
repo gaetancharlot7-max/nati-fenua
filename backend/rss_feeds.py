@@ -263,7 +263,8 @@ def extract_image_from_content(content: str, entry: dict, feed_config: dict = No
     """Extract first image URL from RSS content with multiple fallback strategies.
     
     Filters out junk images: favicons, tracking pixels, tiny icons, Google News default favicons.
-    Always returns a usable image URL (falls back to feed logo or category placeholder).
+    Returns None if no real image was found in the feed (caller should try og:image fetch
+    or use varied per-article fallback).
     """
     
     def is_junk_image(url: str) -> bool:
@@ -348,27 +349,109 @@ def extract_image_from_content(content: str, entry: dict, feed_config: dict = No
                     pass
             return src
     
-    # Fallback: Use the feed's logo if available (and not a junk URL)
-    if feed_config and feed_config.get('logo'):
-        logo = feed_config['logo']
-        if not is_junk_image(logo):
-            return logo
+    # No image found in RSS feed — caller should try og:image fetch from article URL
+    # or fall back to a varied per-article placeholder.
+    return None
+
+
+# Pool of curated Polynesian / news-themed Unsplash images.
+# A hash of the article title is used to pick one — guaranteeing different
+# images for different articles even when no og:image can be fetched.
+VARIED_FALLBACK_IMAGES = [
+    # Polynésie paysages
+    'https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=800&q=80',  # plage
+    'https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=800&q=80',     # bora bora
+    'https://images.unsplash.com/photo-1602002418082-a4443e081dd1?w=800&q=80',  # tahiti
+    'https://images.unsplash.com/photo-1571417565196-5cb59ac74232?w=800&q=80',  # palmiers
+    'https://images.unsplash.com/photo-1505881502353-a1986add3762?w=800&q=80',  # lagon
+    'https://images.unsplash.com/photo-1499363536502-87642509e31b?w=800&q=80',  # sunset palmier
+    'https://images.unsplash.com/photo-1437846972679-9e6e537be46e?w=800&q=80',  # plage tropicale
+    'https://images.unsplash.com/photo-1473116763249-2faaef81ccda?w=800&q=80',  # bungalows pilotis
+    # Vie polynésienne
+    'https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7f?w=800&q=80',  # culture danse
+    'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800&q=80',  # marché
+    'https://images.unsplash.com/photo-1504457047772-27faf1c00561?w=800&q=80',  # canoe
+    'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=80',  # surf
+    'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80',  # voyage
+    'https://images.unsplash.com/photo-1528127269322-539801943592?w=800&q=80',  # plongée
+    'https://images.unsplash.com/photo-1513735492246-483525079686?w=800&q=80',  # bord mer
+    # Météo / nature
+    'https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=800&q=80',  # météo
+    'https://images.unsplash.com/photo-1605723517503-3cadb5818a0c?w=800&q=80',  # nuages
+    'https://images.unsplash.com/photo-1500964757637-c85e8a162699?w=800&q=80',  # montagne tropicale
+    # News / actualité
+    'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&q=80',  # journal
+    'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80',  # média
+    'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=800&q=80',  # newsroom
+    # Faune / flore
+    'https://images.unsplash.com/photo-1546026423-cc4642628d2b?w=800&q=80',     # poisson tropical
+    'https://images.unsplash.com/photo-1551244072-5d12893278ab?w=800&q=80',     # tortue
+    'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=800&q=80',  # forêt
+    'https://images.unsplash.com/photo-1515511856280-7b23f68d2996?w=800&q=80',  # fleurs tropicales
+    # Sport / activités
+    'https://images.unsplash.com/photo-1530549387789-4c1017266635?w=800&q=80',  # surf wave
+    'https://images.unsplash.com/photo-1455729552865-3658a5d39692?w=800&q=80',  # kayak
+    # Architecture / société
+    'https://images.unsplash.com/photo-1506765515384-028b60a970df?w=800&q=80',  # village pacifique
+    'https://images.unsplash.com/photo-1578637387939-43c525550085?w=800&q=80',  # papeete
+    'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800&q=80',  # plage fleur
+]
+
+
+def get_varied_fallback_image(title: str, link: str = "", categories: list = None) -> str:
+    """Return a deterministic but varied fallback image based on article title hash.
+    Same article always gets the same fallback image; different articles get
+    different images from the curated pool above.
     
-    # Generate a themed placeholder based on category
-    categories = feed_config.get('categories', []) if feed_config else []
-    if 'surf' in categories or 'sport' in categories:
-        return 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=80'
-    elif 'météo' in categories or 'meteo' in categories:
-        return 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=800&q=80'
-    elif 'culture' in categories or 'danse' in categories:
-        return 'https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7f?w=800&q=80'
-    elif 'emploi' in categories:
-        return 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=80'
-    elif 'tourisme' in categories or 'voyage' in categories:
-        return 'https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=800&q=80'
-    else:
-        # Default Polynesian themed placeholder
-        return 'https://images.unsplash.com/photo-1589197331516-4d84b72ebde3?w=800&q=80'
+    If categories are provided, biases selection toward thematically-relevant images.
+    """
+    import hashlib
+    seed_str = (link or "") + "|" + (title or "")
+    if not seed_str.strip("|"):
+        seed_str = "default"
+    h = int(hashlib.md5(seed_str.encode('utf-8')).hexdigest()[:8], 16)
+    return VARIED_FALLBACK_IMAGES[h % len(VARIED_FALLBACK_IMAGES)]
+
+
+async def fetch_og_image(url: str, session: aiohttp.ClientSession, timeout: float = 4.0) -> Optional[str]:
+    """Fetch the article's HTML and extract its og:image meta tag.
+    Returns the image URL or None on failure / timeout.
+    Used to recover unique images for Google News & similar aggregator feeds
+    that don't include images inline in their RSS payload.
+    """
+    if not url or not url.startswith("http"):
+        return None
+    try:
+        async with session.get(
+            url,
+            timeout=aiohttp.ClientTimeout(total=timeout),
+            allow_redirects=True,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; NatiFenuaBot/1.0)"}
+        ) as resp:
+            if resp.status != 200:
+                return None
+            ctype = resp.headers.get("Content-Type", "")
+            if "html" not in ctype.lower():
+                return None
+            # Read at most 200kB — og:image is always in <head>
+            html = await resp.content.read(200_000)
+            html = html.decode("utf-8", errors="ignore")
+            soup = BeautifulSoup(html, "html.parser")
+            for prop in ("og:image", "og:image:secure_url", "twitter:image"):
+                tag = soup.find("meta", property=prop) or soup.find("meta", attrs={"name": prop})
+                if tag:
+                    img = tag.get("content", "").strip()
+                    if img.startswith("http"):
+                        return img
+            # Last resort: first <img> with src in head/first 1000 chars
+            first_img = soup.find("img", src=True)
+            if first_img:
+                src = first_img["src"]
+                if src.startswith("http"):
+                    return src
+    except (asyncio.TimeoutError, aiohttp.ClientError, Exception) as e:
+        logger.debug(f"og:image fetch failed for {url}: {e}")
+    return None
 
 
 def _normalize_title(title: str) -> str:
@@ -483,6 +566,17 @@ class RSSFeedService:
                     
                     # Extract image with feed config for fallbacks
                     image_url = extract_image_from_content(content, entry, feed_config)
+                    # If RSS feed didn't include any image, fetch the article's og:image
+                    # (mainly fixes Google News aggregator and similar feeds that strip images)
+                    if not image_url and entry.link:
+                        image_url = await fetch_og_image(entry.link, self.session)
+                    # Final fallback: deterministic varied placeholder based on title hash
+                    # (guarantees different articles get different fallback images)
+                    if not image_url:
+                        image_url = get_varied_fallback_image(
+                            entry.title, entry.link,
+                            feed_config.get('categories', [])
+                        )
                     
                     # Detect island from title and content
                     full_text = f"{entry.title} {clean_content}"
@@ -729,6 +823,55 @@ class RSSFeedService:
             "by_source": {r["_id"]: r["count"] for r in by_source},
             "configured_feeds": len(RSS_FEEDS)
         }
+    
+    async def fix_duplicate_images(self, max_articles: int = 200) -> dict:
+        """One-shot migration: re-fetch unique og:images for RSS articles that share
+        a generic placeholder image with other articles. Falls back to a hash-based
+        varied placeholder if og:image cannot be retrieved.
+        
+        Run on startup (idempotent) to upgrade existing articles to per-article images.
+        """
+        # Step 1: find media_urls that are duplicated (used by ≥2 articles)
+        pipeline = [
+            {"$match": {"is_rss_article": True, "media_url": {"$ne": None}}},
+            {"$group": {"_id": "$media_url", "count": {"$sum": 1}}},
+            {"$match": {"count": {"$gte": 2}}},
+            {"$sort": {"count": -1}}
+        ]
+        duplicated = await self.db.posts.aggregate(pipeline).to_list(50)
+        duplicated_urls = {d["_id"] for d in duplicated}
+        if not duplicated_urls:
+            return {"updated": 0, "duplicates_found": 0}
+        
+        # Step 2: fetch articles with these duplicated images
+        articles_to_fix = await self.db.posts.find(
+            {"is_rss_article": True, "media_url": {"$in": list(duplicated_urls)}},
+            {"_id": 0, "post_id": 1, "external_link": 1, "article_url": 1, "article_title": 1, "caption": 1}
+        ).limit(max_articles).to_list(max_articles)
+        
+        # Step 3: for each, try to fetch a unique og:image, fallback to varied placeholder
+        session = await self.get_session()
+        updated = 0
+        og_fetched = 0
+        for art in articles_to_fix:
+            link = art.get("external_link") or art.get("article_url") or ""
+            title = art.get("article_title") or art.get("caption") or ""
+            new_image = None
+            if link:
+                new_image = await fetch_og_image(link, session)
+                if new_image:
+                    og_fetched += 1
+            if not new_image:
+                new_image = get_varied_fallback_image(title, link)
+            if new_image:
+                await self.db.posts.update_one(
+                    {"post_id": art["post_id"]},
+                    {"$set": {"media_url": new_image, "thumbnail_url": new_image}}
+                )
+                updated += 1
+        
+        logger.info(f"🖼️ RSS image fix: {updated} articles updated ({og_fetched} via og:image, {updated - og_fetched} via varied placeholder)")
+        return {"updated": updated, "og_fetched": og_fetched, "duplicates_found": len(duplicated_urls)}
 
 
 # Cleanup function to remove broken YouTube links

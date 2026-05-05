@@ -8452,6 +8452,15 @@ async def start_auto_publisher():
             from rss_feeds import RSSFeedService
             rss_service = RSSFeedService(db)
             result = await rss_service.publish_articles_as_posts(max_total_posts=30)
+            
+            # One-shot migration: replace duplicated placeholder images with unique og:images
+            # for existing RSS articles. Idempotent — safe to run on every startup.
+            try:
+                fix_result = await rss_service.fix_duplicate_images(max_articles=200)
+                logger.info(f"🖼️ Image dedup migration: {fix_result}")
+            except Exception as e:
+                logger.error(f"Image dedup migration failed: {e}")
+            
             await rss_service.close()
             logger.info(f"📰 RSS refresh: {result}")
             
