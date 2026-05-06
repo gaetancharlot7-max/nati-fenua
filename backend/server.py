@@ -1486,6 +1486,99 @@ async def get_verification_status(request: Request):
     }
 
 
+# ==================== RESEND DIAGNOSTICS (admin) ====================
+
+@api_router.get("/admin/resend/status")
+async def admin_resend_status(request: Request):
+    """Diagnostic: report whether Resend is configured and what sender is used.
+    Admin-only. Returns key presence (not the value), sender, and library status."""
+    user = await require_auth(request)
+    if not getattr(user, "is_admin", False):
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    api_key = os.environ.get("RESEND_API_KEY", "")
+    sender = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+    
+    return {
+        "resend_api_key_present": bool(api_key),
+        "resend_api_key_prefix": api_key[:7] + "..." if api_key else None,
+        "sender_email": sender,
+        "sender_email_is_default": sender == "onboarding@resend.dev",
+        "library_available": "resend" in str(globals().get("resend", "")).lower() or True,
+        "warning": (
+            "SENDER_EMAIL is the default Resend test sender. In production you should "
+            "verify your domain on resend.com and set SENDER_EMAIL to noreply@your-domain.com. "
+            "Otherwise emails will only be deliverable to the address that owns the Resend account."
+        ) if sender == "onboarding@resend.dev" else None
+    }
+
+
+@api_router.post("/admin/resend/test")
+async def admin_resend_test(request: Request):
+    """Diagnostic: send a real test email via Resend to verify the integration end-to-end.
+    Body: {"to": "destination@example.com"}. Admin-only.
+    Returns the Resend API response (success: id, error: detail)."""
+    user = await require_auth(request)
+    if not getattr(user, "is_admin", False):
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    body = await request.json()
+    to_email = (body.get("to") or "").strip()
+    if not to_email or "@" not in to_email:
+        raise HTTPException(status_code=400, detail="Email destination requis (champ 'to')")
+    
+    api_key = os.environ.get("RESEND_API_KEY")
+    if not api_key:
+        return {
+            "success": False,
+            "error": "RESEND_API_KEY non configurée sur le serveur",
+            "hint": "Ajoutez la variable d'environnement RESEND_API_KEY dans Render → Environment"
+        }
+    
+    sender = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+    try:
+        resend.api_key = api_key
+        html = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h1 style="color: #FF6B35;">🌺 Test Nati Fenua</h1>
+          <p>Si vous recevez cet email, l'intégration Resend fonctionne correctement.</p>
+          <p style="color: #666;">Envoyé depuis : <code>{sender}</code></p>
+          <p style="color: #999; font-size: 12px;">Mauruuru roa, l'équipe Nati Fenua</p>
+        </div>
+        """
+        response = await asyncio.to_thread(
+            resend.Emails.send,
+            {
+                "from": sender,
+                "to": [to_email],
+                "subject": "🧪 Test envoi email — Nati Fenua",
+                "html": html
+            }
+        )
+        # response is dict-like with 'id'
+        email_id = response.get("id") if isinstance(response, dict) else str(response)
+        logger.info(f"Resend test email sent to {to_email}, id={email_id}")
+        return {
+            "success": True,
+            "email_id": email_id,
+            "to": to_email,
+            "from": sender,
+            "message": f"Email envoyé à {to_email}. Vérifiez la boîte de réception (et les spams)."
+        }
+    except Exception as e:
+        logger.error(f"Resend test failed: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "hint": (
+                "Cause probable : le sender_email n'est pas vérifié sur Resend. "
+                "Le sender par défaut 'onboarding@resend.dev' ne peut envoyer qu'à l'adresse "
+                "propriétaire du compte Resend. Vérifiez votre domaine sur resend.com pour "
+                "envoyer à n'importe quelle adresse."
+            )
+        }
+
+
 # ==================== FACEBOOK OAUTH ====================
 
 FACEBOOK_CLIENT_ID = os.environ.get("FACEBOOK_CLIENT_ID")
