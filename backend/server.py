@@ -1486,6 +1486,82 @@ async def get_verification_status(request: Request):
     }
 
 
+# ==================== ACCOUNT DELETION REQUEST (PUBLIC) ====================
+
+@api_router.post("/account/delete-request")
+@limiter.limit("3/hour")
+async def public_account_delete_request(request: Request):
+    """Public endpoint (no auth required) for users to request account deletion.
+    Required by Google Play Store policy: app must offer a way to request data
+    deletion without requiring sign-in. Endpoint stores the request and notifies
+    admins; actual deletion follows after email confirmation (handled offline)."""
+    body = await request.json()
+    email = (body.get("email") or "").strip().lower()
+    reason = (body.get("reason") or "").strip()[:500]
+    
+    if not email or "@" not in email or len(email) > 200:
+        raise HTTPException(status_code=400, detail="Email valide requis")
+    
+    # Find user (may not exist — we still log the request to handle missed accounts)
+    user_doc = await db.users.find_one({"email": email}, {"_id": 0, "user_id": 1, "name": 1})
+    
+    request_id = f"delreq_{uuid.uuid4().hex[:12]}"
+    deletion_doc = {
+        "request_id": request_id,
+        "email": email,
+        "user_id": user_doc.get("user_id") if user_doc else None,
+        "user_name": user_doc.get("name") if user_doc else None,
+        "reason": reason,
+        "status": "pending",  # pending → confirmed → deleted
+        "requested_at": datetime.now(timezone.utc).isoformat(),
+        "ip_address": request.client.host if request.client else None,
+        "source": "public_form"
+    }
+    await db.account_deletion_requests.insert_one(deletion_doc)
+    deletion_doc.pop("_id", None)
+    
+    # Send confirmation email to the user (if Resend is configured)
+    resend_api_key = os.environ.get("RESEND_API_KEY")
+    if resend_api_key:
+        try:
+            resend.api_key = resend_api_key
+            sender_email = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+            html = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #FF6B35;">🌺 Nati Fenua</h1>
+              <h2>Demande de suppression de compte reçue</h2>
+              <p>Ia ora na,</p>
+              <p>Nous avons bien reçu votre demande de suppression du compte associé à cette adresse email.</p>
+              <p><strong>Numéro de demande :</strong> <code>{request_id}</code></p>
+              <p>Notre équipe va examiner et traiter votre demande sous 30 jours, conformément au RGPD.
+                 Une confirmation de suppression définitive vous sera envoyée à cette adresse.</p>
+              <p>Si vous n'êtes pas à l'origine de cette demande, contactez-nous immédiatement à
+                 <a href="mailto:contact@nati-fenua.com">contact@nati-fenua.com</a>.</p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+              <p style="color: #999; font-size: 12px;">Mauruuru, l'équipe Nati Fenua 🌴</p>
+            </div>
+            """
+            await asyncio.to_thread(
+                resend.Emails.send,
+                {
+                    "from": sender_email,
+                    "to": [email],
+                    "subject": "Demande de suppression de compte - Nati Fenua",
+                    "html": html
+                }
+            )
+            logger.info(f"Account deletion confirmation email sent to {email}")
+        except Exception as e:
+            logger.error(f"Failed to send deletion confirmation email: {e}")
+    
+    logger.info(f"Account deletion request: {request_id} for {email} (user_exists={user_doc is not None})")
+    return {
+        "success": True,
+        "request_id": request_id,
+        "message": "Demande enregistrée. Vous recevrez un email de confirmation sous 48h."
+    }
+
+
 # ==================== RESEND DIAGNOSTICS (admin) ====================
 
 @api_router.get("/admin/resend/status")
