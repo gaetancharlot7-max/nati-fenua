@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import NotificationBell from '../NotificationBell';
 import NotificationPrompt from '../NotificationPrompt';
 import HeaderSearchBar from '../HeaderSearchBar';
+import OnboardingTour, { useOnboarding } from '../OnboardingTour';
 import { useUnreadMessages } from '../../hooks/useUnreadMessages';
 import soundManager from '../../lib/soundManager';
 
@@ -54,6 +55,7 @@ const MainLayout = ({ children, hideNav = false }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
   const { unreadCount } = useUnreadMessages();
+  const { showOnboarding, dismissOnboarding } = useOnboarding(user);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -83,6 +85,7 @@ const MainLayout = ({ children, hideNav = false }) => {
 
   return (
     <div className={`min-h-screen ${isDark ? 'bg-gradient-to-b from-[#1A1A2E] to-[#16213E]' : 'bg-gradient-to-b from-[#FFF5E6] to-white'}`}>
+      {showOnboarding && <OnboardingTour onComplete={dismissOnboarding} />}
       {/* Desktop Sidebar */}
       <aside className={`hidden lg:flex fixed left-0 top-0 bottom-0 w-72 flex-col ${isDark ? 'bg-[#1A1A2E]/95 border-white/10' : 'bg-white/80 border-gray-100'} backdrop-blur-xl border-r z-40`}>
         {/* Logo */}

@@ -52,7 +52,10 @@ const AuthPage = () => {
         }
       } else {
         await register(formData.email, formData.password, formData.name);
-        toast.success('Maeva ! Compte créé avec succès');
+        toast.success('Maeva ! Compte créé. Vérifiez votre email');
+        // Send to email verification page after sign-up (Resend will deliver the code)
+        window.location.href = '/verify-email';
+        return;
       }
       // Force full page reload to /feed to ensure auth state is correct
       window.location.href = '/feed';

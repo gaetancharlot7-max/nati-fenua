@@ -102,6 +102,7 @@ const PostDetailPage = lazy(() => import('./pages/PostDetailPage'));
 const AIAgentPage = lazy(() => import('./pages/AIAgentPage'));
 const FAQPage = lazy(() => import('./pages/FAQPage'));
 const AccountDeletePage = lazy(() => import('./pages/AccountDeletePage'));
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
 
 // Components (loaded immediately as they're small)
 import CookieBanner from './components/CookieBanner';
@@ -156,6 +157,7 @@ function AppContent() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/legal/*" element={<LegalPage />} />
         <Route path="/account/delete-request" element={<AccountDeletePage />} />
+        <Route path="/verify-email" element={<ProtectedRoute><VerifyEmailPage /></ProtectedRoute>} />
         
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLoginPage />} />
