@@ -814,7 +814,8 @@ async def register(request: Request, response: Response):
         secure=True,
         samesite="none",
         path="/",
-        max_age=7*24*60*60
+        max_age=7*24*60*60,
+        domain=os.environ.get("COOKIE_DOMAIN") or None
     )
     
     user.pop("password_hash", None)
@@ -939,7 +940,8 @@ async def login(request: Request, response: Response):
         secure=True,
         samesite="none",
         path="/",
-        max_age=7*24*60*60
+        max_age=7*24*60*60,
+        domain=os.environ.get("COOKIE_DOMAIN") or None
     )
     
     user.pop("password_hash", None)
@@ -1011,7 +1013,8 @@ async def exchange_session(request: Request, response: Response):
         secure=True,
         samesite="none",
         path="/",
-        max_age=7*24*60*60
+        max_age=7*24*60*60,
+        domain=os.environ.get("COOKIE_DOMAIN") or None
     )
     
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
@@ -1164,6 +1167,7 @@ async def google_callback(request: Request, response: Response, code: str = None
         redirect_response = RedirectResponse(url=callback_url, status_code=302)
         
         # Set cookie with maximum compatibility for iOS Safari
+        # COOKIE_DOMAIN=.nati-fenua.com in prod → shared between nati-fenua.com and api.nati-fenua.com
         redirect_response.set_cookie(
             key="session_token",
             value=session_token,
@@ -1172,7 +1176,7 @@ async def google_callback(request: Request, response: Response, code: str = None
             samesite="none",  # Required for cross-site cookies
             path="/",
             max_age=7*24*60*60,
-            domain=None  # Let browser determine domain
+            domain=os.environ.get("COOKIE_DOMAIN") or None
         )
         
         logger.info(f"Google OAuth successful for {email}, redirecting to {callback_url}")
@@ -1197,7 +1201,7 @@ async def logout(request: Request, response: Response):
     if session_token:
         await db.user_sessions.delete_one({"session_token": session_token})
     
-    response.delete_cookie(key="session_token", path="/")
+    response.delete_cookie(key="session_token", path="/", domain=os.environ.get("COOKIE_DOMAIN") or None)
     return {"message": "Déconnecté"}
 
 @api_router.post("/auth/logout-all")
@@ -1208,7 +1212,7 @@ async def logout_all_devices(request: Request, response: Response):
     # Delete all sessions for this user
     result = await db.user_sessions.delete_many({"user_id": user.user_id})
     
-    response.delete_cookie(key="session_token", path="/")
+    response.delete_cookie(key="session_token", path="/", domain=os.environ.get("COOKIE_DOMAIN") or None)
     return {
         "success": True,
         "message": f"Déconnecté de {result.deleted_count} appareil(s)"
@@ -1810,7 +1814,7 @@ async def facebook_callback(request: Request, response: Response, code: str = No
                 samesite="none",
                 path="/",
                 max_age=7*24*60*60,
-                domain=None
+                domain=os.environ.get("COOKIE_DOMAIN") or None
             )
             
             logger.info(f"Facebook login successful for user: {email}, redirecting to {callback_url}")
