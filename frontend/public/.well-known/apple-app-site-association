@@ -1,0 +1,35 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["TEAMID.com.natifenua.app"],
+        "components": [
+          {
+            "/": "/auth*",
+            "comment": "Universal links to auth (deep linking from invitations)"
+          },
+          {
+            "/": "/post/*",
+            "comment": "Direct deep link to a single post"
+          },
+          {
+            "/": "/profile/*",
+            "comment": "Direct deep link to a user profile"
+          },
+          {
+            "/": "/marketplace/*",
+            "comment": "Marketplace listing deep link"
+          },
+          {
+            "/": "/feed",
+            "comment": "Open feed directly"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["TEAMID.com.natifenua.app"]
+  }
+}

@@ -14,6 +14,26 @@ import { ReportModal, BlockUserModal } from '../components/ReportModal';
 import { PostSkeleton, StoriesRowSkeleton, FeedSkeleton } from '../components/SkeletonLoader';
 import { LazyImage, LazyVideo, ConnectionStatus, useNetworkQuality } from '../components/LazyImage';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
+import UserLevelBadge from '../components/UserLevelBadge';
+
+/** Compute level inline from user fields embedded in post (avoids extra API calls).
+ * Mirrors the simplified levels from backend referral_service.compute_user_level. */
+const computeInlineLevel = (u) => {
+  if (!u) return null;
+  const badges = u.badges || [];
+  if (badges.includes('mahana')) return { level: 5, name: 'Mahana', color: '#FFD700' };
+  if (badges.includes('ambassadeur') || (u.referral_count || 0) >= 3) {
+    return { level: 4, name: 'Ambassadeur', color: '#FF1493' };
+  }
+  const posts = u.posts_count || 0;
+  let days = 0;
+  try {
+    if (u.created_at) days = (Date.now() - new Date(u.created_at).getTime()) / 86400000;
+  } catch {}
+  if (days >= 30 && posts >= 20) return { level: 3, name: 'Local', color: '#00CED1' };
+  if (days >= 7 && posts >= 5) return { level: 2, name: 'Régulier', color: '#FF6B35' };
+  return null; // hide "Nouveau" — too many of them, would clutter the feed
+};
 
 // PWA Install Banner Component for Feed - VERSION VISIBLE
 const PWAInstallBannerCompact = () => {
@@ -773,8 +793,15 @@ const FeedPage = () => {
                   <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl">{post.user?.name?.[0]}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="font-bold text-[#1A1A2E] text-sm">{post.user?.name}</p>
+                    {(() => {
+                      // Inline level badge (Régulier / Local / Ambassadeur / Mahana)
+                      // Hidden for RSS posts and "Nouveau" users to avoid noise
+                      if (post.feed_type === 'rss' || post.is_rss_article) return null;
+                      const lvl = computeInlineLevel(post.user);
+                      return lvl ? <UserLevelBadge level={lvl} size="xs" /> : null;
+                    })()}
                     {(post.user?.is_verified || post.feed_type === 'rss' || post.is_rss_article) && (
                       <span className="w-4 h-4 rounded-full bg-gradient-to-r from-[#00CED1] to-[#006994] flex items-center justify-center">
                         <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">

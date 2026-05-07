@@ -2037,7 +2037,9 @@ async def get_posts(
             "localField": "user_id",
             "foreignField": "user_id",
             "pipeline": [
-                {"$project": {"user_id": 1, "name": 1, "picture": 1, "is_verified": 1, "is_bot": 1, "_id": 0}}
+                {"$project": {"user_id": 1, "name": 1, "picture": 1, "is_verified": 1, "is_bot": 1,
+                              "badges": 1, "referral_count": 1, "posts_count": 1, "created_at": 1,
+                              "island": 1, "_id": 0}}
             ],
             "as": "user_data"
         }},
@@ -2054,7 +2056,12 @@ async def get_posts(
                 "user_id": "$user_data.user_id",
                 "name": "$user_data.name",
                 "picture": "$user_data.picture",
-                "is_verified": "$user_data.is_verified"
+                "is_verified": "$user_data.is_verified",
+                "badges": "$user_data.badges",
+                "referral_count": "$user_data.referral_count",
+                "posts_count": "$user_data.posts_count",
+                "created_at": "$user_data.created_at",
+                "island": "$user_data.island"
             },
             "feed_type": {"$literal": "user"}
         }}
