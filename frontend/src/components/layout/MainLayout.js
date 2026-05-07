@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone, Shield, Settings, LogOut, ChevronUp, MapPin, Truck, Music, Volume2, VolumeX, Users, Sun, Moon } from 'lucide-react';
+import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone, Shield, Settings, LogOut, ChevronUp, MapPin, Truck, Music, Volume2, VolumeX, Users, Sun, Moon, Menu, X } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -53,6 +53,7 @@ const MainLayout = ({ children, hideNav = false }) => {
   const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
   const profileMenuRef = useRef(null);
   const { unreadCount } = useUnreadMessages();
   const { showOnboarding, dismissOnboarding } = useOnboarding(user);
@@ -67,6 +68,21 @@ const MainLayout = ({ children, hideNav = false }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setShowMobileDrawer(false);
+  }, [location.pathname]);
+
+  // Lock body scroll when drawer open
+  useEffect(() => {
+    if (showMobileDrawer) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [showMobileDrawer]);
 
   const handleLogout = async () => {
     await logout();
@@ -406,8 +422,174 @@ const MainLayout = ({ children, hideNav = false }) => {
             <Search size={22} strokeWidth={1.5} className={isDark ? 'text-white' : 'text-[#1A1A2E]'} />
           </Link>
           <NotificationBell />
+          {user && (
+            <button
+              onClick={() => setShowMobileDrawer(true)}
+              data-testid="mobile-menu-btn"
+              aria-label="Ouvrir le menu"
+              className={`p-2 rounded-xl ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+            >
+              <Menu size={22} strokeWidth={1.5} className={isDark ? 'text-white' : 'text-[#1A1A2E]'} />
+            </button>
+          )}
         </div>
       </header>
+
+      {/* Mobile Drawer (slides from right) */}
+      <AnimatePresence>
+        {showMobileDrawer && user && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setShowMobileDrawer(false)}
+              data-testid="mobile-drawer-backdrop"
+              className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[60]"
+            />
+            {/* Drawer panel */}
+            <motion.aside
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
+              data-testid="mobile-drawer"
+              className={`lg:hidden fixed top-0 right-0 bottom-0 w-[85%] max-w-sm z-[70] flex flex-col overflow-y-auto ${isDark ? 'bg-[#1A1A2E] text-white' : 'bg-white text-[#1A1A2E]'} shadow-2xl`}
+              style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            >
+              {/* Drawer header with profile */}
+              <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-white/10' : 'border-gray-100'}`}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="relative">
+                    <img
+                      src={user.picture || `https://ui-avatars.com/api/?name=${user.name}&background=FF6B35&color=fff&bold=true`}
+                      alt={user.name}
+                      className="w-12 h-12 rounded-xl object-cover"
+                    />
+                    {user.is_verified && (
+                      <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-r from-[#00CED1] to-[#006994] flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold truncate">{user.name}</p>
+                    <p className={`text-sm truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{user.location || user.email}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowMobileDrawer(false)}
+                  data-testid="mobile-drawer-close"
+                  aria-label="Fermer le menu"
+                  className={`p-2 rounded-xl flex-shrink-0 ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+                >
+                  <X size={22} strokeWidth={1.5} />
+                </button>
+              </div>
+
+              {/* Drawer nav items */}
+              <nav className="flex-1 p-3 space-y-1">
+                <Link
+                  to="/profile"
+                  data-testid="drawer-nav-profile"
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+                >
+                  <User size={22} strokeWidth={1.5} />
+                  <span className="font-medium">Mon Profil</span>
+                </Link>
+                <Link
+                  to="/profile/edit"
+                  data-testid="drawer-nav-profile-edit"
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+                >
+                  <Settings size={22} strokeWidth={1.5} />
+                  <span className="font-medium">Modifier le profil</span>
+                </Link>
+                <Link
+                  to="/vendor/dashboard"
+                  data-testid="drawer-nav-vendor"
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+                >
+                  <Truck size={22} strokeWidth={1.5} />
+                  <span className="font-medium">Ma Roulotte</span>
+                </Link>
+                <Link
+                  to="/referral"
+                  data-testid="drawer-nav-referral"
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+                >
+                  <Users size={22} strokeWidth={1.5} className="text-[#FF1493]" />
+                  <span className="font-medium">Parrainer un ami</span>
+                  <span className="ml-auto text-[10px] font-bold text-white bg-gradient-to-r from-[#FF6B35] to-[#FF1493] px-2 py-0.5 rounded-full">+</span>
+                </Link>
+                <Link
+                  to="/advertising"
+                  data-testid="drawer-nav-advertising"
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+                >
+                  <Megaphone size={22} strokeWidth={1.5} />
+                  <span className="font-medium">Publicité Pro</span>
+                  <span className="ml-auto text-[10px] font-bold text-white bg-gradient-to-r from-[#FF6B35] to-[#FF1493] px-2 py-0.5 rounded-full">NEW</span>
+                </Link>
+
+                <div className={`my-3 border-t ${isDark ? 'border-white/10' : 'border-gray-100'}`} />
+                <p className={`px-4 mb-1 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Paramètres</p>
+
+                <Link
+                  to="/settings/notifications"
+                  data-testid="drawer-nav-notifications"
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+                >
+                  <Bell size={22} strokeWidth={1.5} />
+                  <span className="font-medium">Paramètres Notifications</span>
+                </Link>
+                <Link
+                  to="/settings/security"
+                  data-testid="drawer-nav-security"
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+                >
+                  <Shield size={22} strokeWidth={1.5} />
+                  <span className="font-medium">Sécurité & Confidentialité</span>
+                </Link>
+
+                {user.is_admin && (
+                  <Link
+                    to="/admin"
+                    data-testid="drawer-nav-admin"
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+                  >
+                    <Shield size={22} strokeWidth={1.5} className="text-[#FF6B35]" />
+                    <span className="font-medium">Admin</span>
+                  </Link>
+                )}
+              </nav>
+
+              {/* Drawer footer */}
+              <div className={`p-3 border-t ${isDark ? 'border-white/10' : 'border-gray-100'}`}>
+                <button
+                  onClick={handleLogout}
+                  data-testid="drawer-logout-btn"
+                  className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors font-medium"
+                >
+                  <LogOut size={22} strokeWidth={1.5} />
+                  <span>Déconnexion</span>
+                </button>
+                <div className={`flex flex-wrap gap-x-2 gap-y-1 text-xs mt-3 px-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  <Link to="/legal">CGU</Link>
+                  <span>·</span>
+                  <Link to="/legal#privacy">Confidentialité</Link>
+                  <span>·</span>
+                  <span>© 2024 Nati Fenua</span>
+                </div>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Main Content */}
       <main className={`lg:ml-72 lg:mr-72 lg:pt-16 pt-14 min-h-screen ${hideNav ? '' : 'pb-24 lg:pb-6'}`}>

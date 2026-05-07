@@ -57,6 +57,11 @@ Application sociale polynésienne (web + PWA) avec : feed RSS médias locaux, ch
 - Panel webcams plein écran à l'ouverture du filtre 📹 — autoplay simultané
 - **Covoiturage enrichi** : modal de création avec champs Départ + Destination + Date + Heure + Places + Prix + Tél (optionnel). Affichage formaté sur popup marker + bouton "Appeler"
 
+### Mobile Navigation Drawer (fév 2026)
+- **Bug critique résolu** : sur mobile, sidebar gauche/droite cachées (`hidden lg:flex`) + bottom nav limitée à 5 onglets → "Mon Profil", "Ma Roulotte", "Paramètres Notifications", "Sécurité", "Parrainer un ami", "Publicité Pro" et "Déconnexion" étaient totalement inaccessibles.
+- **Solution** : ajout d'un bouton hamburger (`data-testid="mobile-menu-btn"`) dans le header mobile qui ouvre un drawer slide-in depuis la droite (z-index 70, backdrop blur z-60). Drawer contient avatar utilisateur + tous les raccourcis manquants + déconnexion + footer CGU/Confidentialité. Auto-close sur changement de route, lock body scroll quand ouvert, animations framer-motion. Tous testIds : `drawer-nav-profile`, `drawer-nav-vendor`, `drawer-nav-referral`, `drawer-nav-advertising`, `drawer-nav-security`, `drawer-logout-btn`, etc.
+- Testé via Playwright sur viewport 390x844 : drawer s'ouvre, navigation vers `/vendor/dashboard` OK, drawer auto-close confirmé.
+
 ### ShareModal v2
 - Email retiré
 - Vrais logos officiels (react-icons) : WhatsApp, Messenger, Telegram, Facebook, X moderne, Instagram (gradient)
@@ -94,6 +99,9 @@ Application sociale polynésienne (web + PWA) avec : feed RSS médias locaux, ch
 - `POST /api/notifications/{id}/read`
 - `POST /api/pulse/markers` (avec extra_data carpool : departure, destination, date, time, seats, price, phone)
 - `GET /api/pulse/markers?types=webcam`
+
+## Test Credentials (sandbox local)
+- `mobiletest@nati.local` / `TestPass123!` — utilisateur test mobile drawer (créé fév 2026)
 
 ## Critical Notes
 - iOS Safari : éviter `target="_blank"` + `window.open` simultanés. Toujours `type="button"`, `pointer-events-none` sur SVG enfants, `e.preventDefault()` sur touchend backdrop pour éviter ghost click.
