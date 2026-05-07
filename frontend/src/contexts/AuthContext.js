@@ -156,8 +156,10 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
-  const register = async (email, password, name) => {
-    const response = await axios.post(`${API}/auth/register`, { email, password, name }, {
+  const register = async (email, password, name, extra = {}) => {
+    // extra may include: { island, referral_code }
+    const payload = { email, password, name, ...extra };
+    const response = await axios.post(`${API}/auth/register`, payload, {
       withCredentials: true
     });
     

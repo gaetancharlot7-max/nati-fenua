@@ -257,6 +257,18 @@ const MainLayout = ({ children, hideNav = false }) => {
                     <Shield size={20} className="text-gray-600" />
                     <span className="text-[#1A1A2E]">Sécurité</span>
                   </Link>
+                  <Link
+                    to="/referral"
+                    onClick={() => setShowProfileMenu(false)}
+                    data-testid="referral-menu-link"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gradient-to-r hover:from-[#FFF5F0] hover:to-[#FFE5DC] transition-colors"
+                  >
+                    <Users size={20} className="text-[#FF1493]" />
+                    <span className="text-[#1A1A2E]">Parrainer un ami</span>
+                    <span className="ml-auto text-[10px] font-bold text-white bg-gradient-to-r from-[#FF6B35] to-[#FF1493] px-1.5 py-0.5 rounded-full">
+                      +
+                    </span>
+                  </Link>
                   <button 
                     onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-red-500"

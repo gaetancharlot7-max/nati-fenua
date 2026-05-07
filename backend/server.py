@@ -85,6 +85,10 @@ from auto_publisher import AutoPublisherService, run_daily_publisher, ISLAND_CON
 
 # Import Friend Requests module
 from friend_requests import FriendRequestService, FriendRequestStatus
+from referral_service import (
+    ensure_referral_code, get_user_by_referral_code, record_referral,
+    get_referral_stats, compute_user_level
+)
 
 # Import Cache and DB optimization modules
 from cache import (
@@ -432,6 +436,8 @@ class UserCreate(BaseModel):
     password: str
     name: str
     address: Optional[str] = None
+    referral_code: Optional[str] = None  # Optional referrer code for viral growth tracking
+    island: Optional[str] = None  # Optional island of origin (Tahiti, Moorea, etc.)
 
 class UserLogin(BaseModel):
     email: str
@@ -776,6 +782,7 @@ async def register(request: Request, response: Response):
         "bio": None,
         "location": "Polynésie Française",
         "address": user_data.address,
+        "island": user_data.island,  # Optional island of origin
         "is_business": False,
         "is_verified": False,
         "is_banned": False,
@@ -786,9 +793,51 @@ async def register(request: Request, response: Response):
         "followers_count": 0,
         "following_count": 0,
         "posts_count": 0,
+        "referral_count": 0,  # Number of users this user has invited
+        "badges": [],  # ambassadeur, mahana, etc.
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user)
+    
+    # Generate the user's own referral code (for them to share)
+    try:
+        await ensure_referral_code(db, user_id)
+    except Exception as e:
+        logger.error(f"Failed to generate referral code for {user_id}: {e}")
+    
+    # If this user signed up with a referral code, record the referral
+    if user_data.referral_code:
+        referrer = await get_user_by_referral_code(db, user_data.referral_code)
+        if referrer:
+            try:
+                ref_result = await record_referral(db, referrer["user_id"], user_id, email)
+                if ref_result.get("success"):
+                    logger.info(f"Referral recorded: {referrer['user_id']} -> {user_id} (count={ref_result.get('referral_count')})")
+                    # Notify the referrer
+                    if ref_result.get("awarded_ambassadeur"):
+                        await db.notifications.insert_one({
+                            "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                            "user_id": referrer["user_id"],
+                            "type": "ambassadeur_unlocked",
+                            "title": "Badge Ambassadeur débloqué ! 🌺",
+                            "message": "Bravo, vous avez parrainé 3 amis sur Nati Fenua !",
+                            "data": {},
+                            "read": False,
+                            "created_at": datetime.now(timezone.utc).isoformat()
+                        })
+                    else:
+                        await db.notifications.insert_one({
+                            "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                            "user_id": referrer["user_id"],
+                            "type": "new_referral",
+                            "title": "Nouveau filleul ! 🎉",
+                            "message": f"{clean_name} vient de rejoindre Nati Fenua grâce à votre code !",
+                            "data": {"new_user_id": user_id},
+                            "read": False,
+                            "created_at": datetime.now(timezone.utc).isoformat()
+                        })
+            except Exception as e:
+                logger.error(f"Failed to record referral: {e}")
     
     # Log successful registration
     await protection.log_registration_attempt(email, client_ip, user_agent, success=True, user_id=user_id)
@@ -1488,6 +1537,79 @@ async def get_verification_status(request: Request):
         "trust_level": trust_info.get("level", "Nouveau"),
         "factors": trust_info.get("factors", [])
     }
+
+
+# ==================== REFERRAL & LEVELS ====================
+
+@api_router.get("/referral/me")
+async def get_my_referral_info(request: Request):
+    """Get the current user's referral code, count, badge status and recent invitees.
+    Used by the profile page / share modal to display invite link."""
+    user = await require_auth(request)
+    # Lazy-generate referral code if missing (for legacy users)
+    await ensure_referral_code(db, user.user_id)
+    stats = await get_referral_stats(db, user.user_id)
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    level = compute_user_level(user_doc)
+    return {
+        **stats,
+        "level": level,
+        "share_url": f"https://nati-fenua.com/auth?ref={stats['referral_code']}",
+        "share_message": (
+            f"🌺 Rejoins-moi sur Nati Fenua, le réseau social de la Polynésie ! "
+            f"Inscris-toi avec mon code {stats['referral_code']} : "
+            f"https://nati-fenua.com/auth?ref={stats['referral_code']}"
+        )
+    }
+
+
+@api_router.get("/referral/check/{code}")
+async def check_referral_code(code: str):
+    """Public endpoint: validate a referral code and return the referrer's name.
+    Used by the sign-up form to show "You're invited by X" before submitting."""
+    referrer = await get_user_by_referral_code(db, code)
+    if not referrer:
+        return {"valid": False}
+    return {
+        "valid": True,
+        "referrer_name": referrer.get("name", "Un ami"),
+        "code": code.strip().upper()
+    }
+
+
+@api_router.put("/users/island")
+async def update_user_island(request: Request):
+    """Update the current user's island of origin (Tahiti, Moorea, Bora Bora, etc.)."""
+    user = await require_auth(request)
+    body = await request.json()
+    island = (body.get("island") or "").strip()
+    # Validate against the canonical list (also accepts None to clear)
+    islands_list = get_islands()  # list of {id, name, ...}
+    valid_ids = {i.get("id") for i in islands_list}
+    if island and island not in valid_ids:
+        # Accept the human name too — find by name match
+        match = next((i.get("id") for i in islands_list if i.get("name", "").lower() == island.lower()), None)
+        if match:
+            island = match
+        else:
+            raise HTTPException(status_code=400, detail=f"Île invalide. Liste : {sorted(valid_ids)}")
+    await db.users.update_one(
+        {"user_id": user.user_id},
+        {"$set": {"island": island or None}}
+    )
+    return {"success": True, "island": island or None}
+
+
+@api_router.get("/users/level/{user_id}")
+async def get_user_level(user_id: str):
+    """Public endpoint: return a user's level/badge for display on profile cards."""
+    user_doc = await db.users.find_one(
+        {"user_id": user_id},
+        {"_id": 0, "badges": 1, "referral_count": 1, "posts_count": 1, "created_at": 1}
+    )
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    return compute_user_level(user_doc)
 
 
 # ==================== ACCOUNT DELETION REQUEST (PUBLIC) ====================

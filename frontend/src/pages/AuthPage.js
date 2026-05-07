@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, User, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Eye, EyeOff, AlertCircle, Sparkles, MapPin } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -9,6 +9,27 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+// French Polynesian islands (curated list — match keys with backend get_islands())
+const ISLAND_OPTIONS = [
+  { value: '', label: '— Choisir mon île (optionnel) —' },
+  { value: 'tahiti', label: 'Tahiti' },
+  { value: 'moorea', label: 'Moorea' },
+  { value: 'bora_bora', label: 'Bora Bora' },
+  { value: 'huahine', label: 'Huahine' },
+  { value: 'raiatea', label: 'Raiatea' },
+  { value: 'taha_a', label: 'Tahaa' },
+  { value: 'maupiti', label: 'Maupiti' },
+  { value: 'rangiroa', label: 'Rangiroa' },
+  { value: 'fakarava', label: 'Fakarava' },
+  { value: 'tikehau', label: 'Tikehau' },
+  { value: 'manihi', label: 'Manihi' },
+  { value: 'nuku_hiva', label: 'Nuku Hiva' },
+  { value: 'hiva_oa', label: 'Hiva Oa' },
+  { value: 'rurutu', label: 'Rurutu' },
+  { value: 'tubuai', label: 'Tubuai' },
+  { value: 'gambier', label: 'Gambier' }
+];
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -18,9 +39,12 @@ const AuthPage = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    name: ''
+    name: '',
+    island: '',
+    referral_code: ''
   });
   const [searchParams] = useSearchParams();
+  const [referrerName, setReferrerName] = useState(null);
 
   const { login, register, loginWithGoogle, loginWithFacebook, checkAuth } = useAuth();
   const navigate = useNavigate();
@@ -30,6 +54,23 @@ const AuthPage = () => {
   if (oauthError) {
     toast.error('Erreur de connexion Facebook. Veuillez réessayer.');
   }
+
+  // Detect referral code in URL (?ref=ABCD1234) and validate it
+  useEffect(() => {
+    const ref = (searchParams.get('ref') || '').trim().toUpperCase();
+    if (!ref) return;
+    setFormData(prev => ({ ...prev, referral_code: ref }));
+    setIsLogin(false); // switch to sign-up tab when arriving via invite link
+    fetch(`${API_URL}/api/referral/check/${encodeURIComponent(ref)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data?.valid) {
+          setReferrerName(data.referrer_name);
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,7 +92,10 @@ const AuthPage = () => {
           return;
         }
       } else {
-        await register(formData.email, formData.password, formData.name);
+        await register(formData.email, formData.password, formData.name, {
+          island: formData.island || undefined,
+          referral_code: formData.referral_code || undefined
+        });
         toast.success('Maeva ! Compte créé. Vérifiez votre email');
         // Send to email verification page after sign-up (Resend will deliver the code)
         window.location.href = '/verify-email';
@@ -192,6 +236,20 @@ const AuthPage = () => {
 
             {/* Email Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
+              {!isLogin && referrerName && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  data-testid="referrer-banner"
+                  className="flex items-center gap-2 p-3 rounded-xl bg-gradient-to-r from-[#FFF5F0] to-[#FFE5DC] border border-[#FF6B35]/30"
+                >
+                  <Sparkles className="w-4 h-4 text-[#FF6B35]" />
+                  <span className="text-sm text-[#1A1A2E]">
+                    Vous êtes invité par <strong>{referrerName}</strong> 🌺
+                  </span>
+                </motion.div>
+              )}
+
               {!isLogin && (
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-[#1A1A2E]">Nom complet</Label>
@@ -207,6 +265,26 @@ const AuthPage = () => {
                       className="pl-12 py-6 rounded-xl border-gray-200 focus:border-[#FF6B35] focus:ring-[#FF6B35]"
                       required={!isLogin}
                     />
+                  </div>
+                </div>
+              )}
+
+              {!isLogin && (
+                <div className="space-y-2">
+                  <Label htmlFor="island" className="text-[#1A1A2E]">Mon île d'origine</Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={20} />
+                    <select
+                      id="island"
+                      data-testid="island-select"
+                      value={formData.island}
+                      onChange={(e) => setFormData({ ...formData, island: e.target.value })}
+                      className="w-full pl-12 pr-4 py-6 rounded-xl border border-gray-200 bg-white text-sm text-[#1A1A2E] focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] outline-none appearance-none"
+                    >
+                      {ISLAND_OPTIONS.map(o => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               )}
