@@ -104,6 +104,7 @@ const FAQPage = lazy(() => import('./pages/FAQPage'));
 const AccountDeletePage = lazy(() => import('./pages/AccountDeletePage'));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
 const ReferralPage = lazy(() => import('./pages/ReferralPage'));
+const BetaTestPage = lazy(() => import('./pages/BetaTestPage'));
 
 // Components (loaded immediately as they're small)
 import CookieBanner from './components/CookieBanner';
@@ -158,6 +159,7 @@ function AppContent() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/legal/*" element={<LegalPage />} />
         <Route path="/account/delete-request" element={<AccountDeletePage />} />
+        <Route path="/beta-test" element={<BetaTestPage />} />
         <Route path="/verify-email" element={<ProtectedRoute><VerifyEmailPage /></ProtectedRoute>} />
         <Route path="/referral" element={<ProtectedRoute><MainLayout><ReferralPage /></MainLayout></ProtectedRoute>} />
         

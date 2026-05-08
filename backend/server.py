@@ -430,6 +430,12 @@ class UserBase(BaseModel):
         "show_saved": True,
         "is_private": False
     })
+    badges: List[str] = Field(default_factory=list)
+    referral_count: int = 0
+    referral_code: Optional[str] = None
+    island: Optional[str] = None
+    is_email_verified: bool = False
+    is_admin: bool = False
 
 class UserCreate(BaseModel):
     email: str
@@ -1610,6 +1616,121 @@ async def get_user_level(user_id: str):
     if not user_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
     return compute_user_level(user_doc)
+
+
+# ==================== BETA TESTERS PROGRAM (Pionnier badge) ====================
+
+PIONNIER_LIMIT = 50  # Max number of Pionnier badges ever awarded
+
+
+@api_router.post("/beta/apply")
+@limiter.limit("5/hour")
+async def beta_apply(request: Request):
+    """Public endpoint to apply to the Nati Fenua beta tester program.
+    Stores the application in db.beta_applications. Admin reviews and awards the
+    Pionnier badge once the user joins the Google Play Closed Test."""
+    body = await request.json()
+    email = (body.get("email") or "").strip().lower()
+    google_email = (body.get("google_email") or "").strip().lower()
+    name = (body.get("name") or "").strip()
+    device = (body.get("device") or "").strip()
+    motivation = (body.get("motivation") or "").strip()
+
+    if not email or "@" not in email or not google_email or "@" not in google_email:
+        raise HTTPException(status_code=400, detail="Email et compte Google requis")
+    if not name:
+        raise HTTPException(status_code=400, detail="Prénom requis")
+
+    # Check duplicate (idempotent — same google_email = same application)
+    existing = await db.beta_applications.find_one({"google_email": google_email})
+    if existing:
+        return {"success": True, "already_applied": True, "message": "Candidature déjà reçue"}
+
+    # Capacity check
+    accepted_count = await db.beta_applications.count_documents({"status": "accepted"})
+    if accepted_count >= PIONNIER_LIMIT:
+        return {"success": False, "full": True, "message": "Programme complet — merci de ton intérêt !"}
+
+    application = {
+        "application_id": str(uuid.uuid4()),
+        "name": name,
+        "email": email,
+        "google_email": google_email,
+        "device": device,
+        "motivation": motivation,
+        "status": "pending",  # pending | accepted | rejected | awarded
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "ip": (request.client.host if request.client else None)
+    }
+    await db.beta_applications.insert_one(application)
+    return {"success": True, "message": "Candidature reçue"}
+
+
+@api_router.get("/admin/beta/applications")
+async def admin_list_beta_applications(request: Request):
+    """Admin: list all beta applications."""
+    user = await require_auth(request)
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin requis")
+    apps = await db.beta_applications.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    accepted = await db.beta_applications.count_documents({"status": "accepted"})
+    awarded = await db.beta_applications.count_documents({"status": "awarded"})
+    return {
+        "applications": apps,
+        "stats": {
+            "total": len(apps),
+            "accepted": accepted,
+            "awarded": awarded,
+            "remaining_slots": max(0, PIONNIER_LIMIT - awarded)
+        }
+    }
+
+
+@api_router.post("/admin/beta/award-pionnier")
+async def admin_award_pionnier(request: Request):
+    """Admin: award the 'pionnier' badge to a user by email or user_id.
+    Marks the matching beta application as 'awarded'."""
+    user = await require_auth(request)
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin requis")
+
+    body = await request.json()
+    target_email = (body.get("email") or "").strip().lower()
+    target_user_id = (body.get("user_id") or "").strip()
+
+    if not target_email and not target_user_id:
+        raise HTTPException(status_code=400, detail="email ou user_id requis")
+
+    # Capacity check
+    awarded_count = await db.beta_applications.count_documents({"status": "awarded"})
+    if awarded_count >= PIONNIER_LIMIT:
+        raise HTTPException(status_code=400, detail=f"Limite de {PIONNIER_LIMIT} badges Pionnier atteinte")
+
+    query = {"user_id": target_user_id} if target_user_id else {"email": target_email}
+    target = await db.users.find_one(query, {"_id": 0, "user_id": 1, "email": 1, "badges": 1})
+    if not target:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable — assure-toi qu'il a créé un compte Nati Fenua")
+
+    current_badges = target.get("badges") or []
+    if "pionnier" in current_badges:
+        return {"success": True, "already_awarded": True, "user_id": target["user_id"]}
+
+    await db.users.update_one(
+        {"user_id": target["user_id"]},
+        {
+            "$addToSet": {"badges": "pionnier"},
+            "$set": {"pionnier_awarded_at": datetime.now(timezone.utc).isoformat()}
+        }
+    )
+
+    # Mark beta application as awarded (best-effort match by email)
+    await db.beta_applications.update_one(
+        {"$or": [{"email": target.get("email")}, {"google_email": target.get("email")}]},
+        {"$set": {"status": "awarded", "awarded_at": datetime.now(timezone.utc).isoformat(),
+                   "user_id": target["user_id"]}}
+    )
+
+    return {"success": True, "user_id": target["user_id"], "email": target.get("email")}
 
 
 # ==================== ACCOUNT DELETION REQUEST (PUBLIC) ====================

@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import FriendButton from '../components/FriendButton';
+import PionnierBadge from '../components/PionnierBadge';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -267,8 +268,11 @@ const ProfilePage = () => {
 
           {/* Info */}
           <div className="flex-1 text-center md:text-left">
-            <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
+            <div className="flex items-center justify-center md:justify-start gap-3 mb-2 flex-wrap">
               <h1 className="text-2xl font-bold text-[#1A1A2E]">{displayUser?.name}</h1>
+              {(displayUser?.badges || []).includes('pionnier') && (
+                <PionnierBadge size="sm" />
+              )}
               {isOwnProfile && (
                 <Button
                   variant="ghost"

@@ -805,7 +805,7 @@ const LandingPage = () => {
               <Link to="/legal" className="text-white/50 text-sm hover:text-white transition-colors">
                 Mentions légales
               </Link>
-              <Link to="/admin/login" className="text-white/30 text-xs hover:text-white/60 transition-colors">
+              <Link to="/admin/login" className="text-white/70 text-xs hover:text-white transition-colors">
                 Admin
               </Link>
             </div>

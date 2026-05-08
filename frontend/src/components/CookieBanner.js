@@ -97,7 +97,7 @@ const CookieBanner = () => {
               </div>
               <p className="flex-1 text-[11px] leading-tight text-gray-700">
                 Nous utilisons des cookies.{' '}
-                <Link to="/legal#cookies" className="text-[#FF6B35] underline">En savoir plus</Link>
+                <Link to="/legal#cookies" className="text-[#C8421A] underline font-semibold">En savoir plus</Link>
               </p>
               <button
                 onClick={() => setShowDetails(true)}

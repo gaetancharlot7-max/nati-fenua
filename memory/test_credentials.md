@@ -7,7 +7,8 @@
 ## Sandbox Mobile Test User (créé fév 2026)
 - Email: `mobiletest@nati.local`
 - Password: `TestPass123!`
-- Pour tester le drawer hamburger mobile et les flows authentifiés en local
+- **Promu admin** (fév 2026) + badge `pionnier` attribué
+- Pour tester le drawer hamburger mobile, le badge Pionnier sur profil, les endpoints admin `/api/admin/beta/*` et les flows authentifiés en local
 
 ## Demo / Test Users (auto-created via /api/auth/register)
 - Any test user can be created via `POST /api/auth/register` with `{email, password, name}`

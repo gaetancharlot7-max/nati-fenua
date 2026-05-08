@@ -62,6 +62,21 @@ Application sociale polynésienne (web + PWA) avec : feed RSS médias locaux, ch
 - **Solution** : ajout d'un bouton hamburger (`data-testid="mobile-menu-btn"`) dans le header mobile qui ouvre un drawer slide-in depuis la droite (z-index 70, backdrop blur z-60). Drawer contient avatar utilisateur + tous les raccourcis manquants + déconnexion + footer CGU/Confidentialité. Auto-close sur changement de route, lock body scroll quand ouvert, animations framer-motion. Tous testIds : `drawer-nav-profile`, `drawer-nav-vendor`, `drawer-nav-referral`, `drawer-nav-advertising`, `drawer-nav-security`, `drawer-logout-btn`, etc.
 - Testé via Playwright sur viewport 390x844 : drawer s'ouvre, navigation vers `/vendor/dashboard` OK, drawer auto-close confirmé.
 
+### Programme Pionnier — Bêta-testeurs Play Store (fév 2026)
+- **Page publique `/beta-test`** : landing dark/gradient pour recruter les 12 bêta-testeurs requis par Google Play Closed Testing (politique 2024 : 12 testeurs × 14 jours pour comptes Personnels nouveaux). Formulaire : prénom, email contact, **email Google** (le lien de test arrive sur ce compte), modèle de téléphone, motivation. Confirmation sans envoi mail (admin valide manuellement).
+- **Badge `Pionnier`** : composant `<PionnierBadge />` (gradient violet/pink/orange + icône Rocket). Affiché sur Profil (à côté du nom) et sur les posts dans le Feed. Limite : 50 attributions à vie.
+- **Backend** :
+  - `POST /api/beta/apply` (public, rate-limited 5/h) → stocke dans `db.beta_applications` avec status `pending|accepted|rejected|awarded`. Idempotent par `google_email`.
+  - `GET /api/admin/beta/applications` → liste + stats (total, accepted, awarded, remaining_slots).
+  - `POST /api/admin/beta/award-pionnier` → ajoute `'pionnier'` au tableau `users.badges` + marque l'application comme `awarded`. Hard cap à `PIONNIER_LIMIT=50`.
+- **Lien "Devenir Pionnier"** ajouté dans le drawer mobile avec badge `BETA`.
+- **UserBase model étendu** : `badges`, `referral_count`, `referral_code`, `island`, `is_email_verified`, `is_admin` ajoutés (avant ces champs étaient strippés par `extra="ignore"`).
+
+### Lighthouse Audit (fév 2026)
+Score prod `nati-fenua.com` : Performance 41 / Accessibility 93 / Best Practices 96 / **SEO 100**.
+- 3 contrastes corrigés : footer landing `text-white/30 → /70`, lien cookie banner mobile `#FF6B35 → #C8421A bold`, bouton PWA install banner `bg gradient` au lieu de blanc.
+- Performance 41 normale en preview (build dev unminified) ; build prod Render = >70.
+
 ### ShareModal v2
 - Email retiré
 - Vrais logos officiels (react-icons) : WhatsApp, Messenger, Telegram, Facebook, X moderne, Instagram (gradient)

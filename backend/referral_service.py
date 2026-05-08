@@ -146,12 +146,13 @@ def compute_user_level(user_doc: dict) -> dict:
         return {"level": 1, "name": "Nouveau", "color": "#9CA3AF", "next": "Régulier", "progress": 0}
     
     badges = user_doc.get("badges") or []
+    is_pionnier = "pionnier" in badges
     if "mahana" in badges:
         return {"level": 5, "name": "Mahana", "color": "#FFD700", "next": None, "progress": 1.0,
-                "description": "Top contributeur Nati Fenua"}
+                "description": "Top contributeur Nati Fenua", "is_pionnier": is_pionnier}
     if "ambassadeur" in badges or (user_doc.get("referral_count", 0) >= 3):
         return {"level": 4, "name": "Ambassadeur", "color": "#FF1493", "next": "Mahana", "progress": 0.8,
-                "description": "Vous avez parrainé 3+ amis 🌺"}
+                "description": "Vous avez parrainé 3+ amis 🌺", "is_pionnier": is_pionnier}
     
     posts_count = user_doc.get("posts_count", 0)
     created_at = user_doc.get("created_at", "")
@@ -165,11 +166,11 @@ def compute_user_level(user_doc: dict) -> dict:
     
     if days_since >= 30 and posts_count >= 20:
         return {"level": 3, "name": "Local", "color": "#00CED1", "next": "Ambassadeur", "progress": 0.6,
-                "description": "Membre actif de la communauté"}
+                "description": "Membre actif de la communauté", "is_pionnier": is_pionnier}
     if days_since >= 7 and posts_count >= 5:
         return {"level": 2, "name": "Régulier", "color": "#FF6B35", "next": "Local",
                 "progress": min(0.5, (posts_count / 20) * 0.5),
-                "description": "Vous prenez vos marques sur Nati Fenua"}
+                "description": "Vous prenez vos marques sur Nati Fenua", "is_pionnier": is_pionnier}
     return {"level": 1, "name": "Nouveau", "color": "#9CA3AF", "next": "Régulier",
             "progress": min(0.3, days_since / 7 * 0.3),
-            "description": "Bienvenue ! Découvrez le Fenua"}
+            "description": "Bienvenue ! Découvrez le Fenua", "is_pionnier": is_pionnier}

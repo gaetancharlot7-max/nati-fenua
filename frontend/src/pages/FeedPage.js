@@ -15,6 +15,7 @@ import { PostSkeleton, StoriesRowSkeleton, FeedSkeleton } from '../components/Sk
 import { LazyImage, LazyVideo, ConnectionStatus, useNetworkQuality } from '../components/LazyImage';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import UserLevelBadge from '../components/UserLevelBadge';
+import PionnierBadge from '../components/PionnierBadge';
 
 /** Compute level inline from user fields embedded in post (avoids extra API calls).
  * Mirrors the simplified levels from backend referral_service.compute_user_level. */
@@ -802,6 +803,9 @@ const FeedPage = () => {
                       const lvl = computeInlineLevel(post.user);
                       return lvl ? <UserLevelBadge level={lvl} size="xs" /> : null;
                     })()}
+                    {!(post.feed_type === 'rss' || post.is_rss_article) && (post.user?.badges || []).includes('pionnier') && (
+                      <PionnierBadge size="xs" />
+                    )}
                     {(post.user?.is_verified || post.feed_type === 'rss' || post.is_rss_article) && (
                       <span className="w-4 h-4 rounded-full bg-gradient-to-r from-[#00CED1] to-[#006994] flex items-center justify-center">
                         <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">

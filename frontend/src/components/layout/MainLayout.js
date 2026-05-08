@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone, Shield, Settings, LogOut, ChevronUp, MapPin, Truck, Music, Volume2, VolumeX, Users, Sun, Moon, Menu, X } from 'lucide-react';
+import { Home, Film, Radio, ShoppingBag, User, Plus, Search, Bell, MessageCircle, Megaphone, Shield, Settings, LogOut, ChevronUp, MapPin, Truck, Music, Volume2, VolumeX, Users, Sun, Moon, Menu, X, Rocket } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -525,6 +525,15 @@ const MainLayout = ({ children, hideNav = false }) => {
                   <Users size={22} strokeWidth={1.5} className="text-[#FF1493]" />
                   <span className="font-medium">Parrainer un ami</span>
                   <span className="ml-auto text-[10px] font-bold text-white bg-gradient-to-r from-[#FF6B35] to-[#FF1493] px-2 py-0.5 rounded-full">+</span>
+                </Link>
+                <Link
+                  to="/beta-test"
+                  data-testid="drawer-nav-beta"
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+                >
+                  <Rocket size={22} strokeWidth={1.5} className="text-[#9400D3]" />
+                  <span className="font-medium">Devenir Pionnier</span>
+                  <span className="ml-auto text-[10px] font-bold text-white bg-gradient-to-r from-[#9400D3] via-[#FF1493] to-[#FF6B35] px-2 py-0.5 rounded-full">BETA</span>
                 </Link>
                 <Link
                   to="/advertising"
