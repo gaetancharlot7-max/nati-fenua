@@ -27,9 +27,8 @@ class SoundManager {
     this.initialized = true;
   }
 
-  // Play notification sound - Authentic ukulele pluck using Web Audio API
-  // Uses additive synthesis with harmonics + plucked-string envelope for a
-  // realistic ukulele-like "ting" on 3 notes (C-E-G arpeggio).
+  // Play notification sound - Single soft ukulele pluck note (E5)
+  // A short, gentle, single nylon-string "tip" — discrete and pleasant.
   playNotification() {
     if (!this.initialized) this.init();
 
@@ -41,54 +40,57 @@ class SoundManager {
       // Resume context (required by browser autoplay policies)
       if (ctx.state === 'suspended') ctx.resume();
 
-      // Master gain for the whole arpeggio
+      // Master gain for the single note
       const master = ctx.createGain();
-      master.gain.value = this.notificationVolume;
+      master.gain.value = this.notificationVolume * 0.85;
       // Gentle highpass to remove muddiness like a real ukulele
       const hp = ctx.createBiquadFilter();
       hp.type = 'highpass';
-      hp.frequency.value = 180;
+      hp.frequency.value = 200;
+      // Soft lowpass to remove harshness — very ukulele-like warm tone
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 5500;
       master.connect(hp);
-      hp.connect(ctx.destination);
+      hp.connect(lp);
+      lp.connect(ctx.destination);
 
-      // Plucked-string tones: fundamental + 3 harmonics, short attack, long exponential decay
-      const pluck = (freq, startOffset) => {
-        const t0 = ctx.currentTime + startOffset;
-        const envDuration = 1.4; // total ring time
-        const voiceGain = ctx.createGain();
-        voiceGain.gain.setValueAtTime(0.0001, t0);
-        voiceGain.gain.exponentialRampToValueAtTime(0.6, t0 + 0.008); // fast attack ~8ms
-        voiceGain.gain.exponentialRampToValueAtTime(0.0001, t0 + envDuration);
-        voiceGain.connect(master);
+      // Single plucked-string note
+      const freq = 659.25;          // E5 — clear, gentle, polynesian feel
+      const t0 = ctx.currentTime;
+      const envDuration = 1.0;       // total ring time (~1s, short and discrete)
 
-        // Harmonic stack (relative amplitudes mimic ukulele nylon string)
-        const harmonics = [
-          { mult: 1, gain: 1.0, type: 'triangle' },
-          { mult: 2, gain: 0.5, type: 'sine' },
-          { mult: 3, gain: 0.22, type: 'sine' },
-          { mult: 4, gain: 0.08, type: 'sine' },
-        ];
-        harmonics.forEach(h => {
-          const osc = ctx.createOscillator();
-          osc.type = h.type;
-          osc.frequency.setValueAtTime(freq * h.mult, t0);
-          // tiny pitch-bend at the start simulates a finger-nail pluck
-          osc.frequency.exponentialRampToValueAtTime(freq * h.mult * 1.002, t0 + 0.02);
+      const voiceGain = ctx.createGain();
+      voiceGain.gain.setValueAtTime(0.0001, t0);
+      voiceGain.gain.exponentialRampToValueAtTime(0.55, t0 + 0.006); // very fast attack ~6ms (pluck)
+      voiceGain.gain.exponentialRampToValueAtTime(0.0001, t0 + envDuration);
+      voiceGain.connect(master);
 
-          const partialGain = ctx.createGain();
-          partialGain.gain.value = h.gain;
-          osc.connect(partialGain);
-          partialGain.connect(voiceGain);
+      // Harmonic stack (relative amplitudes mimic ukulele nylon string)
+      const harmonics = [
+        { mult: 1, gain: 1.0, type: 'triangle' },
+        { mult: 2, gain: 0.45, type: 'sine' },
+        { mult: 3, gain: 0.18, type: 'sine' },
+        { mult: 4, gain: 0.06, type: 'sine' },
+      ];
+      harmonics.forEach(h => {
+        const osc = ctx.createOscillator();
+        osc.type = h.type;
+        osc.frequency.setValueAtTime(freq * h.mult, t0);
+        // tiny pitch-bend at the start simulates a fingernail pluck
+        osc.frequency.exponentialRampToValueAtTime(freq * h.mult * 1.0015, t0 + 0.02);
 
-          osc.start(t0);
-          osc.stop(t0 + envDuration + 0.1);
-        });
-      };
+        const partialGain = ctx.createGain();
+        partialGain.gain.value = h.gain;
+        osc.connect(partialGain);
+        partialGain.connect(voiceGain);
 
-      // C5 - E5 - G5 arpeggio, slight timing variance for human feel
-      pluck(523.25, 0);      // C5
-      pluck(659.25, 0.12);   // E5
-      pluck(783.99, 0.24);   // G5
+        osc.start(t0);
+        osc.stop(t0 + envDuration + 0.05);
+      });
+
+      // Auto-close context after the note finishes to free resources
+      setTimeout(() => { try { ctx.close(); } catch { /* noop */ } }, (envDuration + 0.2) * 1000);
     } catch {
       // silent fallback - audio not critical
     }
