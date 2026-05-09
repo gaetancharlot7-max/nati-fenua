@@ -62,6 +62,11 @@ Application sociale polynésienne (web + PWA) avec : feed RSS médias locaux, ch
 - **Solution** : ajout d'un bouton hamburger (`data-testid="mobile-menu-btn"`) dans le header mobile qui ouvre un drawer slide-in depuis la droite (z-index 70, backdrop blur z-60). Drawer contient avatar utilisateur + tous les raccourcis manquants + déconnexion + footer CGU/Confidentialité. Auto-close sur changement de route, lock body scroll quand ouvert, animations framer-motion. Tous testIds : `drawer-nav-profile`, `drawer-nav-vendor`, `drawer-nav-referral`, `drawer-nav-advertising`, `drawer-nav-security`, `drawer-logout-btn`, etc.
 - Testé via Playwright sur viewport 390x844 : drawer s'ouvre, navigation vers `/vendor/dashboard` OK, drawer auto-close confirmé.
 
+### Bug fixes mobile/iOS authentication (fév 2026)
+- **Bug "Non authentifié" sur demandes d'amis** : `FriendButton.js`, `FriendsPage.js` utilisaient `fetch` avec `credentials: 'include'` uniquement → cookies cross-domain bloqués par ITP iOS / WebViews → 401. Migrés vers nouveau helper `authFetch()` qui ajoute automatiquement le Bearer token depuis localStorage.
+- **Photo de profil non persistée** : `EditProfilePage.js` envoyait via axios brut sans Bearer + backend stockait un chemin relatif `/uploads/profiles/xxx.jpg` sur le filesystem éphémère de Render (perdu à chaque deploy + 404 sur frontend domain). Fix : upload Cloudinary direct depuis le frontend (URL absolue stable), fallback multipart avec URL absolue construite via `BACKEND_URL` env var.
+- **Helper `authFetch`** ajouté dans `/app/frontend/src/lib/api.js` : drop-in replacement pour `fetch()` qui injecte le Bearer token automatiquement. À utiliser pour tous les nouveaux appels mobile-sensibles.
+
 ### Programme Pionnier — Bêta-testeurs Play Store (fév 2026)
 - **Page publique `/beta-test`** : landing dark/gradient pour recruter les 12 bêta-testeurs requis par Google Play Closed Testing (politique 2024 : 12 testeurs × 14 jours pour comptes Personnels nouveaux). Formulaire : prénom, email contact, **email Google** (le lien de test arrive sur ce compte), modèle de téléphone, motivation. Confirmation sans envoi mail (admin valide manuellement).
 - **Badge `Pionnier`** : composant `<PionnierBadge />` (gradient violet/pink/orange + icône Rocket). Affiché sur Profil (à côté du nom) et sur les posts dans le Feed. Limite : 50 attributions à vie.

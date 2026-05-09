@@ -4741,8 +4741,19 @@ async def update_my_profile(request: Request):
             with open(file_path, "wb") as f:
                 f.write(content)
             
-            # Get base URL for the file
-            update_data["picture"] = f"/uploads/profiles/{filename}"
+            # Build absolute URL using BACKEND_URL env var so the picture
+            # resolves correctly when frontend is on a different domain.
+            backend_base = os.environ.get("BACKEND_URL", "").rstrip("/")
+            if backend_base:
+                update_data["picture"] = f"{backend_base}/uploads/profiles/{filename}"
+            else:
+                # Fallback to host header (works in dev / same-domain deploys)
+                scheme = request.headers.get("x-forwarded-proto", "https")
+                host = request.headers.get("host", "")
+                if host:
+                    update_data["picture"] = f"{scheme}://{host}/uploads/profiles/{filename}"
+                else:
+                    update_data["picture"] = f"/uploads/profiles/{filename}"
         
         if update_data:
             await db.users.update_one({"user_id": user.user_id}, {"$set": update_data})

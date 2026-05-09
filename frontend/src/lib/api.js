@@ -361,3 +361,36 @@ export const cloudinaryApi = {
 };
 
 export default api;
+
+// =============================================================================
+// authFetch — drop-in replacement for fetch() that automatically attaches
+// the Bearer token from localStorage. This is required on iOS Safari, iOS PWA,
+// in-app browsers (Messenger, Instagram), and Render preview/sub-domains where
+// third-party cookies are blocked by ITP.
+//
+// Usage:
+//   import { authFetch } from '../lib/api';
+//   const res = await authFetch(`${API}/api/friends/request`, {
+//     method: 'POST', body: JSON.stringify({ user_id })
+//   });
+// =============================================================================
+export const authFetch = (url, options = {}) => {
+  const headers = new Headers(options.headers || {});
+  if (!headers.has('Content-Type') && options.body && !(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
+  if (!headers.has('Authorization')) {
+    let token = null;
+    try {
+      token = localStorage.getItem('nati_session_token') || sessionStorage.getItem('nati_session_token');
+    } catch { /* localStorage unavailable */ }
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+  }
+  return fetch(url, {
+    credentials: 'include',
+    ...options,
+    headers
+  });
+};

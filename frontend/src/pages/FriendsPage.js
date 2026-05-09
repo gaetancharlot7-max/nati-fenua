@@ -8,7 +8,7 @@ import {
 import { Button } from '../components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import { usersApi } from '../lib/api';
+import { usersApi, authFetch } from '../lib/api';
 import { swrFetch, cacheInvalidate } from '../lib/swrCache';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -51,7 +51,7 @@ const FriendsPage = () => {
     swrFetch(
       `friends:${path}`,
       async () => {
-        const res = await fetch(`${API}${path}`, { credentials: 'include' });
+        const res = await authFetch(`${API}${path}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return await res.json();
       },
@@ -84,9 +84,8 @@ const FriendsPage = () => {
   const handleAccept = async (requestId) => {
     setActionLoading(requestId);
     try {
-      const response = await fetch(`${API}/api/friends/request/${requestId}/accept`, {
-        method: 'POST',
-        credentials: 'include'
+      const response = await authFetch(`${API}/api/friends/request/${requestId}/accept`, {
+        method: 'POST'
       });
 
       if (response.ok) {
@@ -106,9 +105,8 @@ const FriendsPage = () => {
   const handleReject = async (requestId) => {
     setActionLoading(requestId);
     try {
-      const response = await fetch(`${API}/api/friends/request/${requestId}/reject`, {
-        method: 'POST',
-        credentials: 'include'
+      const response = await authFetch(`${API}/api/friends/request/${requestId}/reject`, {
+        method: 'POST'
       });
 
       if (response.ok) {
@@ -127,9 +125,8 @@ const FriendsPage = () => {
   const handleCancel = async (requestId) => {
     setActionLoading(requestId);
     try {
-      const response = await fetch(`${API}/api/friends/request/${requestId}/cancel`, {
-        method: 'POST',
-        credentials: 'include'
+      const response = await authFetch(`${API}/api/friends/request/${requestId}/cancel`, {
+        method: 'POST'
       });
 
       if (response.ok) {
@@ -210,9 +207,8 @@ const FriendsPage = () => {
   const handleSendFriendRequest = async (targetUserId, targetName) => {
     setPendingAdd(targetUserId);
     try {
-      const res = await fetch(`${API}/api/friends/request/${targetUserId}`, {
+      const res = await authFetch(`${API}/api/friends/request/${targetUserId}`, {
         method: 'POST',
-        credentials: 'include',
       });
       if (res.ok) {
         toast.success(`Demande envoyée à ${targetName}`);

@@ -3,6 +3,7 @@ import { UserPlus, UserCheck, Clock, Loader2, X, Check } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { authFetch } from '../lib/api';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -42,10 +43,8 @@ const FriendButton = ({ userId, onStatusChange, size = 'default', className = ''
   const sendRequest = async () => {
     setActionLoading(true);
     try {
-      const response = await fetch(`${API}/api/friends/request`, {
+      const response = await authFetch(`${API}/api/friends/request`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ user_id: userId })
       });
 
@@ -71,9 +70,8 @@ const FriendButton = ({ userId, onStatusChange, size = 'default', className = ''
     
     setActionLoading(true);
     try {
-      const response = await fetch(`${API}/api/friends/request/${requestId}/cancel`, {
-        method: 'POST',
-        credentials: 'include'
+      const response = await authFetch(`${API}/api/friends/request/${requestId}/cancel`, {
+        method: 'POST'
       });
 
       if (response.ok) {
@@ -94,9 +92,8 @@ const FriendButton = ({ userId, onStatusChange, size = 'default', className = ''
     
     setActionLoading(true);
     try {
-      const response = await fetch(`${API}/api/friends/request/${requestId}/accept`, {
-        method: 'POST',
-        credentials: 'include'
+      const response = await authFetch(`${API}/api/friends/request/${requestId}/accept`, {
+        method: 'POST'
       });
 
       if (response.ok) {

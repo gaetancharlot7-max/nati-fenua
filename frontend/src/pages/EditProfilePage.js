@@ -7,7 +7,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import axios from 'axios';
+import api, { cloudinaryApi } from '../lib/api';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -36,9 +36,7 @@ const EditProfilePage = () => {
   const handleDeleteAccount = async () => {
     setDeleteLoading(true);
     try {
-      await axios.delete(`${API_URL}/api/account`, {
-        withCredentials: true
-      });
+      await api.delete('/account');
       toast.success('Votre compte a été supprimé');
       await logout();
       navigate('/');
@@ -57,11 +55,7 @@ const EditProfilePage = () => {
     setVisibility(newVisibility);
     
     try {
-      await axios.put(
-        `${API_URL}/api/users/visibility`,
-        { [key]: value },
-        { withCredentials: true }
-      );
+      await api.put('/users/visibility', { [key]: value });
     } catch (error) {
       console.error('Error updating visibility:', error);
     }
@@ -92,25 +86,54 @@ const EditProfilePage = () => {
     setLoading(true);
 
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('name', formData.name);
-      formDataToSend.append('bio', formData.bio);
-      formDataToSend.append('location', formData.location);
-      
+      // Build payload — upload picture to Cloudinary first if one was selected
+      // (Render's filesystem is ephemeral so we MUST use cloud storage; otherwise
+      // the picture URL breaks after the next deploy.)
+      const payload = {
+        name: formData.name,
+        bio: formData.bio,
+        location: formData.location
+      };
+
       if (selectedFile) {
-        formDataToSend.append('picture', selectedFile);
+        toast.loading('Téléversement de la photo…', { id: 'pic-upload' });
+        // Try Cloudinary first (preferred — works across deploys)
+        let cloudOk = false;
+        try {
+          const cloudEnabled = await cloudinaryApi.isEnabled();
+          if (cloudEnabled) {
+            const result = await cloudinaryApi.uploadImage(selectedFile, 'profiles');
+            if (result?.success && result?.url) {
+              payload.picture = result.url;
+              cloudOk = true;
+            }
+          }
+        } catch (err) {
+          console.warn('Cloudinary upload failed, falling back to multipart', err);
+        }
+        toast.dismiss('pic-upload');
+
+        if (!cloudOk) {
+          // Fallback: use multipart upload to backend (works but uses ephemeral storage)
+          const fd = new FormData();
+          fd.append('name', formData.name);
+          fd.append('bio', formData.bio || '');
+          fd.append('location', formData.location || '');
+          fd.append('picture', selectedFile);
+          const response = await api.put('/users/me', fd, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          if (response.data) {
+            toast.success('Profil mis à jour avec succès !');
+            if (refreshUser) await refreshUser();
+            navigate('/profile');
+          }
+          setLoading(false);
+          return;
+        }
       }
 
-      const response = await axios.put(
-        `${API_URL}/api/users/me`,
-        formDataToSend,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          },
-          withCredentials: true
-        }
-      );
+      const response = await api.put('/users/me', payload);
 
       if (response.data) {
         toast.success('Profil mis à jour avec succès !');
