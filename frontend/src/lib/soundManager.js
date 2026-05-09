@@ -56,7 +56,7 @@ class SoundManager {
       lp.connect(ctx.destination);
 
       // Single plucked-string note
-      const freq = 659.25;          // E5 — clear, gentle, polynesian feel
+      const freq = 783.99;          // G5 — bright, joyful, polynesian feel
       const t0 = ctx.currentTime;
       const envDuration = 1.0;       // total ring time (~1s, short and discrete)
 
