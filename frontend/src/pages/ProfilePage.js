@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import FriendButton from '../components/FriendButton';
 import PionnierBadge from '../components/PionnierBadge';
+import { authFetch } from '../lib/api';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -47,9 +48,7 @@ const ProfilePage = () => {
     setLoading(true);
     try {
       // Load profile data
-      const profileRes = await fetch(`${API}/api/users/${targetUserId}`, {
-        credentials: 'include'
-      });
+      const profileRes = await authFetch(`${API}/api/users/${targetUserId}`);
       
       if (profileRes.ok) {
         const profileData = await profileRes.json();
@@ -57,9 +56,7 @@ const ProfilePage = () => {
       }
 
       // Load user's posts (filtered by user_id in backend)
-      const postsRes = await fetch(`${API}/api/users/${targetUserId}/posts`, {
-        credentials: 'include'
-      });
+      const postsRes = await authFetch(`${API}/api/users/${targetUserId}/posts`);
       
       if (postsRes.ok) {
         const postsData = await postsRes.json();
@@ -75,9 +72,7 @@ const ProfilePage = () => {
 
       // Load saved posts if own profile
       if (isOwnProfile) {
-        const savedRes = await fetch(`${API}/api/saved`, {
-          credentials: 'include'
-        });
+        const savedRes = await authFetch(`${API}/api/saved`);
         
         if (savedRes.ok) {
           const savedData = await savedRes.json();
@@ -95,9 +90,7 @@ const ProfilePage = () => {
   const loadFriends = async () => {
     setLoadingFriends(true);
     try {
-      const response = await fetch(`${API}/api/friends`, {
-        credentials: 'include'
-      });
+      const response = await authFetch(`${API}/api/friends`);
       
       if (response.ok) {
         const data = await response.json();
@@ -131,9 +124,7 @@ const ProfilePage = () => {
   const loadComments = async (postId) => {
     setLoadingComments(true);
     try {
-      const response = await fetch(`${API}/api/posts/${postId}/comments`, {
-        credentials: 'include'
-      });
+      const response = await authFetch(`${API}/api/posts/${postId}/comments`);
       
       if (response.ok) {
         const data = await response.json();
@@ -150,9 +141,8 @@ const ProfilePage = () => {
     if (!selectedPost) return;
     
     try {
-      const response = await fetch(`${API}/api/posts/${selectedPost.post_id}/like`, {
-        method: 'POST',
-        credentials: 'include'
+      const response = await authFetch(`${API}/api/posts/${selectedPost.post_id}/like`, {
+        method: 'POST'
       });
       
       if (response.ok) {
@@ -180,10 +170,8 @@ const ProfilePage = () => {
     
     setSubmittingComment(true);
     try {
-      const response = await fetch(`${API}/api/posts/${selectedPost.post_id}/comments`, {
+      const response = await authFetch(`${API}/api/posts/${selectedPost.post_id}/comments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ content: newComment.trim() })
       });
       
@@ -208,9 +196,8 @@ const ProfilePage = () => {
     if (!selectedPost) return;
     
     try {
-      const response = await fetch(`${API}/api/posts/${selectedPost.post_id}/save`, {
-        method: 'POST',
-        credentials: 'include'
+      const response = await authFetch(`${API}/api/posts/${selectedPost.post_id}/save`, {
+        method: 'POST'
       });
       
       if (response.ok) {
@@ -218,7 +205,7 @@ const ProfilePage = () => {
         toast.success(data.saved ? 'Post enregistré' : 'Post retiré des enregistrements');
         // Reload saved posts if on own profile
         if (isOwnProfile) {
-          const savedRes = await fetch(`${API}/api/saved`, { credentials: 'include' });
+          const savedRes = await authFetch(`${API}/api/saved`);
           if (savedRes.ok) {
             const savedData = await savedRes.json();
             setSavedPosts(Array.isArray(savedData) ? savedData : []);
@@ -631,14 +618,8 @@ const ProfilePage = () => {
                         onClick={async () => {
                           if (window.confirm('Voulez-vous vraiment supprimer cette publication ?')) {
                             try {
-                              const token = localStorage.getItem('nati_session_token');
-                              const res = await fetch(`${API}/api/posts/${selectedPost.post_id}`, {
-                                method: 'DELETE',
-                                headers: {
-                                  'Authorization': `Bearer ${token}`,
-                                  'Content-Type': 'application/json'
-                                },
-                                credentials: 'include'
+                              const res = await authFetch(`${API}/api/posts/${selectedPost.post_id}`, {
+                                method: 'DELETE'
                               });
                               if (res.ok) {
                                 setPosts(prev => prev.filter(p => p.post_id !== selectedPost.post_id));

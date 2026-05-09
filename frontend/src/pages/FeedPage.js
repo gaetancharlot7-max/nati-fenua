@@ -10,6 +10,8 @@ import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { ShareModal } from '../components/ShareModal';
+import { haptic } from '../lib/haptic';
+import PullToRefresh from '../components/PullToRefresh';
 import { ReportModal, BlockUserModal } from '../components/ReportModal';
 import { PostSkeleton, StoriesRowSkeleton, FeedSkeleton } from '../components/SkeletonLoader';
 import { LazyImage, LazyVideo, ConnectionStatus, useNetworkQuality } from '../components/LazyImage';
@@ -616,6 +618,7 @@ const FeedPage = () => {
   };
 
   const handleReaction = async (postId, reactionType) => {
+    haptic.light();  // Subtle tap feedback on mobile
     try {
       await postsApi.react(postId, reactionType);
       
@@ -718,6 +721,7 @@ const FeedPage = () => {
   };
 
   return (
+    <PullToRefresh onRefresh={async () => { await loadFeed(); }}>
     <div className="max-w-2xl mx-auto px-4 py-6 safe-bottom">
       {/* Stories Section */}
       <div className="mb-8">
@@ -1208,6 +1212,7 @@ const FeedPage = () => {
         userName={blockUser?.name}
       />
     </div>
+    </PullToRefresh>
   );
 };
 

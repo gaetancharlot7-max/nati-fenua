@@ -5,6 +5,7 @@ import { Mail, CheckCircle2, Loader2, RefreshCw, ShieldCheck } from 'lucide-reac
 import { Button } from '../components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { authFetch } from '../lib/api';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -41,9 +42,8 @@ const VerifyEmailPage = () => {
   const sendCode = async () => {
     setResending(true);
     try {
-      const res = await fetch(`${API}/api/auth/send-verification`, {
-        method: 'POST',
-        credentials: 'include'
+      const res = await authFetch(`${API}/api/auth/send-verification`, {
+        method: 'POST'
       });
       const data = await res.json();
       if (data.success) {
@@ -99,10 +99,8 @@ const VerifyEmailPage = () => {
     if (submitting) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`${API}/api/auth/verify-email`, {
+      const res = await authFetch(`${API}/api/auth/verify-email`, {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: fullCode })
       });
       const data = await res.json();

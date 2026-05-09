@@ -29,7 +29,6 @@ const BetaTestPage = () => {
       const res = await fetch(`${API}/api/beta/apply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(form)
       });
       if (res.ok) {

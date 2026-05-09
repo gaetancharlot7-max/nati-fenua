@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { authFetch } from '../lib/api';
+import { haptic } from '../lib/haptic';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -24,9 +25,7 @@ const FriendButton = ({ userId, onStatusChange, size = 'default', className = ''
 
   const loadStatus = async () => {
     try {
-      const response = await fetch(`${API}/api/friends/status/${userId}`, {
-        credentials: 'include'
-      });
+      const response = await authFetch(`${API}/api/friends/status/${userId}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -53,6 +52,7 @@ const FriendButton = ({ userId, onStatusChange, size = 'default', className = ''
       if (response.ok) {
         setStatus('request_sent');
         setRequestId(data.request_id);
+        haptic.success();
         toast.success('Demande envoyée !');
         onStatusChange?.('request_sent');
       } else {
@@ -98,6 +98,7 @@ const FriendButton = ({ userId, onStatusChange, size = 'default', className = ''
 
       if (response.ok) {
         setStatus('friends');
+        haptic.success();
         toast.success('Vous êtes maintenant amis !');
         onStatusChange?.('friends');
       }
@@ -113,9 +114,8 @@ const FriendButton = ({ userId, onStatusChange, size = 'default', className = ''
     
     setActionLoading(true);
     try {
-      const response = await fetch(`${API}/api/friends/request/${requestId}/reject`, {
-        method: 'POST',
-        credentials: 'include'
+      const response = await authFetch(`${API}/api/friends/request/${requestId}/reject`, {
+        method: 'POST'
       });
 
       if (response.ok) {

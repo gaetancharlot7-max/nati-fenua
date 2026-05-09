@@ -147,9 +147,8 @@ const FriendsPage = () => {
     
     setActionLoading(friendId);
     try {
-      const response = await fetch(`${API}/api/friends/${friendId}`, {
-        method: 'DELETE',
-        credentials: 'include'
+      const response = await authFetch(`${API}/api/friends/${friendId}`, {
+        method: 'DELETE'
       });
 
       if (response.ok) {

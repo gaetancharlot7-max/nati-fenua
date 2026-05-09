@@ -7,9 +7,9 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { authFetch } from '../lib/api';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+
 
 const ReferralPage = () => {
   const navigate = useNavigate();
@@ -21,7 +21,7 @@ const ReferralPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`${API}/api/referral/me`, { credentials: 'include' });
+        const res = await authFetch(`${API}/api/referral/me`);
         if (res.ok) setData(await res.json());
       } catch {
         toast.error('Erreur de chargement');
