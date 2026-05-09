@@ -105,6 +105,8 @@ const AccountDeletePage = lazy(() => import('./pages/AccountDeletePage'));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
 const ReferralPage = lazy(() => import('./pages/ReferralPage'));
 const BetaTestPage = lazy(() => import('./pages/BetaTestPage'));
+const AdminBetaPage = lazy(() => import('./pages/AdminBetaPage'));
+const PreviewFeedPage = lazy(() => import('./pages/PreviewFeedPage'));
 
 // Components (loaded immediately as they're small)
 import CookieBanner from './components/CookieBanner';
@@ -160,6 +162,7 @@ function AppContent() {
         <Route path="/legal/*" element={<LegalPage />} />
         <Route path="/account/delete-request" element={<AccountDeletePage />} />
         <Route path="/beta-test" element={<BetaTestPage />} />
+        <Route path="/preview" element={<PreviewFeedPage />} />
         <Route path="/verify-email" element={<ProtectedRoute><VerifyEmailPage /></ProtectedRoute>} />
         <Route path="/referral" element={<ProtectedRoute><MainLayout><ReferralPage /></MainLayout></ProtectedRoute>} />
         
@@ -170,6 +173,7 @@ function AppContent() {
         <Route path="/admin/monitoring" element={<AdminRoute><AdminMonitoringPage /></AdminRoute>} />
         <Route path="/admin/moderation" element={<AdminRoute><AdminModerationPage /></AdminRoute>} />
         <Route path="/admin/auto-publish" element={<AdminRoute><AdminAutoPublishPage /></AdminRoute>} />
+        <Route path="/admin/beta" element={<AdminRoute><AdminBetaPage /></AdminRoute>} />
         <Route path="/admin/ai-agent" element={<AdminRoute><AIAgentPage /></AdminRoute>} />
         
         {/* Protected Routes with Layout */}

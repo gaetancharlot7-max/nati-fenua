@@ -373,26 +373,35 @@ const LandingPage = () => {
 
             {/* Formulaire d'inscription ou boutons */}
             {!showSignupForm ? (
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
-                  onClick={() => setShowSignupForm(true)}
-                  data-testid="get-started-btn"
-                  className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:from-[#FF8E72] hover:to-[#FF1493] text-white px-10 py-7 text-xl font-bold rounded-2xl shadow-2xl shadow-orange-500/30 transition-all duration-300 hover:scale-105 hover:shadow-orange-500/50"
-                >
-                  Créer mon compte
-                  <ArrowRight className="ml-2" size={24} />
-                </Button>
-                
-                <Link to="/auth">
+              <>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button 
-                    variant="outline"
-                    data-testid="login-btn"
-                    className="border-2 border-white/30 text-white hover:bg-white/10 px-10 py-7 text-xl font-semibold rounded-2xl transition-all duration-300 backdrop-blur-sm"
+                    onClick={() => setShowSignupForm(true)}
+                    data-testid="get-started-btn"
+                    className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:from-[#FF8E72] hover:to-[#FF1493] text-white px-10 py-7 text-xl font-bold rounded-2xl shadow-2xl shadow-orange-500/30 transition-all duration-300 hover:scale-105 hover:shadow-orange-500/50"
                   >
-                    Se connecter
+                    Créer mon compte
+                    <ArrowRight className="ml-2" size={24} />
                   </Button>
+                  
+                  <Link to="/auth">
+                    <Button 
+                      variant="outline"
+                      data-testid="login-btn"
+                      className="border-2 border-white/30 text-white hover:bg-white/10 px-10 py-7 text-xl font-semibold rounded-2xl transition-all duration-300 backdrop-blur-sm"
+                    >
+                      Se connecter
+                    </Button>
+                  </Link>
+                </div>
+                <Link
+                  to="/preview"
+                  data-testid="guest-preview-link"
+                  className="inline-block mt-5 text-white/70 hover:text-white text-sm font-medium underline-offset-4 hover:underline"
+                >
+                  Découvrir sans s'inscrire →
                 </Link>
-              </div>
+              </>
             ) : (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

@@ -77,6 +77,19 @@ Score prod `nati-fenua.com` : Performance 41 / Accessibility 93 / Best Practices
 - 3 contrastes corrigés : footer landing `text-white/30 → /70`, lien cookie banner mobile `#FF6B35 → #C8421A bold`, bouton PWA install banner `bg gradient` au lieu de blanc.
 - Performance 41 normale en preview (build dev unminified) ; build prod Render = >70.
 
+### App Store / Play Store Préparation finale (fév 2026)
+- **Page admin `/admin/beta`** (admin only) : tableau temps réel des candidatures Pionnier avec stats (Candidatures / Acceptées / Pionniers / Places restantes), bouton **"Approuver & envoyer email"** qui déclenche un email Resend automatique avec le lien Google Play Closed Testing, bouton **"Attribuer Pionnier"** une fois le testeur validé.
+- **Email Resend `/api/admin/beta/approve`** : template HTML soigné (gradient violet/pink/orange, instructions step-by-step, lien CTA Google Play). `RESEND_API_KEY` requis en prod (déjà configuré sur Render).
+- **Compte démo auto-seedé** au démarrage backend via `/app/backend/demo_account.py` :
+  - `demo@nati-fenua.com` / `DemoFenua2026!` (vérifié, is_demo=true, bio polynésienne)
+  - 3 posts upserted (Bora Bora coucher de soleil, Heiva, Moorea Belvédère) — idempotent
+  - Indispensable pour Apple App Review Guideline 2.1 + recommandé pour Google Play
+- **Page publique `/preview`** : feed RSS lisible sans authentification (Apple Guideline 5.1.1 — "app must show content before forcing account creation"). 15 articles récents + CTA "S'inscrire" sticky + endpoint backend `GET /api/public/rss-feed`.
+- **Bouton "Découvrir sans s'inscrire"** sur landing → /preview. testid `guest-preview-link`.
+- **Feature Graphic 1024x500** générée via Gemini Nano Banana (`/app/backend/scripts/generate_feature_graphic.py`) → `/app/frontend/public/store-assets/feature-graphic-1024x500.png` (auto-cropped via ImageMagick).
+- **Auto-screenshots** Playwright (`/app/backend/scripts/generate_store_screenshots.py`) : capture les 8 pages clés en 1080×2400 (Play Store Android) + 1290×2796 (App Store iPhone 6.7"), output `/app/frontend/public/store-assets/playstore/` + `/appstore/`. Connexion auto avec compte démo.
+- **Politique Google Play Personnel comptes** : 12 testeurs sur 14 jours consécutifs (réduit de 20 à 12 en déc. 2024). Bots/émulateurs détectés via télémétrie hardware en 2026 → uniquement des testeurs réels.
+
 ### ShareModal v2
 - Email retiré
 - Vrais logos officiels (react-icons) : WhatsApp, Messenger, Telegram, Facebook, X moderne, Instagram (gradient)

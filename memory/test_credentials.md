@@ -4,11 +4,21 @@
 - Email: `admin@natifenua.pf` (in `/app/backend/.env` ADMIN_EMAIL)
 - Password: see `/app/backend/.env` ADMIN_PASSWORD
 
-## Sandbox Mobile Test User (créé fév 2026)
+## Sandbox Test Users
+
+### Mobile Test User (créé fév 2026)
 - Email: `mobiletest@nati.local`
 - Password: `TestPass123!`
 - **Promu admin** (fév 2026) + badge `pionnier` attribué
 - Pour tester le drawer hamburger mobile, le badge Pionnier sur profil, les endpoints admin `/api/admin/beta/*` et les flows authentifiés en local
+
+### Demo Account (auto-seedé au démarrage backend, pour Apple/Google reviewers)
+- Email: `demo@nati-fenua.com`
+- Password: `DemoFenua2026!`
+- Identité publique : "Demo Fenua" — bio "Compte démo officiel — réservé aux reviewers Apple & Google"
+- 3 posts d'exemple (Bora Bora, Heiva, Moorea) auto-seedés
+- `is_demo: true` flag pour filtres futurs
+- À fournir dans la fiche App Store Connect → Test Information
 
 ## Demo / Test Users (auto-created via /api/auth/register)
 - Any test user can be created via `POST /api/auth/register` with `{email, password, name}`

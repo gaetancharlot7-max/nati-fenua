@@ -331,6 +331,14 @@ async def startup_event():
     except Exception as e:
         logger.warning(f"⚠️ Scale index warning: {e}")
 
+    # 5. Seed demo account for App Store / Play Store reviewers
+    try:
+        from demo_account import seed_demo_account
+        demo = await seed_demo_account(db)
+        logger.info(f"✅ Demo account ready: {demo['demo_email']} (posts: {demo['posts_seeded']})")
+    except Exception as e:
+        logger.warning(f"⚠️ Demo account seed failed: {e}")
+
 
 # Initialize services
 moderation_service = None
@@ -1618,6 +1626,23 @@ async def get_user_level(user_id: str):
     return compute_user_level(user_doc)
 
 
+# ==================== PUBLIC PREVIEW (no auth — for App Store reviewers & guests) ====================
+
+@api_router.get("/public/rss-feed")
+@limiter.limit("60/minute")
+async def public_rss_feed(request: Request, limit: int = 15):
+    """Public endpoint: returns recent RSS articles for guest preview.
+    Required by Apple App Review Guideline 5.1.1: app must show content
+    before forcing account creation."""
+    limit = max(1, min(30, limit))
+    posts = await db.posts.find(
+        {"is_rss_article": True},
+        {"_id": 0, "post_id": 1, "caption": 1, "external_link": 1, "link_title": 1,
+         "link_source": 1, "thumbnail_url": 1, "created_at": 1}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    return {"posts": posts}
+
+
 # ==================== BETA TESTERS PROGRAM (Pionnier badge) ====================
 
 PIONNIER_LIMIT = 50  # Max number of Pionnier badges ever awarded
@@ -1664,6 +1689,99 @@ async def beta_apply(request: Request):
     }
     await db.beta_applications.insert_one(application)
     return {"success": True, "message": "Candidature reçue"}
+
+
+@api_router.post("/admin/beta/approve")
+async def admin_approve_beta_application(request: Request):
+    """Admin: mark a beta application as 'accepted' and send the candidate
+    an email with the Google Play Closed Testing link via Resend."""
+    user = await require_auth(request)
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin requis")
+
+    body = await request.json()
+    application_id = (body.get("application_id") or "").strip()
+    test_link = (body.get("test_link") or "https://play.google.com/apps/testing/com.natifenua.app").strip()
+
+    if not application_id:
+        raise HTTPException(status_code=400, detail="application_id requis")
+
+    application = await db.beta_applications.find_one({"application_id": application_id}, {"_id": 0})
+    if not application:
+        raise HTTPException(status_code=404, detail="Candidature introuvable")
+
+    await db.beta_applications.update_one(
+        {"application_id": application_id},
+        {"$set": {"status": "accepted", "accepted_at": datetime.now(timezone.utc).isoformat(),
+                   "test_link": test_link}}
+    )
+
+    # Send email via Resend if configured
+    email_sent = False
+    resend_api_key = os.environ.get("RESEND_API_KEY")
+    if resend_api_key:
+        try:
+            resend.api_key = resend_api_key
+            sender_email = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+            html_content = f"""
+            <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #1A1A2E;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <div style="display: inline-block; width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #9400D3, #FF1493, #FF6B35); line-height: 64px; color: white; font-size: 32px;">🚀</div>
+                    <h1 style="color: #1A1A2E; margin: 16px 0 4px; font-size: 24px;">Tu es accepté Pionnier ! 🌺</h1>
+                    <p style="color: #888; margin: 0;">Programme bêta Nati Fenua</p>
+                </div>
+
+                <p>Ia ora na <strong>{application.get('name','')}</strong>,</p>
+                <p>Mauruuru d'avoir candidaté au programme bêta-testeur de <strong>Nati Fenua</strong> 🌺.<br>
+                Tu fais maintenant partie des <strong>50 Pionniers</strong> qui valident l'app Android avant son lancement officiel sur Google Play Store.</p>
+
+                <h3 style="color: #FF6B35; margin-top: 28px;">📲 Comment installer l'app de test</h3>
+                <ol style="line-height: 1.8;">
+                    <li>Ouvre ce lien <strong>sur ton téléphone Android</strong>, connecté avec le compte Google <code>{application.get('google_email','')}</code></li>
+                    <li>Tape sur "Devenir testeur" puis "Télécharger sur Google Play"</li>
+                    <li>L'app s'installe comme une vraie app — pas de bidouille</li>
+                    <li>Utilise-la quelques minutes pendant les 14 prochains jours, c'est tout</li>
+                </ol>
+
+                <div style="text-align: center; margin: 32px 0;">
+                    <a href="{test_link}" style="background: linear-gradient(135deg, #FF6B35, #FF1493, #9400D3); color: white; padding: 16px 32px; text-decoration: none; border-radius: 999px; font-weight: 700; display: inline-block; box-shadow: 0 8px 24px rgba(255,20,147,0.3);">
+                        🚀 Devenir testeur sur Google Play
+                    </a>
+                </div>
+
+                <p style="background: #FFF5F0; padding: 16px; border-radius: 12px; border-left: 4px solid #FF6B35;">
+                    <strong>🏆 Ta récompense</strong> : une fois l'app validée par Google, ton badge <strong>Pionnier</strong> exclusif apparaîtra à vie sur ton profil Nati Fenua.
+                </p>
+
+                <p style="color: #888; font-size: 14px; margin-top: 24px;">
+                    Si tu as des questions ou trouves un bug, réponds simplement à cet email — je lis tout personnellement.
+                </p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+                <p style="color: #999; font-size: 12px; text-align: center;">
+                    Mauruuru roa ! 🌴<br>L'équipe Nati Fenua<br>
+                    <a href="https://nati-fenua.com" style="color: #FF6B35;">nati-fenua.com</a>
+                </p>
+            </div>
+            """
+            await asyncio.to_thread(
+                resend.Emails.send,
+                {
+                    "from": sender_email,
+                    "to": [application.get("email")],
+                    "subject": "🚀 Tu es accepté Pionnier de Nati Fenua !",
+                    "html": html_content
+                }
+            )
+            email_sent = True
+            logger.info(f"Beta acceptance email sent to {application.get('email')}")
+        except Exception as e:
+            logger.error(f"Failed to send beta email: {e}")
+
+    return {
+        "success": True,
+        "email_sent": email_sent,
+        "application_id": application_id
+    }
 
 
 @api_router.get("/admin/beta/applications")
