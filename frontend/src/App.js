@@ -104,6 +104,7 @@ const FAQPage = lazy(() => import('./pages/FAQPage'));
 const AccountDeletePage = lazy(() => import('./pages/AccountDeletePage'));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
 const ReferralPage = lazy(() => import('./pages/ReferralPage'));
+const AmbassadorsPage = lazy(() => import('./pages/AmbassadorsPage'));
 const BetaTestPage = lazy(() => import('./pages/BetaTestPage'));
 const AdminBetaPage = lazy(() => import('./pages/AdminBetaPage'));
 const PreviewFeedPage = lazy(() => import('./pages/PreviewFeedPage'));
@@ -163,6 +164,7 @@ function AppContent() {
         <Route path="/account/delete-request" element={<AccountDeletePage />} />
         <Route path="/beta-test" element={<BetaTestPage />} />
         <Route path="/preview" element={<PreviewFeedPage />} />
+        <Route path="/ambassadeurs" element={<AmbassadorsPage />} />
         <Route path="/verify-email" element={<ProtectedRoute><VerifyEmailPage /></ProtectedRoute>} />
         <Route path="/referral" element={<ProtectedRoute><MainLayout><ReferralPage /></MainLayout></ProtectedRoute>} />
         

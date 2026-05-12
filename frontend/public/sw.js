@@ -1,50 +1,84 @@
 /* eslint-disable no-restricted-globals */
 
-const CACHE_NAME = 'fenua-social-v2';
+const CACHE_NAME = 'nati-fenua-v3';
+const RUNTIME_CACHE = 'nati-fenua-runtime-v3';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/static/js/bundle.js',
-  '/manifest.json'
+  '/manifest.json',
+  '/offline.html'
 ];
 
 // Install service worker
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
-      .catch((err) => {
-        console.log('Cache error:', err);
-      })
+      .then((cache) => cache.addAll(urlsToCache))
+      .catch((err) => console.log('Cache error:', err))
   );
   self.skipWaiting();
 });
 
-// Fetch event - Network first, fallback to cache
+// Fetch event — different strategies depending on the request type
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Clone the response
-        const responseClone = response.clone();
-        
-        // Only cache GET requests
-        if (event.request.method === 'GET') {
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseClone);
-            });
-        }
-        
-        return response;
+  const { request } = event;
+  if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+
+  // Strategy 1: navigation requests → network-first with offline fallback
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // Cache the fresh navigation page
+          const clone = response.clone();
+          caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, clone));
+          return response;
+        })
+        .catch(async () => {
+          const cached = await caches.match(request);
+          return cached || caches.match('/offline.html') || caches.match('/');
+        })
+    );
+    return;
+  }
+
+  // Strategy 2: public RSS feed → stale-while-revalidate (instant load + bg refresh)
+  if (url.pathname.startsWith('/api/public/rss-feed')) {
+    event.respondWith(
+      caches.open(RUNTIME_CACHE).then(async (cache) => {
+        const cached = await cache.match(request);
+        const fetchPromise = fetch(request)
+          .then((response) => {
+            if (response.ok) cache.put(request, response.clone());
+            return response;
+          })
+          .catch(() => cached);
+        return cached || fetchPromise;
       })
-      .catch(() => {
-        return caches.match(event.request);
+    );
+    return;
+  }
+
+  // Strategy 3: static assets (JS/CSS/fonts/images) → cache-first
+  if (url.pathname.match(/\.(js|css|woff2?|png|jpg|jpeg|gif|svg|webp|ico)$/)) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request)
+          .then((response) => {
+            const clone = response.clone();
+            caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, clone));
+            return response;
+          })
+          .catch(() => cached);
       })
-  );
+    );
+    return;
+  }
+
+  // Default: network-only (don't cache authenticated API calls to avoid stale data)
 });
 
 // Activate and clean old caches
@@ -52,11 +86,9 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
+        cacheNames
+          .filter((name) => name !== CACHE_NAME && name !== RUNTIME_CACHE)
+          .map((name) => caches.delete(name))
       );
     })
   );

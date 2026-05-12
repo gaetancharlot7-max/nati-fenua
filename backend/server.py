@@ -1628,6 +1628,35 @@ async def get_user_level(user_id: str):
 
 # ==================== PUBLIC PREVIEW (no auth — for App Store reviewers & guests) ====================
 
+@api_router.get("/public/pionniers")
+@limiter.limit("120/minute")
+async def public_pionniers_list(request: Request):
+    """Public list of Pionniers for the landing page Pionnier Wall."""
+    pionniers = await db.users.find(
+        {"badges": "pionnier"},
+        {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "island": 1, "pionnier_awarded_at": 1}
+    ).sort("pionnier_awarded_at", 1).limit(50).to_list(50)
+    awarded = len(pionniers)
+    return {
+        "pionniers": pionniers,
+        "stats": {
+            "awarded": awarded,
+            "remaining_slots": max(0, 50 - awarded)
+        }
+    }
+
+
+@api_router.get("/public/ambassadors")
+@limiter.limit("60/minute")
+async def public_ambassadors_leaderboard(request: Request):
+    """Public leaderboard of top 20 ambassadors (users by referral_count)."""
+    leaders = await db.users.find(
+        {"referral_count": {"$gt": 0}},
+        {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "island": 1, "referral_count": 1, "badges": 1}
+    ).sort("referral_count", -1).limit(20).to_list(20)
+    return {"leaderboard": leaders}
+
+
 @api_router.get("/public/rss-feed")
 @limiter.limit("60/minute")
 async def public_rss_feed(request: Request, limit: int = 15):
@@ -1782,6 +1811,17 @@ async def admin_approve_beta_application(request: Request):
         "email_sent": email_sent,
         "application_id": application_id
     }
+
+
+@api_router.post("/admin/digest/send-now")
+async def admin_trigger_digest(request: Request):
+    """Admin: trigger the weekly digest immediately (for testing)."""
+    user = await require_auth(request)
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin requis")
+    from email_digest import send_weekly_digest
+    result = await send_weekly_digest(db)
+    return result
 
 
 @api_router.get("/admin/beta/applications")
@@ -9077,9 +9117,33 @@ async def start_auto_publisher():
                 logger.error(f"Error in GDPR cleanup: {e}")
     
     asyncio.create_task(gdpr_cleanup_task())
-    
+
+    # Weekly digest: runs every Saturday at 09:00 UTC (~10h Tahiti)
+    async def weekly_digest_task():
+        from email_digest import send_weekly_digest
+        await asyncio.sleep(60)  # give the app 1 min to fully boot
+        while True:
+            try:
+                now = datetime.now(timezone.utc)
+                # Saturday = weekday() == 5
+                days_until_sat = (5 - now.weekday()) % 7
+                if days_until_sat == 0 and now.hour >= 9:
+                    days_until_sat = 7
+                next_run = (now + timedelta(days=days_until_sat)).replace(hour=9, minute=0, second=0, microsecond=0)
+                seconds = max(60, (next_run - now).total_seconds())
+                logger.info(f"📧 Next weekly digest in {seconds/3600:.1f}h ({next_run.isoformat()})")
+                await asyncio.sleep(seconds)
+                result = await send_weekly_digest(db)
+                logger.info(f"📧 Weekly digest sent: {result}")
+            except Exception as e:
+                logger.error(f"Error in weekly digest task: {e}")
+                await asyncio.sleep(3600)  # retry in 1h on error
+
+    asyncio.create_task(weekly_digest_task())
+
     logger.info("🚀 RSS Publisher started: refresh every 12 hours, auto-generated posts disabled")
     logger.info("🔒 GDPR Cleanup scheduled: daily cleanup of old data")
+    logger.info("📧 Weekly digest scheduled: every Saturday 09h UTC")
 
 
 # ==================== USER STATISTICS ====================

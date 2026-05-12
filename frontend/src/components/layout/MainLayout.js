@@ -527,6 +527,14 @@ const MainLayout = ({ children, hideNav = false }) => {
                   <span className="ml-auto text-[10px] font-bold text-white bg-gradient-to-r from-[#FF6B35] to-[#FF1493] px-2 py-0.5 rounded-full">+</span>
                 </Link>
                 <Link
+                  to="/ambassadeurs"
+                  data-testid="drawer-nav-ambassadors"
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+                >
+                  <Megaphone size={22} strokeWidth={1.5} className="text-yellow-400" />
+                  <span className="font-medium">Top Ambassadeurs</span>
+                </Link>
+                <Link
                   to="/beta-test"
                   data-testid="drawer-nav-beta"
                   className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}

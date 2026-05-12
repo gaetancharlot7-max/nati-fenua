@@ -5,6 +5,7 @@ import { ArrowRight, Users, ShoppingBag, Play, Heart, MapPin, MessageCircle, Rad
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { authApi } from '../lib/api';
+import PionnierWall from '../components/PionnierWall';
 
 // PWA Install Banner Component - VERSION VISIBLE
 const PWAInstallBanner = ({ onClose }) => {
@@ -797,6 +798,9 @@ const LandingPage = () => {
           </motion.div>
         </div>
       </section>
+
+      {/* Mur des Pionniers (proof social — hidden until at least 1 Pionnier exists) */}
+      <PionnierWall />
 
       {/* Footer */}
       <footer className="py-12 bg-[#1A1A2E]">

@@ -62,6 +62,47 @@ Application sociale polynésienne (web + PWA) avec : feed RSS médias locaux, ch
 - **Solution** : ajout d'un bouton hamburger (`data-testid="mobile-menu-btn"`) dans le header mobile qui ouvre un drawer slide-in depuis la droite (z-index 70, backdrop blur z-60). Drawer contient avatar utilisateur + tous les raccourcis manquants + déconnexion + footer CGU/Confidentialité. Auto-close sur changement de route, lock body scroll quand ouvert, animations framer-motion. Tous testIds : `drawer-nav-profile`, `drawer-nav-vendor`, `drawer-nav-referral`, `drawer-nav-advertising`, `drawer-nav-security`, `drawer-logout-btn`, etc.
 - Testé via Playwright sur viewport 390x844 : drawer s'ouvre, navigation vers `/vendor/dashboard` OK, drawer auto-close confirmé.
 
+### Bloc complet "Tout faire" — Engagement & Monétisation (fév 2026)
+
+#### Mur des Pionniers (`/app/frontend/src/components/PionnierWall.js`)
+- Section proof-social sur la landing page, affichée uniquement si au moins 1 Pionnier existe.
+- Avatars défilants + compteur live "X / 50" + badge FOMO "Plus que Y places".
+- CTA "Devenir Pionnier" → `/beta-test`.
+- Endpoint backend public : `GET /api/public/pionniers` (limité à 50, sans auth).
+
+#### Page Ambassadeurs (`/app/frontend/src/pages/AmbassadorsPage.js`)
+- Route `/ambassadeurs` (public).
+- Leaderboard top 20 des parrains (sorted par `referral_count` desc) avec médailles 🥇🥈🥉 pour le top 3.
+- Carte "Mon rang" personnalisée pour l'utilisateur connecté (rang, filleuls, progression vers le badge Ambassadeur).
+- CTA "Inviter un ami" → `/referral`.
+- Endpoint public : `GET /api/public/ambassadors`.
+- Lien dans le drawer mobile : "Top Ambassadeurs" avec icône Megaphone jaune.
+
+#### Email digest hebdomadaire (`/app/backend/email_digest.py`)
+- Cron asynchrone intégré au startup serveur : tous les samedis 09h UTC (~10h Tahiti).
+- Cible : utilisateurs vérifiés ayant `notifications.email_digest != False` ET inactifs depuis 3+ jours.
+- Contenu : stats hebdo (posts, articles, produits, nouveaux users) + top 3 publications les plus likées (cards colorées).
+- Template HTML soigné avec gradient brand + CTA "Ouvrir Nati Fenua".
+- Endpoint admin de test : `POST /api/admin/digest/send-now`.
+
+#### Mode hors-ligne renforcé (`/app/frontend/public/sw.js`)
+- Service worker v3 avec 3 stratégies de cache différenciées :
+  - Navigation requests : network-first + fallback offline.html
+  - `/api/public/rss-feed` : stale-while-revalidate (instant load)
+  - Assets statiques (JS/CSS/fonts/images) : cache-first
+- Auto-reload de la page offline quand la connexion revient (`window.online` event).
+- Cache buster automatique sur ancien caches au activate.
+
+#### Stripe Marketplace
+- ✅ Déjà entièrement implémenté en backend (`/api/advertising/packages`, `/api/payments/checkout`, `/api/webhook/stripe`)
+- Clé `STRIPE_API_KEY=sk_test_emergent` déjà présente dans `/app/backend/.env`.
+- UI frontend disponible : `/advertising` page.
+
+#### Doc App Store Capacitor (`/app/memory/APPSTORE_CAPACITOR_GUIDE.md`)
+- Guide complet pas-à-pas pour publier l'iOS sans Mac perso via MacInCloud (~30 USD/mois).
+- Couvre : installation Node/Yarn/Pods sur Mac à distance, config Capacitor avec `appId=com.natifenua.app`, permissions Info.plist en français, Universal Links via assetlinks.json, archive Xcode, upload App Store Connect, fiche App Store, pièges fréquents (Guideline 5.1.1, 2.1, 4.0).
+- Coût total estimé : ~130 USD (Apple 99 + MacInCloud 30).
+
 ### Bug fixes mobile/iOS authentication (fév 2026)
 - **Bug "Non authentifié" sur demandes d'amis** : `FriendButton.js`, `FriendsPage.js` utilisaient `fetch` avec `credentials: 'include'` uniquement → cookies cross-domain bloqués par ITP iOS / WebViews → 401. Migrés vers nouveau helper `authFetch()` qui ajoute automatiquement le Bearer token depuis localStorage.
 - **Photo de profil non persistée** : `EditProfilePage.js` envoyait via axios brut sans Bearer + backend stockait un chemin relatif `/uploads/profiles/xxx.jpg` sur le filesystem éphémère de Render (perdu à chaque deploy + 404 sur frontend domain). Fix : upload Cloudinary direct depuis le frontend (URL absolue stable), fallback multipart avec URL absolue construite via `BACKEND_URL` env var.
