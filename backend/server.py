@@ -6205,6 +6205,18 @@ AD_PACKAGES = {
     "mana_alert_1": {"name": "Mana Alert - 1 notification", "type": "mana_alert", "amount": 200.0, "currency": "xpf", "notifications": 1},
     "mana_alert_5": {"name": "Mana Alert - Pack 5 notifications", "type": "mana_alert", "amount": 800.0, "currency": "xpf", "notifications": 5},
     "mana_alert_10": {"name": "Mana Alert - Pack 10 notifications", "type": "mana_alert", "amount": 1500.0, "currency": "xpf", "notifications": 10},
+
+    # 🌺 Boost Marketplace (annonces produits/services boostées)
+    "marketplace_3days": {"name": "Boost Marketplace - 3 jours", "type": "marketplace_boost", "amount": 500.0, "currency": "xpf", "duration_days": 3},
+    "marketplace_7days": {"name": "Boost Marketplace - 7 jours", "type": "marketplace_boost", "amount": 1000.0, "currency": "xpf", "duration_days": 7},
+    "marketplace_30days": {"name": "Boost Marketplace - 30 jours", "type": "marketplace_boost", "amount": 3500.0, "currency": "xpf", "duration_days": 30},
+
+    # 🍔 Pack Roulotte (spécial restaurateurs / food trucks polynésiens)
+    "roulotte_starter": {"name": "Pack Roulotte Starter - 7 jours", "type": "roulotte_pack", "amount": 2000.0, "currency": "xpf", "duration_days": 7},
+    "roulotte_pro": {"name": "Pack Roulotte Pro - 30 jours", "type": "roulotte_pack", "amount": 6500.0, "currency": "xpf", "duration_days": 30},
+
+    # 🎉 Spot événement (Heiva, festival, anniversaire, ouverture)
+    "event_spotlight": {"name": "Spot Événement - 48h", "type": "event_spotlight", "amount": 1500.0, "currency": "xpf", "duration_days": 2},
 }
 
 @api_router.get("/advertising/packages")
