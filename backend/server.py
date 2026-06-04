@@ -1945,6 +1945,219 @@ async def admin_trigger_digest(request: Request):
     return result
 
 
+# ==================== RESEND WEBHOOK + EMAIL STATS ====================
+
+@app.post("/api/webhook/resend")
+async def resend_webhook(request: Request):
+    """Receive Resend events (email.sent, email.delivered, email.opened, email.clicked, email.bounced, email.complained)."""
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    # Optional signature verification (if Resend webhook secret is configured)
+    webhook_secret = os.environ.get("RESEND_WEBHOOK_SECRET")
+    if webhook_secret:
+        signature = request.headers.get("svix-signature") or request.headers.get("resend-signature")
+        if not signature:
+            logger.warning("Resend webhook missing signature header")
+            # Don't reject in soft-fail mode
+
+    event_type = payload.get("type", "")
+    data = payload.get("data", {})
+    email_id = data.get("email_id") or data.get("id")
+    to_addr = data.get("to")
+    if isinstance(to_addr, list):
+        to_addr = to_addr[0] if to_addr else None
+
+    await db.email_events.insert_one({
+        "event_id": str(uuid.uuid4()),
+        "event_type": event_type,
+        "email_id": email_id,
+        "to": to_addr,
+        "subject": data.get("subject"),
+        "raw": data,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+
+    return {"received": True}
+
+
+@api_router.get("/admin/email/stats")
+async def admin_email_stats(request: Request, days: int = 30):
+    """Admin: aggregated email statistics from Resend webhook events."""
+    user = await require_auth(request)
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin requis")
+
+    days = max(1, min(180, days))
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+    pipeline = [
+        {"$match": {"created_at": {"$gte": since}}},
+        {"$group": {"_id": "$event_type", "count": {"$sum": 1}}}
+    ]
+    raw = await db.email_events.aggregate(pipeline).to_list(50)
+    counts = {row["_id"]: row["count"] for row in raw}
+
+    sent = counts.get("email.sent", 0) + counts.get("email.delivered", 0)
+    delivered = counts.get("email.delivered", 0)
+    opened = counts.get("email.opened", 0)
+    clicked = counts.get("email.clicked", 0)
+    bounced = counts.get("email.bounced", 0)
+    complained = counts.get("email.complained", 0)
+
+    open_rate = (opened / sent * 100) if sent else 0
+    click_rate = (clicked / sent * 100) if sent else 0
+    bounce_rate = (bounced / sent * 100) if sent else 0
+
+    # Latest 30 events
+    recent = await db.email_events.find(
+        {"created_at": {"$gte": since}},
+        {"_id": 0, "event_type": 1, "to": 1, "subject": 1, "created_at": 1, "email_id": 1}
+    ).sort("created_at", -1).limit(30).to_list(30)
+
+    return {
+        "period_days": days,
+        "totals": {
+            "sent": sent, "delivered": delivered, "opened": opened,
+            "clicked": clicked, "bounced": bounced, "complained": complained
+        },
+        "rates": {
+            "open_rate_pct": round(open_rate, 1),
+            "click_rate_pct": round(click_rate, 1),
+            "bounce_rate_pct": round(bounce_rate, 1)
+        },
+        "recent_events": recent
+    }
+
+
+# ==================== REWARDS PROGRAM (referral tiers → free boost) ====================
+
+# Tier definitions: number of validated referrals → reward
+REWARD_TIERS = [
+    {"threshold": 1, "code": "first_referral", "title": "Première invitation",
+     "reward": "🎉 Bienvenue chez les parrains !", "type": "info", "package_id": None, "duration_days": 0},
+    {"threshold": 3, "code": "ambassadeur",     "title": "Badge Ambassadeur",
+     "reward": "🌺 Badge Ambassadeur débloqué", "type": "badge", "package_id": None, "duration_days": 0},
+    {"threshold": 5, "code": "free_boost_7d",   "title": "Boost Marketplace 7 jours offert",
+     "reward": "🚀 Boost annonce 7j gratuit (1000 XPF de valeur)", "type": "boost",
+     "package_id": "marketplace_7days", "duration_days": 7},
+    {"threshold": 10, "code": "vendor_pro_1m",  "title": "Pack Roulotte Pro 1 mois",
+     "reward": "👑 Pack Roulotte Pro 30j gratuit (6500 XPF de valeur)", "type": "boost",
+     "package_id": "roulotte_pro", "duration_days": 30},
+    {"threshold": 20, "code": "vip_status",     "title": "Statut VIP à vie",
+     "reward": "💎 Statut VIP — accès privilégié à toutes les nouvelles features",
+     "type": "status", "package_id": None, "duration_days": 0},
+]
+
+
+@api_router.get("/rewards/me")
+async def my_rewards(request: Request):
+    """Returns user's referral progress and unlocked/locked rewards."""
+    user = await require_auth(request)
+    # IMPORTANT: include user_id in projection to avoid empty-dict falsy bug
+    user_doc = await db.users.find_one(
+        {"user_id": user.user_id},
+        {"_id": 0, "user_id": 1, "referral_count": 1, "claimed_rewards": 1}
+    )
+    if user_doc is None:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    referral_count = user_doc.get("referral_count") or 0
+    claimed = set(user_doc.get("claimed_rewards") or [])
+
+    tiers = []
+    next_tier = None
+    for tier in REWARD_TIERS:
+        unlocked = referral_count >= tier["threshold"]
+        already_claimed = tier["code"] in claimed
+        tiers.append({
+            **tier,
+            "unlocked": unlocked,
+            "already_claimed": already_claimed,
+            "can_claim": unlocked and not already_claimed
+        })
+        if not unlocked and next_tier is None:
+            next_tier = tier
+
+    progress_to_next = None
+    if next_tier:
+        prev_threshold = 0
+        for tier in REWARD_TIERS:
+            if tier["threshold"] < next_tier["threshold"]:
+                prev_threshold = tier["threshold"]
+        progress_to_next = {
+            "next_threshold": next_tier["threshold"],
+            "current": referral_count,
+            "remaining": max(0, next_tier["threshold"] - referral_count),
+            "progress_pct": min(100, round((referral_count - prev_threshold) / max(1, next_tier["threshold"] - prev_threshold) * 100))
+        }
+
+    return {
+        "referral_count": referral_count,
+        "tiers": tiers,
+        "progress_to_next": progress_to_next
+    }
+
+
+@api_router.post("/rewards/claim/{code}")
+async def claim_reward(code: str, request: Request):
+    """Claim an unlocked reward. Idempotent — once claimed cannot be re-claimed."""
+    user = await require_auth(request)
+    tier = next((t for t in REWARD_TIERS if t["code"] == code), None)
+    if not tier:
+        raise HTTPException(status_code=404, detail="Récompense inconnue")
+
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "referral_count": 1, "claimed_rewards": 1})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+
+    referral_count = user_doc.get("referral_count", 0)
+    if referral_count < tier["threshold"]:
+        raise HTTPException(status_code=403, detail=f"Tu dois parrainer {tier['threshold']} amis pour débloquer cette récompense")
+
+    if tier["code"] in (user_doc.get("claimed_rewards") or []):
+        return {"already_claimed": True, "tier": tier}
+
+    # Apply reward
+    now = datetime.now(timezone.utc)
+    update = {"$addToSet": {"claimed_rewards": tier["code"]}}
+
+    if tier["type"] == "boost" and tier["package_id"]:
+        # Create a free boost credit in the user's account
+        expires_at = (now + timedelta(days=tier["duration_days"] * 2)).isoformat()  # 2x duration to redeem
+        await db.boost_credits.insert_one({
+            "credit_id": str(uuid.uuid4()),
+            "user_id": user.user_id,
+            "package_id": tier["package_id"],
+            "source": f"reward:{tier['code']}",
+            "duration_days": tier["duration_days"],
+            "status": "available",
+            "created_at": now.isoformat(),
+            "expires_at": expires_at
+        })
+    elif tier["type"] == "status" and tier["code"] == "vip_status":
+        update["$set"] = {"is_vip": True, "vip_since": now.isoformat()}
+    elif tier["type"] == "badge" and tier["code"] == "ambassadeur":
+        update.setdefault("$addToSet", {})
+        # ensure single $addToSet usage (already adding to claimed_rewards)
+        await db.users.update_one({"user_id": user.user_id}, {"$addToSet": {"badges": "ambassadeur"}})
+
+    await db.users.update_one({"user_id": user.user_id}, update)
+    return {"success": True, "tier": tier}
+
+
+@api_router.get("/rewards/credits")
+async def my_boost_credits(request: Request):
+    """List the boost credits available to the user (earned via referrals)."""
+    user = await require_auth(request)
+    credits = await db.boost_credits.find(
+        {"user_id": user.user_id, "status": "available"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    return {"credits": credits}
+
+
 @api_router.get("/admin/beta/applications")
 async def admin_list_beta_applications(request: Request):
     """Admin: list all beta applications."""
@@ -7364,6 +7577,96 @@ async def get_user_warnings(user_id: str, request: Request):
     return await moderation.get_user_warnings(user_id)
 
 # ==================== GDPR COMPLIANCE ROUTES ====================
+
+@api_router.get("/admin/analytics/insights")
+async def admin_analytics_insights(request: Request, days: int = 7):
+    """Admin: extended analytics — top posts, top vendors, top islands, growth."""
+    user = await require_auth(request)
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin requis")
+
+    days = max(1, min(90, days))
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+    # Top posts of the period by likes_count
+    top_posts = await db.posts.find(
+        {"created_at": {"$gte": since}, "is_rss_article": {"$ne": True}},
+        {"_id": 0, "post_id": 1, "caption": 1, "likes_count": 1, "comments_count": 1,
+         "user_id": 1, "media_url": 1, "created_at": 1}
+    ).sort("likes_count", -1).limit(10).to_list(10)
+
+    # Hydrate top posts with author info
+    user_ids = [p["user_id"] for p in top_posts if p.get("user_id")]
+    if user_ids:
+        authors = await db.users.find(
+            {"user_id": {"$in": user_ids}},
+            {"_id": 0, "user_id": 1, "name": 1, "picture": 1}
+        ).to_list(len(user_ids))
+        author_map = {a["user_id"]: a for a in authors}
+        for p in top_posts:
+            p["author"] = author_map.get(p.get("user_id"), {})
+
+    # Top vendors by marketplace items count (and views if tracked)
+    vendor_pipeline = [
+        {"$group": {
+            "_id": "$user_id",
+            "items_count": {"$sum": 1},
+            "total_views": {"$sum": {"$ifNull": ["$views", 0]}}
+        }},
+        {"$sort": {"items_count": -1}},
+        {"$limit": 10}
+    ]
+    try:
+        top_vendors = await db.marketplace_items.aggregate(vendor_pipeline).to_list(10)
+    except Exception:
+        top_vendors = []
+
+    vendor_user_ids = [v["_id"] for v in top_vendors if v.get("_id")]
+    if vendor_user_ids:
+        vendors = await db.users.find(
+            {"user_id": {"$in": vendor_user_ids}},
+            {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "island": 1, "is_business": 1}
+        ).to_list(len(vendor_user_ids))
+        vendor_map = {v["user_id"]: v for v in vendors}
+        for v in top_vendors:
+            v["vendor"] = vendor_map.get(v.get("_id"), {})
+
+    # Users by island distribution
+    island_pipeline = [
+        {"$match": {"island": {"$exists": True, "$ne": None}}},
+        {"$group": {"_id": "$island", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 15}
+    ]
+    by_island = await db.users.aggregate(island_pipeline).to_list(15)
+
+    # New users this period
+    new_users = await db.users.count_documents({"created_at": {"$gte": since}})
+    total_users = await db.users.count_documents({})
+
+    # New posts vs articles
+    new_posts = await db.posts.count_documents({
+        "created_at": {"$gte": since}, "is_rss_article": {"$ne": True}
+    })
+    new_articles = await db.posts.count_documents({
+        "created_at": {"$gte": since}, "is_rss_article": True
+    })
+
+    return {
+        "period_days": days,
+        "summary": {
+            "total_users": total_users,
+            "new_users": new_users,
+            "new_posts": new_posts,
+            "new_articles": new_articles
+        },
+        "top_posts": top_posts,
+        "top_vendors": top_vendors,
+        "by_island": [{"island": i["_id"], "count": i["count"]} for i in by_island]
+    }
+
+
+# ==================== GDPR COMPLIANCE ROUTES (continued) ====================
 
 @api_router.get("/gdpr/consent-types")
 async def get_gdpr_consent_types():

@@ -6,7 +6,7 @@ import {
   LogOut, Eye, Ban, CheckCircle, XCircle, AlertTriangle, TrendingUp,
   MessageSquare, ToggleLeft, ToggleRight, Search, Filter, RefreshCw,
   DollarSign, Megaphone, BarChart3, HardDrive, Newspaper, MapPin, 
-  Video, Trash2, Plus, Edit, ExternalLink, Camera, Bot, Rocket
+  Video, Trash2, Plus, Edit, ExternalLink, Camera, Bot, Rocket, DollarSign, Mail
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -323,6 +323,8 @@ const AdminDashboardPage = () => {
     { id: 'auto-publish', label: 'Auto-Publish', icon: Newspaper, link: '/admin/auto-publish' },
     { id: 'beta', label: 'Pionniers (Beta)', icon: Rocket, link: '/admin/beta' },
     { id: 'payments', label: 'Paiements & Annonces', icon: DollarSign, link: '/admin/payments' },
+    { id: 'email-stats', label: 'Stats Emails', icon: Mail, link: '/admin/email-stats' },
+    { id: 'insights', label: 'Insights & Top', icon: TrendingUp, link: '/admin/insights' },
   ];
 
   if (loading) {

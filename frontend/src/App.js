@@ -108,6 +108,9 @@ const AmbassadorsPage = lazy(() => import('./pages/AmbassadorsPage'));
 const BetaTestPage = lazy(() => import('./pages/BetaTestPage'));
 const AdminBetaPage = lazy(() => import('./pages/AdminBetaPage'));
 const AdminPaymentsPage = lazy(() => import('./pages/AdminPaymentsPage'));
+const AdminEmailStatsPage = lazy(() => import('./pages/AdminEmailStatsPage'));
+const AdminAnalyticsInsightsPage = lazy(() => import('./pages/AdminAnalyticsInsightsPage'));
+const RewardsPage = lazy(() => import('./pages/RewardsPage'));
 const PreviewFeedPage = lazy(() => import('./pages/PreviewFeedPage'));
 
 // Components (loaded immediately as they're small)
@@ -178,6 +181,9 @@ function AppContent() {
         <Route path="/admin/auto-publish" element={<AdminRoute><AdminAutoPublishPage /></AdminRoute>} />
         <Route path="/admin/beta" element={<AdminRoute><AdminBetaPage /></AdminRoute>} />
         <Route path="/admin/payments" element={<AdminRoute><AdminPaymentsPage /></AdminRoute>} />
+        <Route path="/admin/email-stats" element={<AdminRoute><AdminEmailStatsPage /></AdminRoute>} />
+        <Route path="/admin/insights" element={<AdminRoute><AdminAnalyticsInsightsPage /></AdminRoute>} />
+        <Route path="/rewards" element={<ProtectedRoute><MainLayout><RewardsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/admin/ai-agent" element={<AdminRoute><AIAgentPage /></AdminRoute>} />
         
         {/* Protected Routes with Layout */}
