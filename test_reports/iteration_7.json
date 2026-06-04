@@ -1,0 +1,118 @@
+{
+  "summary": "Frontend testing of 3 new pages (Admin Email Stats, Admin Analytics Insights, User Rewards). Fixed 2 build-breaking regressions during testing (duplicate import + missing toast import). Two of three pages now fully functional. Third page (/rewards) is itself functional, but the new rewards-cta button on /referral is hidden because the existing /api/referral/me endpoint returns 500 (MongoDB ObjectId serialization bug).",
+
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/referral/me",
+        "issue": "Returns 500. Backend log: ValueError: [TypeError(\"'ObjectId' object is not iterable\"), TypeError('vars() argument must have __dict__ attribute')] from fastapi/encoders.py. The endpoint is leaking raw MongoDB ObjectId (likely in recent_referrals or nested user docs) into the JSON response. This causes ReferralPage to render the 'Erreur de chargement' fallback (when !data), so the new rewards-cta button is never mounted in the DOM. Defined at server.py L1564 get_my_referral_info().",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "GET /api/admin/settings/live (or similar)",
+        "issue": "AdminDashboard page shows console error: 'Error loading live settings: AxiosError 500'. Does not block dashboard rendering but should be investigated."
+      }
+    ]
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "AdminDashboardPage.js",
+        "issue": "BUILD-BREAKING SyntaxError: 'Identifier DollarSign has already been declared' at line 9 — duplicate import in lucide-react import block. This was preventing the ENTIRE frontend bundle from compiling, so all 3 new pages (and the rest of the admin app) rendered the webpack overlay instead of content. FIXED by removing the duplicate.",
+        "selector": "n/a (import statement)",
+        "priority": "CRITICAL (already fixed)"
+      },
+      {
+        "component": "ReferralPage.js",
+        "issue": "Missing `import { toast } from 'sonner'` despite using toast.error() / toast.success() — caused runtime PAGEERROR 'toast is not defined' on /referral. FIXED by adding the import.",
+        "selector": "n/a (import statement)",
+        "priority": "HIGH (already fixed)"
+      },
+      {
+        "component": "RewardsPage / global onboarding splash",
+        "issue": "On first visit, the global onboarding splash ('Toute la Polynésie en un seul fil … Suivant / Passer') overlays /rewards and /referral, hiding the page content. The DOM is mounted underneath (all 5 reward-tier-* testids present), but visually the user must click 'Passer' before seeing the page. Likely existing app behaviour, not regression.",
+        "selector": "text=Passer",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "/referral → click 'Tes paliers de récompenses' → /rewards",
+        "issue": "rewards-cta button is not rendered because parent component shows 'Erreur de chargement' fallback when /api/referral/me returns 500. Fixing the backend ObjectId serialization will unblock this.",
+        "affected_selectors": ["[data-testid='rewards-cta']"]
+      }
+    ],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "✅ Admin login (admin@natifenua.pf / NatiFenua2025!) → /admin/dashboard, admin_token saved in localStorage",
+    "✅ Sidebar shows 'Stats Emails' and 'Insights' entries",
+    "✅ /admin/email-stats: H1 'Statistiques Emails' renders",
+    "✅ /admin/email-stats: 4 KPI cards visible (EMAILS ENVOYÉS=1, TAUX D'OUVERTURE=0%, TAUX DE CLIC=0%, TAUX DE REBOND=0%)",
+    "✅ /admin/email-stats: 'DERNIERS ÉVÉNEMENTS' section shows 1 row (foo@bar.com - Délivré 04/06/2026)",
+    "✅ /admin/email-stats: [data-testid='admin-email-refresh'] and [data-testid='admin-email-period'] visible, clickable",
+    "✅ /admin/insights: H1 'Analytics & Insights' renders",
+    "✅ /admin/insights: 4 summary cards (UTILISATEURS TOTAUX=37, NOUVEAUX USERS=0, NOUVELLES PUBLICATIONS=3, ARTICLES RSS=110)",
+    "✅ /admin/insights: TOP PUBLICATIONS shows 3 posts from Demo Fenua (Bora Bora, Heiva, Moorea) with 3 top-post-N testids",
+    "✅ /admin/insights: TOP VENDEURS MARKETPLACE section visible (empty: 'Aucun vendeur actif')",
+    "✅ /admin/insights: RÉPARTITION PAR ÎLE shows Tahiti=20, Moorea=2, Bora-Bora=1",
+    "✅ /admin/insights: [data-testid='insights-refresh'] and [data-testid='insights-period'] visible",
+    "✅ User login (demo@nati-fenua.com / DemoFenua2026!) → /feed",
+    "✅ /rewards: H1 'Tes Récompenses' renders after dismissing onboarding",
+    "✅ /rewards: '0 filleul validé' counter visible",
+    "✅ /rewards: All 5 reward-tier-* data-testids present and visible (first_referral, ambassadeur, free_boost_7d, vendor_pro_1m, vip_status)",
+    "✅ /rewards: 0 Réclamer buttons (correct since referral_count=0)"
+  ],
+
+  "test_report_links": [],
+
+  "action_items": [
+    "Fix /api/referral/me to exclude MongoDB _id / serialize ObjectId in recent_referrals before returning (use {'_id': 0} projection or convert to str). This is the only blocker preventing the rewards-cta button from appearing on /referral.",
+    "Investigate /api/admin/settings/live (or equivalent) returning 500 on admin dashboard load.",
+    "Consider not showing the onboarding splash for the demo user, or auto-dismissing it on subsequent visits (currently it blocks /rewards and /referral on first visit)."
+  ],
+
+  "critical_code_review_comments": [
+    "CRITICAL: AdminDashboardPage.js had a duplicate lucide-react import (DollarSign listed twice on lines 8 and 9) which broke the ENTIRE webpack bundle. This means E1's pre-handoff manual check missed that the dev server was in a broken-compile state. Recommend running `yarn build` before declaring a feature complete.",
+    "ReferralPage.js uses toast.error/toast.success without importing toast — only caught at runtime via PAGEERROR. ESLint warnings exist but not 'toast is not defined' is not flagged since `toast` was implicitly assumed global. Recommend stricter ESLint rule for no-undef.",
+    "ReferralPage.js silently swallows the API error in catch{} and only shows a toast. Then the !data branch renders a bare 'Erreur de chargement' string with no retry button — bad UX. Consider showing the page content with empty state instead of a hard error fallback.",
+    "AdminEmailStatsPage and AdminAnalyticsInsightsPage useEffect have missing deps (load, navigate) — ESLint warning. Use useCallback or include deps."
+  ],
+
+  "updated_files": [
+    "/app/frontend/src/pages/AdminDashboardPage.js (removed duplicate DollarSign import)",
+    "/app/frontend/src/pages/ReferralPage.js (added missing import { toast } from 'sonner')"
+  ],
+
+  "success_rate": {
+    "backend": "n/a (skipped per request)",
+    "frontend": "5 out of 6 user-visible criteria pass. /admin/email-stats=100%, /admin/insights=100%, /rewards page itself=100%, but the /referral → /rewards navigation entry-point is blocked by a backend 500."
+  },
+
+  "test_credentials": {
+    "admin": "admin@natifenua.pf / NatiFenua2025!",
+    "user_demo": "demo@nati-fenua.com / DemoFenua2026!"
+  },
+
+  "seed_data_creation": "None created. Used existing demo user and admin seed.",
+
+  "retest_needed": true,
+
+  "should_main_agent_self_test": true,
+
+  "mocked_apis": {"has_mocked_apis": false, "mocked_apis_list": []},
+
+  "context_for_next_testing_agent": "Two fixes were applied during this iteration: (1) duplicate DollarSign import in AdminDashboardPage.js, (2) missing toast import in ReferralPage.js. The remaining blocker is BACKEND: /api/referral/me returns 500 with MongoDB ObjectId serialization error. Once main agent fixes the backend endpoint (likely add {'_id': 0} projection or .pop('_id', None) in recent_referrals), re-test by: login as demo@nati-fenua.com / DemoFenua2026!, visit /referral, dismiss onboarding (click 'Passer'), confirm [data-testid='rewards-cta'] is visible with text 'Tes paliers de récompenses', click it, verify navigation to /rewards.",
+
+  "rca_of_the_issue": {
+    "user_visible_symptom": "rewards-cta button missing on /referral; previously screenshot showed '0 reward tiers + admin-email-refresh MISSING'",
+    "root_cause_1_build_breaker": "AdminDashboardPage.js had `DollarSign` imported twice from lucide-react (lines 8 and 9). Babel parser refused to compile → webpack served the dev overlay → no React routes mounted → every page testid was MISSING. Fixed by removing the duplicate identifier.",
+    "root_cause_2_referral": "ReferralPage.js called toast.error/toast.success but never imported toast — runtime error broke the component before reaching the rewards-cta JSX. Fixed by adding `import { toast } from 'sonner'`.",
+    "root_cause_3_remaining": "Even after fix #2, /api/referral/me returns HTTP 500 due to MongoDB ObjectId leaking through FastAPI's jsonable_encoder (server.py L1564). data stays null → component renders 'Erreur de chargement' branch → rewards-cta is not in the DOM. Must be fixed in backend.",
+    "mitigation_steps": "1) Sanitize recent_referrals to drop _id field. 2) Make the !data branch on ReferralPage still render the rewards-cta button (it doesn't depend on data) so partial failures don't hide the CTA. 3) Add a regression test that asserts /api/referral/me returns 200 with JSON-serializable body."
+  }
+}

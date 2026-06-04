@@ -1937,9 +1937,7 @@ async def admin_reject_ad(transaction_id: str, request: Request):
 @api_router.post("/admin/digest/send-now")
 async def admin_trigger_digest(request: Request):
     """Admin: trigger the weekly digest immediately (for testing)."""
-    user = await require_auth(request)
-    if not user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin requis")
+    await verify_admin_token(request)
     from email_digest import send_weekly_digest
     result = await send_weekly_digest(db)
     return result
@@ -1986,9 +1984,7 @@ async def resend_webhook(request: Request):
 @api_router.get("/admin/email/stats")
 async def admin_email_stats(request: Request, days: int = 30):
     """Admin: aggregated email statistics from Resend webhook events."""
-    user = await require_auth(request)
-    if not user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin requis")
+    await verify_admin_token(request)
 
     days = max(1, min(180, days))
     since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
@@ -7581,9 +7577,7 @@ async def get_user_warnings(user_id: str, request: Request):
 @api_router.get("/admin/analytics/insights")
 async def admin_analytics_insights(request: Request, days: int = 7):
     """Admin: extended analytics — top posts, top vendors, top islands, growth."""
-    user = await require_auth(request)
-    if not user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin requis")
+    await verify_admin_token(request)
 
     days = max(1, min(90, days))
     since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()

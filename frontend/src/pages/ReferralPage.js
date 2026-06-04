@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Users, Copy, Check, Share2, Sparkles, Trophy,
-  Mail, MessageCircle, Facebook, Loader2
+  ArrowLeft, Users, Copy, Check, Share2, Sparkles, Trophy, Gift,
+  Mail, MessageCircle, Facebook, Loader2, ChevronRight
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import { authFetch } from '../lib/api';
+import { toast } from 'sonner';
 
 
 
@@ -167,6 +168,23 @@ const ReferralPage = () => {
                 : `Encore ${needed_for_ambassadeur} amis pour débloquer le badge Ambassadeur 🌺`}
           </p>
         </motion.div>
+
+        {/* Rewards CTA */}
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          onClick={() => navigate('/rewards')}
+          data-testid="rewards-cta"
+          className="w-full mb-6 px-5 py-4 rounded-2xl bg-gradient-to-r from-[#FFD700] via-[#FF1493] to-[#9400D3] text-white shadow-xl shadow-pink-500/20 flex items-center gap-4 hover:scale-[1.01] transition-transform"
+        >
+          <Gift className="w-6 h-6 flex-shrink-0" />
+          <div className="flex-1 text-left">
+            <p className="font-bold leading-tight">Tes paliers de récompenses</p>
+            <p className="text-xs text-white/85">Boost, badge VIP & cadeaux à débloquer</p>
+          </div>
+          <ChevronRight className="w-5 h-5 flex-shrink-0" />
+        </motion.button>
 
         {/* Referral code + share */}
         <motion.div

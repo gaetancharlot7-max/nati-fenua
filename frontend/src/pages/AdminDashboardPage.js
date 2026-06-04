@@ -6,7 +6,7 @@ import {
   LogOut, Eye, Ban, CheckCircle, XCircle, AlertTriangle, TrendingUp,
   MessageSquare, ToggleLeft, ToggleRight, Search, Filter, RefreshCw,
   DollarSign, Megaphone, BarChart3, HardDrive, Newspaper, MapPin, 
-  Video, Trash2, Plus, Edit, ExternalLink, Camera, Bot, Rocket, DollarSign, Mail
+  Video, Trash2, Plus, Edit, ExternalLink, Camera, Bot, Rocket, Mail
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
