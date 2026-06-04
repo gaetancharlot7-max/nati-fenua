@@ -62,6 +62,34 @@ Application sociale polynésienne (web + PWA) avec : feed RSS médias locaux, ch
 - **Solution** : ajout d'un bouton hamburger (`data-testid="mobile-menu-btn"`) dans le header mobile qui ouvre un drawer slide-in depuis la droite (z-index 70, backdrop blur z-60). Drawer contient avatar utilisateur + tous les raccourcis manquants + déconnexion + footer CGU/Confidentialité. Auto-close sur changement de route, lock body scroll quand ouvert, animations framer-motion. Tous testIds : `drawer-nav-profile`, `drawer-nav-vendor`, `drawer-nav-referral`, `drawer-nav-advertising`, `drawer-nav-security`, `drawer-logout-btn`, etc.
 - Testé via Playwright sur viewport 390x844 : drawer s'ouvre, navigation vers `/vendor/dashboard` OK, drawer auto-close confirmé.
 
+### Performance Optimization & Admin Pages (fév 2026)
+
+#### Perf optimizations
+- **Preconnect HTTP hints** dans `index.html` pour `api.nati-fenua.com`, `res.cloudinary.com`, `images.unsplash.com`, `ui-avatars.com` → économise ~200-400ms sur le first paint
+- **Cache-Control endpoints publics** : `public, max-age=300, stale-while-revalidate=3600` sur `/api/public/rss-feed`, `/api/public/pionniers`, `/api/public/ambassadors`. Middleware `CustomCORSMiddleware` modifié pour respecter ces headers explicites (avant il les écrasait avec `private, max-age=0`).
+- **Gzip déjà actif** sur le backend ✅
+- **Service worker v3** : stale-while-revalidate sur `/api/public/*` → feed RSS s'affiche instantanément depuis le cache puis se rafraîchit en background
+- **Backend response time** mesuré : 112-174ms moyenne sur GET /api/posts (déjà bon, MongoDB indexes optimisés en place)
+- ⚠️ Note : Cloudflare du sandbox écrase les Cache-Control. En prod Render → headers respectés.
+
+#### Page admin /advertising (UI premium)
+- **18 packages** désormais disponibles (7 types) :
+  - 🆕 Boost Marketplace (3j/7j/30j) — pour annonces produits
+  - 🆕 Pack Roulotte (Starter/Pro) — spécial restaurateurs/food trucks
+  - 🆕 Spot Événement (48h) — Heiva, festival, ouverture
+  - Post Sponsorisé, Compte Promu, Story Ad, Mana Alert (existants)
+- Hero gradient avec decorative blur dots + badges informatifs (💳 Paiement carte, 💱 Prix XPF, 📊 Stats, 🏝️ Ciblage île)
+- Banner ROI : +250% visibilité / ~5 min lancement / 100% audience polynésienne
+- Cards : badge type (POPULAIRE/LOCAL/EXCLUSIF/PUSH), exemple polynésien italique, prix avec value/jour calculée
+
+#### Page admin /admin/payments (gestion CA)
+- Dashboard CA temps réel : Chiffre d'affaires total / Paiements réussis / En attente / Annonces à valider
+- Breakdown CA par catégorie de package (graphique compact)
+- Tabs filtrables : Tout / Payés / En attente + search bar (email, package, ID)
+- **Workflow annonces premium** : section "À valider" en orange avec boutons `Valider` (badge approved → annonce live) ou `Refuser` (avec raison)
+- Endpoints backend : `GET /api/admin/payments`, `GET /api/admin/ads/pending`, `POST /api/admin/ads/{id}/approve`, `POST /api/admin/ads/{id}/reject`
+- Lien ajouté dans la sidebar admin avec icône DollarSign
+
 ### Bloc complet "Tout faire" — Engagement & Monétisation (fév 2026)
 
 #### Mur des Pionniers (`/app/frontend/src/components/PionnierWall.js`)

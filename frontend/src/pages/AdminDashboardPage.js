@@ -322,6 +322,7 @@ const AdminDashboardPage = () => {
     { id: 'storage', label: 'Stockage', icon: HardDrive },
     { id: 'auto-publish', label: 'Auto-Publish', icon: Newspaper, link: '/admin/auto-publish' },
     { id: 'beta', label: 'Pionniers (Beta)', icon: Rocket, link: '/admin/beta' },
+    { id: 'payments', label: 'Paiements & Annonces', icon: DollarSign, link: '/admin/payments' },
   ];
 
   if (loading) {

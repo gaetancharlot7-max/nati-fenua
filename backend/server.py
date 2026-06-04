@@ -227,11 +227,16 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
                 continue  # Swagger UI needs different CSP
             response.headers[header_name] = header_value
         
-        # Add cache headers for better performance
+        # Add cache headers for better performance.
+        # IMPORTANT: do NOT override if the endpoint already set its own Cache-Control
+        # (e.g. /public/* endpoints set explicit stale-while-revalidate policies).
         path = request.url.path
-        if path.startswith("/api/"):
+        if path.startswith("/api/") and "Cache-Control" not in response.headers:
             # API responses: short cache for dynamic data
-            if any(p in path for p in ["/posts", "/products", "/services", "/markers", "/stories"]):
+            if path.startswith("/api/public/"):
+                # Default cache for any /public/* not explicitly set: 60s
+                response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
+            elif any(p in path for p in ["/posts", "/products", "/services", "/markers", "/stories"]):
                 response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=60"
             elif "/health" in path or "/status" in path:
                 response.headers["Cache-Control"] = "no-cache"
@@ -1628,15 +1633,33 @@ async def get_user_level(user_id: str):
 
 # ==================== PUBLIC PREVIEW (no auth — for App Store reviewers & guests) ====================
 
+@api_router.get("/public/rss-feed")
+@limiter.limit("60/minute")
+async def public_rss_feed(request: Request, response: Response, limit: int = 15):
+    """Public endpoint: returns recent RSS articles for guest preview.
+    Required by Apple App Review Guideline 5.1.1: app must show content
+    before forcing account creation."""
+    limit = max(1, min(30, limit))
+    posts = await db.posts.find(
+        {"is_rss_article": True},
+        {"_id": 0, "post_id": 1, "caption": 1, "external_link": 1, "link_title": 1,
+         "link_source": 1, "thumbnail_url": 1, "created_at": 1}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    # Cache for 5 min on CDN, allow stale-while-revalidate for 1 hour
+    response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=3600"
+    return {"posts": posts}
+
+
 @api_router.get("/public/pionniers")
 @limiter.limit("120/minute")
-async def public_pionniers_list(request: Request):
+async def public_pionniers_list(request: Request, response: Response):
     """Public list of Pionniers for the landing page Pionnier Wall."""
     pionniers = await db.users.find(
         {"badges": "pionnier"},
         {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "island": 1, "pionnier_awarded_at": 1}
     ).sort("pionnier_awarded_at", 1).limit(50).to_list(50)
     awarded = len(pionniers)
+    response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=3600"
     return {
         "pionniers": pionniers,
         "stats": {
@@ -1648,28 +1671,14 @@ async def public_pionniers_list(request: Request):
 
 @api_router.get("/public/ambassadors")
 @limiter.limit("60/minute")
-async def public_ambassadors_leaderboard(request: Request):
+async def public_ambassadors_leaderboard(request: Request, response: Response):
     """Public leaderboard of top 20 ambassadors (users by referral_count)."""
     leaders = await db.users.find(
         {"referral_count": {"$gt": 0}},
         {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "island": 1, "referral_count": 1, "badges": 1}
     ).sort("referral_count", -1).limit(20).to_list(20)
+    response.headers["Cache-Control"] = "public, max-age=180, stale-while-revalidate=600"
     return {"leaderboard": leaders}
-
-
-@api_router.get("/public/rss-feed")
-@limiter.limit("60/minute")
-async def public_rss_feed(request: Request, limit: int = 15):
-    """Public endpoint: returns recent RSS articles for guest preview.
-    Required by Apple App Review Guideline 5.1.1: app must show content
-    before forcing account creation."""
-    limit = max(1, min(30, limit))
-    posts = await db.posts.find(
-        {"is_rss_article": True},
-        {"_id": 0, "post_id": 1, "caption": 1, "external_link": 1, "link_title": 1,
-         "link_source": 1, "thumbnail_url": 1, "created_at": 1}
-    ).sort("created_at", -1).limit(limit).to_list(limit)
-    return {"posts": posts}
 
 
 # ==================== BETA TESTERS PROGRAM (Pionnier badge) ====================
@@ -1811,6 +1820,118 @@ async def admin_approve_beta_application(request: Request):
         "email_sent": email_sent,
         "application_id": application_id
     }
+
+
+@api_router.get("/admin/payments")
+async def admin_list_payments(request: Request, status: str = None, limit: int = 100):
+    """Admin: list all Stripe payment transactions with stats."""
+    user = await require_auth(request)
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin requis")
+
+    query = {}
+    if status:
+        query["status"] = status
+
+    transactions = await db.payment_transactions.find(
+        query,
+        {"_id": 0}
+    ).sort("created_at", -1).limit(min(500, limit)).to_list(limit)
+
+    # Aggregate revenue stats (status="paid")
+    pipeline = [
+        {"$match": {"status": "paid"}},
+        {"$group": {
+            "_id": None,
+            "total_xpf": {"$sum": "$amount"},
+            "count": {"$sum": 1}
+        }}
+    ]
+    stats_cursor = db.payment_transactions.aggregate(pipeline)
+    stats_list = await stats_cursor.to_list(1)
+    total_revenue = stats_list[0]["total_xpf"] if stats_list else 0
+    paid_count = stats_list[0]["count"] if stats_list else 0
+    pending_count = await db.payment_transactions.count_documents({"status": {"$in": ["pending", "initiated"]}})
+
+    # Revenue by package type
+    type_pipeline = [
+        {"$match": {"status": "paid"}},
+        {"$group": {
+            "_id": "$package_type",
+            "total": {"$sum": "$amount"},
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"total": -1}}
+    ]
+    type_stats = await db.payment_transactions.aggregate(type_pipeline).to_list(20)
+    return {
+        "transactions": transactions,
+        "stats": {
+            "total_revenue_xpf": total_revenue,
+            "paid_count": paid_count,
+            "pending_count": pending_count,
+            "by_type": [{"type": s["_id"], "total": s["total"], "count": s["count"]} for s in type_stats]
+        }
+    }
+
+
+@api_router.get("/admin/ads/pending")
+async def admin_list_pending_ads(request: Request):
+    """Admin: list all premium ads waiting for validation."""
+    user = await require_auth(request)
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin requis")
+
+    # Pending = paid but not yet approved
+    ads = await db.payment_transactions.find(
+        {"status": "paid", "ad_status": {"$in": ["pending_review", None]}},
+        {"_id": 0}
+    ).sort("paid_at", -1).limit(100).to_list(100)
+    return {"ads": ads}
+
+
+@api_router.post("/admin/ads/{transaction_id}/approve")
+async def admin_approve_ad(transaction_id: str, request: Request):
+    """Admin: approve a paid ad so it becomes live."""
+    user = await require_auth(request)
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin requis")
+
+    result = await db.payment_transactions.update_one(
+        {"transaction_id": transaction_id, "status": "paid"},
+        {"$set": {
+            "ad_status": "approved",
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "approved_by": user.user_id
+        }}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Transaction introuvable ou déjà traitée")
+    return {"success": True}
+
+
+@api_router.post("/admin/ads/{transaction_id}/reject")
+async def admin_reject_ad(transaction_id: str, request: Request):
+    """Admin: reject a paid ad (refund will need to be processed manually in Stripe dashboard)."""
+    user = await require_auth(request)
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin requis")
+
+    body = await request.json()
+    reason = (body.get("reason") or "").strip()
+
+    result = await db.payment_transactions.update_one(
+        {"transaction_id": transaction_id},
+        {"$set": {
+            "ad_status": "rejected",
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
+            "rejected_by": user.user_id,
+            "rejection_reason": reason
+        }}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Transaction introuvable")
+    return {"success": True}
 
 
 @api_router.post("/admin/digest/send-now")

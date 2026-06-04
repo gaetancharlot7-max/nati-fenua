@@ -28,6 +28,15 @@
     
     <!-- Canonical URL (SEO) -->
     <link rel="canonical" href="https://nati-fenua.com" />
+
+    <!-- PERFORMANCE: preconnect to origins we'll definitely hit, saving ~200-400ms on first paint -->
+    <link rel="preconnect" href="https://api.nati-fenua.com" crossorigin />
+    <link rel="dns-prefetch" href="https://api.nati-fenua.com" />
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
+    <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
+    <link rel="dns-prefetch" href="https://images.unsplash.com" />
+    <link rel="preconnect" href="https://ui-avatars.com" crossorigin />
     
     <!-- PWA Meta Tags -->
     <meta name="mobile-web-app-capable" content="yes" />

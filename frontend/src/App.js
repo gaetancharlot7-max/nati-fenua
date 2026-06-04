@@ -107,6 +107,7 @@ const ReferralPage = lazy(() => import('./pages/ReferralPage'));
 const AmbassadorsPage = lazy(() => import('./pages/AmbassadorsPage'));
 const BetaTestPage = lazy(() => import('./pages/BetaTestPage'));
 const AdminBetaPage = lazy(() => import('./pages/AdminBetaPage'));
+const AdminPaymentsPage = lazy(() => import('./pages/AdminPaymentsPage'));
 const PreviewFeedPage = lazy(() => import('./pages/PreviewFeedPage'));
 
 // Components (loaded immediately as they're small)
@@ -176,6 +177,7 @@ function AppContent() {
         <Route path="/admin/moderation" element={<AdminRoute><AdminModerationPage /></AdminRoute>} />
         <Route path="/admin/auto-publish" element={<AdminRoute><AdminAutoPublishPage /></AdminRoute>} />
         <Route path="/admin/beta" element={<AdminRoute><AdminBetaPage /></AdminRoute>} />
+        <Route path="/admin/payments" element={<AdminRoute><AdminPaymentsPage /></AdminRoute>} />
         <Route path="/admin/ai-agent" element={<AdminRoute><AIAgentPage /></AdminRoute>} />
         
         {/* Protected Routes with Layout */}
