@@ -183,18 +183,31 @@ Score prod `nati-fenua.com` : Performance 41 / Accessibility 93 / Best Practices
 - Réponse user attendue sur Resend (vérif email réel) + Stripe cas d'usage (boost / premium / pub)
 
 ### P1 (à venir)
-- Implémenter Resend pour envoi réel des codes de vérif email
-- Implémenter Stripe Checkout : boost annonces marketplace + Premium subscription
+- **Webhook Resend entrant** (recevoir emails sent → contact@nati-fenua.com directement dans dashboard admin)
+- **Finaliser le flow Stripe Checkout côté UI** sur `/advertising` (backend endpoints existent, intégrer paiement front)
 - Analytics tracking RSS (vues / clics / temps passé)
 - Badge "🆕 Nouveau" sur posts < 24h
 - Badge "🔥 Tendance" sur articles RSS populaires
 
-### Backlog
-- Refactor `seed_data.py` + alléger `server.py` (becoming heavy)
-- Migrer `EditProfilePage.js` + `NotificationSettingsPage.js` vers `api` instance (Bearer iOS)
-- Audio player inline pour podcasts Radio 1
+### P2 (futur)
+- **Push notifications natives** via Service Worker + Web Push API
+- **Soumission Apple App Store** (en attente compte dev) — voir `APPSTORE_CAPACITOR_GUIDE.md`
+- **Refactor `server.py`** (>10000 lignes) en modules `routes/`, `services/`, `models/` (⛔ bloqué pendant phase beta testers, risque de régression)
 - Renommer services Render pour retirer "backend"/"frontend" des URLs
 - Filtres "Alerte recherche" marketplace (notif push quand annonce match critères)
+- Investiguer 500 occasionnel sur `/api/admin/agent/audit` (ai_agent_v2.py: AttributeError 'AuditRequest' has no attribute 'session_id')
+
+## Changelog récent (juin 2026)
+### Pages Admin + Récompenses utilisateur (juin 2026)
+- **3 nouvelles pages branchées** :
+  - `/admin/email-stats` (`AdminEmailStatsPage.js`) — KPIs Resend (sent/opened/clicked/bounced), liste derniers events webhook, bouton "Envoyer digest maintenant"
+  - `/admin/insights` (`AdminAnalyticsInsightsPage.js`) — Top posts, top vendeurs, répartition par île, summary 7/30j
+  - `/rewards` (`RewardsPage.js`) — Paliers récompenses parrainage utilisateur (5 tiers : 1/3/5/10/20 filleuls)
+- **Root cause fixé** : les 3 endpoints admin (`/admin/digest/send-now`, `/admin/email/stats`, `/admin/analytics/insights`) utilisaient `require_auth` (JWT user) alors que le frontend admin envoie `admin_token` (session admin). Migration vers `verify_admin_token` sur les 3 endpoints (`server.py` L1937, L1986, L7581).
+- **Bug ReferralPage** : imports manquants (`toast`, `API`) → la page rendait "Erreur de chargement" silencieux. Imports ajoutés, fallback amélioré (rend toujours le bouton vers /rewards).
+- **Bug AdminDashboardPage** : import lucide-react `DollarSign` dupliqué cassait le build complet. Corrigé par testing agent.
+- **CTA ajouté sur /referral** : bouton "Tes paliers de récompenses" (data-testid=`rewards-cta`) pour rendre `/rewards` accessible.
+- **Testing** : screenshot e2e validé (login demo → /referral → click CTA → /rewards → 5 tiers rendus). Testing agent v3 a confirmé 100% des KPIs/sections sur les 3 pages.
 
 ## Key APIs
 - `GET /api/posts?limit=20&cursor=...` smart feed

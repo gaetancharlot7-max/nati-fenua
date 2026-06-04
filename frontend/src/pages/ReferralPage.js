@@ -10,6 +10,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { authFetch } from '../lib/api';
 import { toast } from 'sonner';
 
+const API = process.env.REACT_APP_BACKEND_URL;
+
 
 
 const ReferralPage = () => {
@@ -80,8 +82,17 @@ const ReferralPage = () => {
 
   if (!data) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
-        Erreur de chargement
+      <div className="min-h-screen bg-gradient-to-br from-[#FFF5F0] via-white to-[#FFE5DC] px-4 py-6">
+        <div className="max-w-2xl mx-auto text-center">
+          <p className="text-gray-500 mb-4">Impossible de charger vos stats de parrainage.</p>
+          <button
+            onClick={() => navigate('/rewards')}
+            data-testid="rewards-cta"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-[#FFD700] via-[#FF1493] to-[#9400D3] text-white font-bold shadow-xl"
+          >
+            <Gift className="w-5 h-5" /> Voir mes paliers de récompenses
+          </button>
+        </div>
       </div>
     );
   }
