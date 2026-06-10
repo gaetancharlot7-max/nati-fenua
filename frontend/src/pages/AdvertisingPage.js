@@ -325,6 +325,7 @@ const AdvertisingPage = () => {
                     key={price.id}
                     onClick={() => handlePayment(price.id)}
                     disabled={loading}
+                    data-testid={`buy-package-${price.id}`}
                     className="w-full flex items-center justify-between p-4 rounded-xl border-2 border-gray-100 hover:border-[#FF6B35] hover:bg-[#FF6B35]/5 transition-all group"
                   >
                     <div className="flex items-center gap-3">

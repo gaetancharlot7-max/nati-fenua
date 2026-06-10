@@ -831,7 +831,8 @@ async def register(request: Request, response: Response):
             try:
                 ref_result = await record_referral(db, referrer["user_id"], user_id, email)
                 if ref_result.get("success"):
-                    logger.info(f"Referral recorded: {referrer['user_id']} -> {user_id} (count={ref_result.get('referral_count')})")
+                    new_count = ref_result.get("referral_count", 0)
+                    logger.info(f"Referral recorded: {referrer['user_id']} -> {user_id} (count={new_count})")
                     # Notify the referrer
                     if ref_result.get("awarded_ambassadeur"):
                         await db.notifications.insert_one({
@@ -855,6 +856,41 @@ async def register(request: Request, response: Response):
                             "read": False,
                             "created_at": datetime.now(timezone.utc).isoformat()
                         })
+
+                    # ---- REWARD TIER EMAIL ----
+                    # If the new count matches a tier threshold (1/3/5/10/20),
+                    # send a "Récompense débloquée" email to the referrer.
+                    try:
+                        tier = next((t for t in REWARD_TIERS if t["threshold"] == new_count), None)
+                        if tier:
+                            referrer_doc = await db.users.find_one(
+                                {"user_id": referrer["user_id"]},
+                                {"_id": 0, "email": 1, "name": 1}
+                            )
+                            if referrer_doc and referrer_doc.get("email"):
+                                await email_service.send_reward_unlocked(
+                                    to=referrer_doc["email"],
+                                    user_name=referrer_doc.get("name") or "ami",
+                                    tier_title=tier["title"],
+                                    tier_reward=tier["reward"],
+                                    referral_count=new_count
+                                )
+                                # In-app notification for the unlocked tier
+                                await db.notifications.insert_one({
+                                    "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                                    "user_id": referrer["user_id"],
+                                    "type": "reward_unlocked",
+                                    "title": f"🎁 {tier['title']} débloqué !",
+                                    "message": tier["reward"],
+                                    "data": {"tier_code": tier["code"], "referral_count": new_count},
+                                    "read": False,
+                                    "created_at": datetime.now(timezone.utc).isoformat()
+                                })
+                    except NameError:
+                        # REWARD_TIERS is defined later in the module — skip silently on cold imports
+                        pass
+                    except Exception as reward_err:
+                        logger.error(f"Failed to send reward unlocked email: {reward_err}")
             except Exception as e:
                 logger.error(f"Failed to record referral: {e}")
     

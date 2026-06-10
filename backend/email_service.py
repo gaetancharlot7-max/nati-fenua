@@ -43,7 +43,7 @@ class EmailService:
             return False
         
         try:
-            response = resend.Emails.send({
+            resend.Emails.send({
                 "from": f"{APP_NAME} <{FROM_EMAIL}>",
                 "to": to,
                 "subject": subject,
@@ -213,6 +213,57 @@ class EmailService:
         """
         
         return await self.send_email(to, f"🔔 Alerte Mana {island}: {alert_title}", html)
+
+    async def send_reward_unlocked(self, to: str, user_name: str, tier_title: str, tier_reward: str, referral_count: int) -> bool:
+        """Send email when a user unlocks a new referral reward tier."""
+        rewards_url = f"{APP_URL}/rewards"
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>
+                body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #1A1A2E; margin: 0; padding: 20px; color: #1A1A2E; }}
+                .container {{ max-width: 540px; margin: 0 auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.25); }}
+                .header {{ background: linear-gradient(135deg, #FFD700, #FF1493 50%, #9400D3); padding: 36px 24px; text-align: center; }}
+                .gift {{ font-size: 56px; line-height: 1; margin-bottom: 8px; }}
+                .header h1 {{ color: white; margin: 0; font-size: 26px; font-weight: 900; letter-spacing: -0.5px; }}
+                .header p {{ color: rgba(255,255,255,0.95); margin: 6px 0 0; font-size: 14px; }}
+                .content {{ padding: 28px 28px 8px; }}
+                .tier-card {{ background: linear-gradient(135deg, #FFF5F0, #FFE5DC); border: 2px solid #FF6B35; border-radius: 16px; padding: 20px; text-align: center; margin: 16px 0 24px; }}
+                .tier-title {{ font-size: 20px; font-weight: 800; color: #FF1493; margin: 0 0 6px; }}
+                .tier-reward {{ font-size: 15px; color: #1A1A2E; margin: 0; }}
+                .count {{ display: inline-block; background: #1A1A2E; color: #FFD700; padding: 6px 14px; border-radius: 999px; font-weight: 800; font-size: 13px; }}
+                .button {{ display: inline-block; background: linear-gradient(135deg, #FF6B35, #FF1493, #9400D3); color: white !important; padding: 16px 32px; border-radius: 14px; text-decoration: none; font-weight: bold; font-size: 15px; }}
+                .footer {{ padding: 20px; text-align: center; color: #666; font-size: 11px; border-top: 1px solid #eee; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <div class="gift">🎁</div>
+                    <h1>Nouvelle récompense débloquée !</h1>
+                    <p>Mauruuru {user_name}, tu fais grandir le Fenua 🌺</p>
+                </div>
+                <div class="content">
+                    <p style="text-align:center;"><span class="count">{referral_count} filleul{'s' if referral_count > 1 else ''} validé{'s' if referral_count > 1 else ''}</span></p>
+                    <div class="tier-card">
+                        <p class="tier-title">{tier_title}</p>
+                        <p class="tier-reward">{tier_reward}</p>
+                    </div>
+                    <p style="text-align: center; margin: 0 0 28px;">
+                        <a href="{rewards_url}" class="button">Voir mes récompenses</a>
+                    </p>
+                </div>
+                <div class="footer">
+                    <p>Continue à parrainer pour débloquer plus de cadeaux 🚀</p>
+                    <p>© 2026 Nati Fenua — le réseau social de la Polynésie 🇵🇫</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        return await self.send_email(to, f"🎁 {tier_title} débloqué sur Nati Fenua !", html)
 
 
 # Global instance

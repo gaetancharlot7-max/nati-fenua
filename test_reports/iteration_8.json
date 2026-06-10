@@ -1,0 +1,72 @@
+{
+  "summary": "Iteration 8 - Release readiness (Stripe Checkout on /advertising, Reward unlock notif, regression on admin/rewards). All 4 backend pytest cases PASS and all frontend criteria PASS. No regression. Stripe sk_test_emergent issues a real cs_test_... session URL; payment_transactions row is persisted. Reward-tier=1 flow correctly creates an in-app 'reward_unlocked' notification (referral_count: 0 -> 1, title '🎁 Première invitation débloqué !'). Resend email is mocked (RESEND_API_KEY absent) — only the in-app side is verified, as instructed.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "BE ✅ GET /api/advertising/packages → 200, 18 packages (>=15), each has package_id/name/amount/type",
+    "BE ✅ POST /api/payments/checkout invalid package_id → 400 'Package invalide'",
+    "BE ✅ POST /api/payments/checkout {marketplace_7days, origin, user_id} → 200, checkout_url starts with https://checkout.stripe.com/, session_id present, payment_transactions row inserted in MongoDB (status=pending, amount_xpf=1000, amount_eur=8.38)",
+    "BE ✅ Referral reward unlock — register a new user with referral_code=32ZTFSAR triggers (a) in-app notification type='reward_unlocked' with title starting '🎁 Première invitation' for demo user, data.tier_code='first_referral'; (b) demo referral_count==1. Cleaned up after.",
+    "FE ✅ /advertising — login demo, 18 [data-testid=\"buy-package-*\"] buttons present, [data-testid=\"buy-package-marketplace_7days\"] visible AND enabled",
+    "FE ✅ /rewards (demo) — H1 visible, 5/5 [data-testid=\"reward-tier-*\"] tiles present (first_referral, ambassadeur, free_boost_7d, vendor_pro_1m, vip_status)",
+    "FE ✅ /admin/email-stats — H1 'Statistiques Emails', [data-testid=\"admin-email-refresh\"] + [data-testid=\"admin-email-period\"] present, KPI labels rendered",
+    "FE ✅ /admin/insights — H1 'Analytics & Insights', 4 KPI cards (Utilisateurs=37, Nouveaux Users=0, Nouvelles Publications=3, Articles RSS=113), TOP PUBLICATIONS=3, RÉPARTITION PAR ÎLE (Tahiti 20 / Moorea 2 / Bora-Bora 1), insights-refresh + insights-period testids present"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_release_features.py",
+    "/app/test_reports/pytest/pytest_release_features.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "server.py L863-893: REWARD_TIERS is referenced at L864 but defined later at L2070 — protected by `except NameError: pass`. Works because the registration handler runs at request time (module is fully loaded), but the fallback `pass` would silently swallow any future reordering bug. Recommend moving REWARD_TIERS above the registration handler or importing it from a constants module.",
+    "server.py L6691: HTTP 500 is raised with raw Stripe error string (`detail=f'Erreur de paiement: {str(e)}')`. This can leak internal/API details to the client. Sanitize before returning and log the raw error server-side only.",
+    "AdvertisingPage.js — `handlePayment` should disable all sibling buttons while loading to prevent double-charge if user double-clicks. The single `disabled={loading}` flag does cover this but ensure `loading` is reset in error paths (verify no race condition).",
+    "Email side-effect: when RESEND_API_KEY is missing (current local env), `email_service.send_reward_unlocked` returns False silently. OK for sandbox but make sure production env on Render does have it set — add a startup log warning if absent.",
+    "Backend tests created in /app/backend/tests/test_release_features.py — uses MongoClient direct access for verification. Future CI must mount /app and have MONGO_URL+REACT_APP_BACKEND_URL exported."
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_release_features.py (NEW)"
+  ],
+
+  "success_rate": {
+    "backend": "100% (4/4 pytest)",
+    "frontend": "100% (all required testids + KPIs present on /advertising, /rewards, /admin/email-stats, /admin/insights)"
+  },
+
+  "test_credentials": {
+    "admin": "admin@natifenua.pf / NatiFenua2025! (POST /api/admin/login → returns {success, token})",
+    "user_demo": "demo@nati-fenua.com / DemoFenua2026! (POST /api/auth/login → returns {user, session_token}); referral_code=32ZTFSAR; user_id=394b8e71-c3fd-46c7-8835-c13bc1e6729e"
+  },
+
+  "seed_data_creation": "Test created a temporary user `reftest_<uuid>@example.com` then deleted it; reset demo user referral_count back to 0 and cleared its reward_unlocked/new_referral notifications. One leftover Stripe pending row in db.payment_transactions for session_id=cs_test_... (expected, simulates abandoned cart).",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "mocked_apis": {
+    "has_mocked_apis": true,
+    "mocked_apis_list": [
+      "Resend email API — RESEND_API_KEY not set in local backend/.env, so email_service.send_reward_unlocked() returns False silently. Only the in-app notification side of the reward unlock flow is asserted. The real Resend send will fire on Render where RESEND_API_KEY is configured.",
+      "Stripe — uses sk_test_emergent test key; checkout URLs are real https://checkout.stripe.com/ test sessions, no charge."
+    ]
+  },
+
+  "context_for_next_testing_agent": "Release-ready as of iteration 8. New regression test file at /app/backend/tests/test_release_features.py covers: ad packages list, Stripe checkout (success + 400), referral→reward_unlocked notification. Run with: `REACT_APP_BACKEND_URL=$(grep REACT_APP_BACKEND_URL /app/frontend/.env | cut -d= -f2) MONGO_URL=mongodb://localhost:27017 DB_NAME=nati_fenua python3 -m pytest backend/tests/test_release_features.py -v`. The test self-cleans (deletes temp user, resets demo referral_count). If re-running, the prior iteration-7 ObjectId bug on /api/referral/me is RESOLVED (referral_code endpoint now returns clean JSON). Front-end onboarding splash still overlays /advertising on first visit but is auto-dismissed by clicking 'Passer' — handled in test script.",
+
+  "rca_of_the_issue": "No bug. All target features behave as specified."
+}
