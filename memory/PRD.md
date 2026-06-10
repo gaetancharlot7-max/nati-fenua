@@ -198,6 +198,12 @@ Score prod `nati-fenua.com` : Performance 41 / Accessibility 93 / Best Practices
 - Investiguer 500 occasionnel sur `/api/admin/agent/audit` (ai_agent_v2.py: AttributeError 'AuditRequest' has no attribute 'session_id')
 
 ## Changelog récent (juin 2026)
+### Release readiness — Stripe Checkout + Reward emails (juin 2026)
+- **Stripe Checkout sur `/advertising` activé** : `STRIPE_API_KEY=sk_test_emergent` ajouté à `backend/.env` (manquait localement → tous les checkout retournaient 500 "Stripe non configuré"). Le flow complet est désormais opérationnel : 18 packages affichés → click bouton (data-testid `buy-package-{price.id}`) → POST `/api/payments/checkout` → redirection Stripe → `PaymentSuccessPage` poll `/api/payments/status/{session_id}` jusqu'à `paid`. Webhook Stripe déjà branché à `/api/webhook/stripe`.
+- **Email auto "Récompense débloquée"** : nouvelle méthode `email_service.send_reward_unlocked()` (template HTML branded Gold/Pink/Purple) + déclencheur dans la registration handler (`server.py` L863). Quand `record_referral` retourne un `new_count` qui matche un threshold REWARD_TIERS (1/3/5/10/20), envoi automatique via Resend + insertion notification in-app type `reward_unlocked`. Path testé via pytest, Resend en mock local (RESEND_API_KEY absent en sandbox), réel en prod Render.
+- **Bug `/api/admin/agent/audit` 500** : déjà résolu (le code actuel a `session_id: Optional[str] = None` dans `AuditRequest`, le crash était lié à un ancien deploy avant hot-reload).
+- **Tests** : nouveau fichier `/app/backend/tests/test_release_features.py` (créé par testing agent) — 4 tests PASS (packages, Stripe checkout valid/invalid, reward unlock notification). Frontend e2e validé : /advertising, /rewards, /admin/email-stats, /admin/insights tous fonctionnels.
+
 ### Pages Admin + Récompenses utilisateur (juin 2026)
 - **3 nouvelles pages branchées** :
   - `/admin/email-stats` (`AdminEmailStatsPage.js`) — KPIs Resend (sent/opened/clicked/bounced), liste derniers events webhook, bouton "Envoyer digest maintenant"
