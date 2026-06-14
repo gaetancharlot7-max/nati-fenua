@@ -618,7 +618,7 @@ const MainLayout = ({ children, hideNav = false }) => {
         <motion.nav 
           initial={{ y: 100 }}
           animate={{ y: 0 }}
-          className={`lg:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl border-t ${isDark ? 'bg-[#1A1A2E]/95 border-white/10' : 'bg-white/90 border-gray-100'}`}
+          className={`lg:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl border-t ${isDark ? 'bg-[#1A1A2E]/95 border-white/10' : 'bg-white/90 border-gray-100'}`}
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           <div className="flex items-center justify-around py-2">
