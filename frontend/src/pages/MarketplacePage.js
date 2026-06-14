@@ -32,6 +32,7 @@ const ProductDetailModal = ({ product, onClose, onReport, onContact, onBoost, cu
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
+        data-modal-scroll
         className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
       >
         {/* Header Image */}
@@ -171,6 +172,7 @@ const ServiceDetailModal = ({ service, onClose, onReport, onContact }) => {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
+        data-modal-scroll
         className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
       >
         {/* Header Image */}
@@ -1180,6 +1182,7 @@ const CreateProductModal = ({ onClose, onSuccess }) => {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
+        data-modal-scroll
         className="bg-white w-full max-w-lg rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
       >
         <div className="p-6">

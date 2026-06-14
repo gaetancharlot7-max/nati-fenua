@@ -39,6 +39,21 @@ body {
 }
 
 /* ======================================================
+   MODAL SCROLL FIX (iOS Safari, PWA, in-app browsers)
+   Force momentum scrolling + prevent scroll chaining
+   inside any popup / modal scrollable container.
+   Applies automatically to elements with .overflow-y-auto
+   nested in a .fixed parent.
+   ====================================================== */
+.fixed .overflow-y-auto,
+.fixed[class*="overflow-y-auto"],
+[data-modal-scroll] {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+/* ======================================================
    DARK MODE OVERRIDES - Auto-invert hardcoded dark texts
    ====================================================== */
 html.dark .text-\[\#1A1A2E\] {

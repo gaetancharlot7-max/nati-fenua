@@ -117,7 +117,7 @@ const CookieBanner = () => {
               </Button>
             </div>
           ) : (
-            <div className="p-3 space-y-2 max-h-[50vh] overflow-y-auto">
+            <div data-modal-scroll className="p-3 space-y-2 max-h-[50vh] overflow-y-auto">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-bold text-[#1A1A2E]">Préférences cookies</p>
                 <button onClick={() => setShowDetails(false)} className="p-1 rounded-full hover:bg-gray-100">
@@ -151,9 +151,9 @@ const CookieBanner = () => {
         </div>
 
         {/* ===== DESKTOP: original full card ===== */}
-        <div className="hidden lg:block bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+        <div className="hidden lg:flex lg:flex-col bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden max-h-[85vh]">
             {/* Main Content */}
-            <div className="p-6">
+            <div data-modal-scroll className="p-6 overflow-y-auto flex-1">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FF6B35] to-[#FF1493] flex items-center justify-center flex-shrink-0">
                   <Cookie className="text-white" size={24} />
@@ -242,7 +242,7 @@ const CookieBanner = () => {
             </div>
 
             {/* Actions */}
-            <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-wrap gap-2 justify-end">
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-wrap gap-2 justify-end flex-shrink-0">
               <Button
                 onClick={handleAcceptNecessary}
                 variant="outline"
