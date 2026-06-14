@@ -95,7 +95,9 @@ export const PrivacySelector = ({ value = 'public', onChange }) => {
 
 // Privacy Policy Modal
 export const PrivacyPolicyModal = ({ isOpen, onClose, onAccept }) => {
-  const [accepted, setAccepted] = useState(false);
+  // Pre-checked: the modal IS the informed consent (user can uncheck to reject).
+  // Avoids the "no buttons" UX confusion where users didn't see the gating checkbox.
+  const [accepted, setAccepted] = useState(true);
 
   if (!isOpen) return null;
 

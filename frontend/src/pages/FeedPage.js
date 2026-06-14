@@ -310,6 +310,18 @@ const CommentsSection = ({ post, onCommentAdded }) => {
     loadComments();
   };
 
+  // Listen for global "open comments" event dispatched by the MessageCircle action button
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.detail?.post_id === post.post_id) {
+        handleOpenComments();
+      }
+    };
+    window.addEventListener('open-comments', handler);
+    return () => window.removeEventListener('open-comments', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post.post_id]);
+
   return (
     <>
       {/* Comments Preview Button */}
@@ -1025,7 +1037,13 @@ const FeedPage = () => {
                     </AnimatePresence>
                   </div>
                   
-                  <button data-testid={`comment-btn-${post.post_id}`} className="p-2 rounded-xl hover:bg-gray-100 transition-all">
+                  <button
+                    type="button"
+                    onClick={() => window.dispatchEvent(new CustomEvent('open-comments', { detail: { post_id: post.post_id } }))}
+                    data-testid={`comment-btn-${post.post_id}`}
+                    className="p-2 rounded-xl hover:bg-gray-100 transition-all"
+                    aria-label="Ouvrir les commentaires"
+                  >
                     <MessageCircle size={26} className="text-[#1A1A2E]" strokeWidth={1.5} />
                   </button>
                   <button 
