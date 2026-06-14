@@ -15,7 +15,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import api from '../lib/api';
+import api, { cloudinaryApi } from '../lib/api';
 import { Link } from 'react-router-dom';
 
 // Fix Leaflet default marker icon issue
@@ -903,9 +903,30 @@ const AddMenuItemModal = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     name: '',
     price: '',
-    description: ''
+    description: '',
+    image_url: ''
   });
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error('Image trop volumineuse (max 8 MB)');
+      return;
+    }
+    setUploading(true);
+    try {
+      const url = await cloudinaryApi.uploadImage(file, 'menu_items');
+      setFormData(prev => ({ ...prev, image_url: url }));
+      toast.success('Photo ajoutée');
+    } catch (err) {
+      toast.error('Échec de l\u0027upload — réessayez');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!formData.name || !formData.price) {
@@ -918,10 +939,11 @@ const AddMenuItemModal = ({ isOpen, onClose, onSuccess }) => {
       await api.post('/roulotte/menu', {
         name: formData.name,
         price: parseInt(formData.price),
-        description: formData.description
+        description: formData.description,
+        image_url: formData.image_url || undefined
       });
       toast.success('Plat ajouté !');
-      setFormData({ name: '', price: '', description: '' });
+      setFormData({ name: '', price: '', description: '', image_url: '' });
       onSuccess();
     } catch (error) {
       toast.error('Erreur');
@@ -984,12 +1006,52 @@ const AddMenuItemModal = ({ isOpen, onClose, onSuccess }) => {
               rows={2}
             />
           </div>
+
+          {/* Photo upload */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Photo du plat</label>
+            {formData.image_url ? (
+              <div className="relative rounded-xl overflow-hidden">
+                <img src={formData.image_url} alt="" className="w-full h-40 object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center"
+                  data-testid="add-menu-remove-photo"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <label
+                htmlFor="add-menu-photo-input"
+                data-testid="add-menu-photo-btn"
+                className="flex flex-col items-center justify-center gap-2 h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#FF6B35] hover:bg-[#FF6B35]/5 transition"
+              >
+                {uploading ? (
+                  <Loader2 size={20} className="animate-spin text-[#FF6B35]" />
+                ) : (
+                  <>
+                    <Image size={22} className="text-[#FF6B35]" />
+                    <span className="text-sm text-gray-600">Ajouter une photo</span>
+                  </>
+                )}
+                <input
+                  id="add-menu-photo-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label>
+            )}
+          </div>
         </div>
 
         <div className="p-4 border-t flex-shrink-0">
           <Button
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || uploading}
             data-testid="add-menu-item-save-btn"
             className="w-full rounded-xl bg-[#FF6B35]"
           >
@@ -1006,19 +1068,41 @@ const EditMenuItemModal = ({ isOpen, item, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     name: '',
     price: '',
-    description: ''
+    description: '',
+    image_url: ''
   });
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (item) {
       setFormData({
         name: item.name || '',
         price: item.price?.toString() || '',
-        description: item.description || ''
+        description: item.description || '',
+        image_url: item.image_url || item.photo_url || ''
       });
     }
   }, [item]);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error('Image trop volumineuse (max 8 MB)');
+      return;
+    }
+    setUploading(true);
+    try {
+      const url = await cloudinaryApi.uploadImage(file, 'menu_items');
+      setFormData(prev => ({ ...prev, image_url: url }));
+      toast.success('Photo mise à jour');
+    } catch (err) {
+      toast.error('Échec de l\u0027upload — réessayez');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!formData.name || !formData.price) {
@@ -1031,7 +1115,8 @@ const EditMenuItemModal = ({ isOpen, item, onClose, onSuccess }) => {
       await api.put(`/roulotte/menu/${item.item_id}`, {
         name: formData.name,
         price: parseInt(formData.price),
-        description: formData.description
+        description: formData.description,
+        image_url: formData.image_url || null
       });
       toast.success('Plat modifié !');
       onSuccess();
@@ -1096,12 +1181,66 @@ const EditMenuItemModal = ({ isOpen, item, onClose, onSuccess }) => {
               rows={2}
             />
           </div>
+
+          {/* Photo upload */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Photo du plat</label>
+            {formData.image_url ? (
+              <div className="relative rounded-xl overflow-hidden">
+                <img src={formData.image_url} alt="" className="w-full h-40 object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center"
+                  data-testid="edit-menu-remove-photo"
+                >
+                  <X size={16} />
+                </button>
+                <label
+                  htmlFor="edit-menu-photo-input"
+                  className="absolute bottom-2 right-2 px-3 py-1.5 rounded-full bg-white/90 text-xs font-semibold cursor-pointer hover:bg-white"
+                  data-testid="edit-menu-replace-photo"
+                >
+                  Remplacer
+                  <input
+                    id="edit-menu-photo-input"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            ) : (
+              <label
+                htmlFor="edit-menu-photo-input"
+                data-testid="edit-menu-photo-btn"
+                className="flex flex-col items-center justify-center gap-2 h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#FF6B35] hover:bg-[#FF6B35]/5 transition"
+              >
+                {uploading ? (
+                  <Loader2 size={20} className="animate-spin text-[#FF6B35]" />
+                ) : (
+                  <>
+                    <Image size={22} className="text-[#FF6B35]" />
+                    <span className="text-sm text-gray-600">Ajouter une photo</span>
+                  </>
+                )}
+                <input
+                  id="edit-menu-photo-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label>
+            )}
+          </div>
         </div>
 
         <div className="p-4 border-t flex-shrink-0">
           <Button
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || uploading}
             data-testid="edit-menu-item-save-btn"
             className="w-full rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493]"
           >

@@ -481,6 +481,7 @@ class PostBase(BaseModel):
     views_count: int = 0
     reactions: dict = Field(default_factory=lambda: {"like": 0, "love": 0, "haha": 0, "wow": 0, "fire": 0})
     is_ad: bool = False
+    privacy: str = "public"  # public | friends | private — controls feed visibility
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class PostCreate(BaseModel):
@@ -493,6 +494,7 @@ class PostCreate(BaseModel):
     external_link: Optional[str] = None  # YouTube, article URLs
     link_type: Optional[str] = None  # youtube, article, tiktok, etc.
     tagged_users: List[str] = Field(default_factory=list)  # List of user_ids to tag
+    privacy: Optional[str] = "public"  # public | friends | private
 
 class StoryBase(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -2662,8 +2664,44 @@ async def get_posts(
         "post_id": {"$not": {"$regex": "^auto_"}},
         "created_at": {"$gte": three_days_ago}
     }
+
+    # Privacy filter: only show posts the current user is allowed to see.
+    privacy_or = None
+    if not user_id:
+        privacy_or = [
+            {"privacy": {"$exists": False}},
+            {"privacy": "public"},
+        ]
+    else:
+        try:
+            friends_doc = await db.friendships.find(
+                {"$or": [{"user_a": user_id}, {"user_b": user_id}], "status": "accepted"},
+                {"user_a": 1, "user_b": 1, "_id": 0}
+            ).to_list(2000)
+            friend_ids = set()
+            for f in friends_doc:
+                friend_ids.add(f.get("user_a"))
+                friend_ids.add(f.get("user_b"))
+            friend_ids.discard(user_id)
+        except Exception:
+            friend_ids = set()
+
+        privacy_or = [
+            {"privacy": {"$exists": False}},
+            {"privacy": "public"},
+            {"user_id": user_id},  # always show own posts
+            {"privacy": "friends", "user_id": {"$in": list(friend_ids)}},
+        ]
+
+    # Merge cursor and privacy clauses safely using $and
+    extra_and = []
     if cursor_filter:
-        user_match.update(cursor_filter)
+        # cursor_filter itself uses $or under "$or" key
+        extra_and.append(cursor_filter)
+    if privacy_or:
+        extra_and.append({"$or": privacy_or})
+    if extra_and:
+        user_match["$and"] = extra_and
     
     rss_match = {
         "moderation_status": {"$ne": "rejected"},
@@ -3060,7 +3098,8 @@ async def create_post(post_data: PostCreate, request: Request):
         coordinates=post_data.coordinates,
         external_link=post_data.external_link,
         link_type=post_data.link_type,
-        tagged_users=post_data.tagged_users or []
+        tagged_users=post_data.tagged_users or [],
+        privacy=(post_data.privacy or "public").lower()
     )
     post_dict = post.model_dump()
     post_dict["created_at"] = post_dict["created_at"].isoformat()
@@ -8312,7 +8351,7 @@ async def add_menu_item(request: Request):
             user_id=user.user_id,
             name=body.get("name"),
             price=body.get("price"),
-            photo_url=body.get("photo_url"),
+            photo_url=body.get("photo_url") or body.get("image_url"),
             description=body.get("description")
         )
     except ValueError as e:
@@ -8346,6 +8385,8 @@ async def update_menu_item(item_id: str, request: Request):
             updates["description"] = body["description"]
         if "photo_url" in body:
             updates["photo_url"] = body["photo_url"]
+        if "image_url" in body:
+            updates["photo_url"] = body["image_url"]
         if "is_available" in body:
             updates["is_available"] = body["is_available"]
             

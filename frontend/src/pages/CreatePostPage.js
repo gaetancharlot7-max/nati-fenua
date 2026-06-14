@@ -141,9 +141,9 @@ const CreatePostPage = () => {
   };
 
   useEffect(() => {
-    if (!privacyAccepted) {
-      setShowPrivacyPolicy(true);
-    }
+    // Privacy modal is no longer shown on mount.
+    // It will be displayed only when the user clicks "Publier" (handleSubmit) — see below.
+    // This matches user intent: publication only starts on explicit click, not on page entry.
   }, []);
 
   // Search users for tagging
@@ -300,6 +300,13 @@ const CreatePostPage = () => {
       return;
     }
 
+    // Gate: privacy must be accepted BEFORE the actual publication starts.
+    // Show the modal here (only on publish click, not on page entry).
+    if (!privacyAccepted) {
+      setShowPrivacyPolicy(true);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -317,7 +324,8 @@ const CreatePostPage = () => {
           location: formData.location,
           coordinates: formData.coordinates,
           external_link: formData.external_link,
-          link_type: formData.link_type
+          link_type: formData.link_type,
+          privacy: formData.privacy || 'public'
         });
         toast.success('Publication créée ! Vos amis seront notifiés.');
       }
@@ -613,11 +621,16 @@ const CreatePostPage = () => {
                     </div>
                   </div>
                 </div>
-                {/* Capture button */}
-                <div className="bg-black p-6 flex justify-center">
+                {/* Capture button — extra bottom padding to clear iOS home indicator */}
+                <div
+                  className="bg-black p-6 flex justify-center flex-shrink-0"
+                  style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+                >
                   <button
+                    type="button"
                     onClick={takePhoto}
-                    className="w-20 h-20 rounded-full bg-white flex items-center justify-center border-4 border-gray-300"
+                    data-testid="camera-capture-btn"
+                    className="w-20 h-20 rounded-full bg-white flex items-center justify-center border-4 border-gray-300 active:scale-95 transition-transform"
                   >
                     <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493]" />
                   </button>
@@ -889,11 +902,11 @@ const CreatePostPage = () => {
             </div>
           </div>
 
-          {/* Submit Button */}
+          {/* Submit Button — opens privacy modal first if not accepted, then publishes */}
           <Button
             type="submit"
             data-testid="publish-btn"
-            disabled={loading || uploading || !formData.media_url || !privacyAccepted}
+            disabled={loading || uploading || !formData.media_url}
             className="w-full py-6 rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:from-[#FF5722] hover:to-[#E91E63] text-white font-medium"
           >
             {loading ? (

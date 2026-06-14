@@ -285,7 +285,8 @@ const GDPRSettingsPage = () => {
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white w-full max-w-md rounded-3xl p-6"
+            data-modal-scroll
+            className="bg-white w-full max-w-md rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-red-600 flex items-center gap-2">
