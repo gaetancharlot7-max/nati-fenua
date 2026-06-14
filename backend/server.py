@@ -3162,7 +3162,7 @@ async def send_like_notification(post_id: str, liker_id: str, liker_name: str):
 
 
 async def send_comment_notification(post_id: str, commenter_id: str, commenter_name: str, comment_preview: str):
-    """Send push notification when someone comments on a post"""
+    """Send push + in-app notification when someone comments on a post"""
     try:
         # Get post owner
         post = await db.posts.find_one({"post_id": post_id}, {"user_id": 1, "_id": 0})
@@ -3174,18 +3174,35 @@ async def send_comment_notification(post_id: str, commenter_id: str, commenter_n
         if owner_id == commenter_id:
             return
         
-        # Get owner's device tokens
+        name = commenter_name or "Quelqu'un"
+        preview = comment_preview + "..." if len(comment_preview) >= 50 else comment_preview
+
+        # In-app notification — shows in the bell icon feed
+        try:
+            await db.notifications.insert_one({
+                "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                "user_id": owner_id,
+                "type": "new_comment",
+                "title": f"{name} a commenté votre publication 💬",
+                "message": preview,
+                "data": {"post_id": post_id, "commenter_id": commenter_id},
+                "read": False,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+        except Exception as inapp_err:
+            logger.error(f"Failed to insert in-app comment notification: {inapp_err}")
+
+        # Get owner's device tokens for push
         owner = await db.users.find_one(
             {"user_id": owner_id},
             {"device_tokens": 1, "_id": 0}
         )
         
         if owner and owner.get("device_tokens"):
-            name = commenter_name or "Quelqu'un"
             await push_service.send_to_devices(
                 owner["device_tokens"],
-                f"{name} a commente votre post",
-                comment_preview + "..." if len(comment_preview) >= 50 else comment_preview,
+                f"{name} a commenté votre post",
+                preview,
                 {"type": "comment", "postId": post_id}
             )
     except Exception as e:
