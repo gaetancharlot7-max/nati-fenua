@@ -798,16 +798,16 @@ const CreateVendorProfileModal = ({ isOpen, onClose, cuisineTypes, paymentMethod
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white w-full max-w-lg rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="bg-white w-full max-w-lg rounded-3xl overflow-hidden flex flex-col max-h-[90vh]"
       >
-        <div className="p-4 border-b flex items-center justify-between">
+        <div className="p-4 border-b flex items-center justify-between flex-shrink-0">
           <h2 className="text-lg font-bold">{initialData ? 'Modifier' : 'Créer'} mon profil vendeur</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 overflow-y-auto flex-1" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 block">Nom de la roulotte *</label>
             <Input
@@ -883,10 +883,11 @@ const CreateVendorProfileModal = ({ isOpen, onClose, cuisineTypes, paymentMethod
           </div>
         </div>
 
-        <div className="p-4 border-t">
+        <div className="p-4 border-t flex-shrink-0">
           <Button
             onClick={handleSubmit}
             disabled={loading}
+            data-testid="vendor-save-btn"
             className="w-full rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493]"
           >
             {loading ? <Loader2 size={18} className="animate-spin" /> : 'Enregistrer'}
@@ -942,16 +943,16 @@ const AddMenuItemModal = ({ isOpen, onClose, onSuccess }) => {
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white w-full lg:w-[400px] lg:rounded-3xl rounded-t-3xl"
+        className="bg-white w-full lg:w-[400px] lg:rounded-3xl rounded-t-3xl flex flex-col max-h-[90vh]"
       >
-        <div className="p-4 border-b flex items-center justify-between">
+        <div className="p-4 border-b flex items-center justify-between flex-shrink-0">
           <h2 className="text-lg font-bold">Ajouter un plat</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 overflow-y-auto flex-1" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 block">Nom du plat *</label>
             <Input
@@ -985,10 +986,11 @@ const AddMenuItemModal = ({ isOpen, onClose, onSuccess }) => {
           </div>
         </div>
 
-        <div className="p-4 border-t">
+        <div className="p-4 border-t flex-shrink-0">
           <Button
             onClick={handleSubmit}
             disabled={loading}
+            data-testid="add-menu-item-save-btn"
             className="w-full rounded-xl bg-[#FF6B35]"
           >
             {loading ? <Loader2 size={18} className="animate-spin" /> : 'Ajouter au menu'}
@@ -1053,16 +1055,16 @@ const EditMenuItemModal = ({ isOpen, item, onClose, onSuccess }) => {
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white w-full lg:w-[400px] lg:rounded-3xl rounded-t-3xl"
+        className="bg-white w-full lg:w-[400px] lg:rounded-3xl rounded-t-3xl flex flex-col max-h-[90vh]"
       >
-        <div className="p-4 border-b flex items-center justify-between">
+        <div className="p-4 border-b flex items-center justify-between flex-shrink-0">
           <h2 className="text-lg font-bold">Modifier le plat</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 overflow-y-auto flex-1" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 block">Nom du plat *</label>
             <Input
@@ -1096,10 +1098,11 @@ const EditMenuItemModal = ({ isOpen, item, onClose, onSuccess }) => {
           </div>
         </div>
 
-        <div className="p-4 border-t">
+        <div className="p-4 border-t flex-shrink-0">
           <Button
             onClick={handleSubmit}
             disabled={loading}
+            data-testid="edit-menu-item-save-btn"
             className="w-full rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493]"
           >
             {loading ? <Loader2 size={18} className="animate-spin" /> : 'Enregistrer les modifications'}
