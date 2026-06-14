@@ -285,7 +285,7 @@ redis_cache = RedisCache()
 def cache_key(*args, **kwargs) -> str:
     """Génère une clé de cache unique à partir des arguments"""
     key_data = json.dumps({"a": args, "k": kwargs}, sort_keys=True, default=str)
-    return hashlib.md5(key_data.encode()).hexdigest()[:16]
+    return hashlib.md5(key_data.encode(), usedforsecurity=False).hexdigest()[:16]  # noqa: S324 — cache key only
 
 
 async def cached_query(

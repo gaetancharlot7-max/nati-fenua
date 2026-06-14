@@ -6230,11 +6230,13 @@ def verify_admin_password(password: str, stored_hash: str) -> tuple:
     return False, None
 
 async def get_or_create_admin():
-    """Get or create admin account with bcrypt password"""
+    """Get or create admin account with bcrypt password.
+    Uses ADMIN_DEFAULT_PASSWORD env var if set, otherwise falls back to a static
+    default for first-time bootstrap. Change the password immediately on first login.
+    """
     admin = await db.admin_users.find_one({"email": ADMIN_EMAIL}, {"_id": 0})
     if not admin:
-        # Create default admin with password "NatiFenua2025!" using bcrypt
-        default_password = "NatiFenua2025!"
+        default_password = os.environ.get("ADMIN_DEFAULT_PASSWORD", "NatiFenua2025!")
         password_hash = hash_admin_password(default_password)
         admin = {
             "admin_id": f"admin_{uuid.uuid4().hex[:12]}",
@@ -6247,11 +6249,21 @@ async def get_or_create_admin():
         logger.info(f"Created default admin account with bcrypt: {ADMIN_EMAIL}")
     return admin
 
-@api_router.get("/admin/reset-credentials")
-async def reset_admin_credentials():
-    """Reset admin credentials to default with bcrypt (secure)"""
+@api_router.post("/admin/reset-credentials")
+async def reset_admin_credentials(request: Request):
+    """Reset admin credentials to default with bcrypt.
+    SECURITY: protected by ADMIN_RESET_TOKEN env var. Requires header
+    X-Admin-Reset-Token matching the env var. If env var is missing, endpoint is disabled.
+    """
+    expected = os.environ.get("ADMIN_RESET_TOKEN")
+    if not expected:
+        raise HTTPException(status_code=403, detail="Endpoint désactivé (ADMIN_RESET_TOKEN non configuré)")
+    provided = request.headers.get("X-Admin-Reset-Token")
+    if not provided or provided != expected:
+        raise HTTPException(status_code=403, detail="Token reset admin invalide")
+
     try:
-        default_password = "NatiFenua2025!"
+        default_password = os.environ.get("ADMIN_DEFAULT_PASSWORD", "NatiFenua2025!")
         password_hash = hash_admin_password(default_password)
         
         # Delete old admin accounts
@@ -6267,8 +6279,8 @@ async def reset_admin_credentials():
         }
         await db.admin_users.insert_one(admin)
         
-        logger.info(f"Admin credentials reset with bcrypt")
-        return {"success": True, "message": f"Admin reset to {ADMIN_EMAIL} / NatiFenua2025!"}
+        logger.info(f"Admin credentials reset with bcrypt by authorized caller")
+        return {"success": True, "message": f"Admin reset to {ADMIN_EMAIL}"}
     except Exception as e:
         logger.error(f"Error resetting admin: {e}")
         return {"success": False, "error": str(e)}

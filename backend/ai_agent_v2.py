@@ -690,7 +690,8 @@ class NatiFenuaAgentV2:
 
     @staticmethod
     def _new_session() -> str:
-        return f"sess_{hashlib.md5(str(time.time()).encode()).hexdigest()[:10]}"
+        # noqa: S324 — internal session id, not security-sensitive
+        return f"sess_{hashlib.md5(str(time.time()).encode(), usedforsecurity=False).hexdigest()[:10]}"
 
     @staticmethod
     def _extract_report(text: str) -> Optional[Dict]:

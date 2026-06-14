@@ -409,7 +409,8 @@ def get_varied_fallback_image(title: str, link: str = "", categories: list = Non
     seed_str = (link or "") + "|" + (title or "")
     if not seed_str.strip("|"):
         seed_str = "default"
-    h = int(hashlib.md5(seed_str.encode('utf-8')).hexdigest()[:8], 16)
+    # noqa: S324 — deterministic image picker, not security-sensitive
+    h = int(hashlib.md5(seed_str.encode('utf-8'), usedforsecurity=False).hexdigest()[:8], 16)
     return VARIED_FALLBACK_IMAGES[h % len(VARIED_FALLBACK_IMAGES)]
 
 

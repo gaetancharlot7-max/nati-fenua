@@ -33,7 +33,7 @@ class HighPerformanceCache:
     def _generate_key(self, *args, **kwargs) -> str:
         """Génère une clé de cache unique"""
         key_data = json.dumps({"args": args, "kwargs": kwargs}, sort_keys=True, default=str)
-        return hashlib.md5(key_data.encode()).hexdigest()
+        return hashlib.md5(key_data.encode(), usedforsecurity=False).hexdigest()  # noqa: S324 — cache key only, not security
     
     def get(self, key: str) -> Optional[Any]:
         """Récupère une valeur du cache"""

@@ -110,7 +110,7 @@ user_cache = TTLCache(maxsize=1000, default_ttl=300)    # 5 min pour users
 def cache_key(*args, **kwargs) -> str:
     """Génère une clé de cache unique"""
     key_data = json.dumps({"args": args, "kwargs": kwargs}, sort_keys=True, default=str)
-    return hashlib.md5(key_data.encode()).hexdigest()
+    return hashlib.md5(key_data.encode(), usedforsecurity=False).hexdigest()  # noqa: S324 — cache key only, not security
 
 
 def cached(cache_instance: TTLCache = cache, ttl: Optional[int] = None, prefix: str = ""):
