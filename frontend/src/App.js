@@ -112,6 +112,7 @@ const AdminEmailStatsPage = lazy(() => import('./pages/AdminEmailStatsPage'));
 const AdminAnalyticsInsightsPage = lazy(() => import('./pages/AdminAnalyticsInsightsPage'));
 const RewardsPage = lazy(() => import('./pages/RewardsPage'));
 const PreviewFeedPage = lazy(() => import('./pages/PreviewFeedPage'));
+const VendorPublicProfilePage = lazy(() => import('./pages/VendorPublicProfilePage'));
 
 // Components (loaded immediately as they're small)
 import CookieBanner from './components/CookieBanner';
@@ -219,6 +220,7 @@ function AppContent() {
         <Route path="/pulse" element={<Navigate to="/mana" replace />} />
         <Route path="/vendor" element={<Navigate to="/vendor/dashboard" replace />} />
         <Route path="/vendor/dashboard" element={<ProtectedRoute><MainLayout><VendorDashboardPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/vendor/:vendorId" element={<MainLayout><VendorPublicProfilePage /></MainLayout>} />
         
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -488,16 +488,39 @@ const StoryItem = ({ storyGroup, currentUser, onDelete }) => {
               className="relative max-w-md w-full h-[80vh] rounded-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Story Content */}
-              <img 
-                src={storyGroup.media_url || storyGroup.stories?.[0]?.media_url || '/placeholder-story.svg'}
-                alt="Story"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = '/placeholder-story.svg';
-                }}
-              />
+              {/* Story Content — image or video depending on media_type */}
+              {(() => {
+                const story0 = storyGroup.stories?.[0] || {};
+                const mediaUrl = storyGroup.media_url || story0.media_url;
+                const mediaType = storyGroup.media_type || story0.media_type || 'image';
+                if (mediaType === 'video' && mediaUrl) {
+                  return (
+                    <video
+                      src={mediaUrl}
+                      autoPlay
+                      playsInline
+                      muted
+                      loop
+                      controls={false}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                      data-testid="story-video"
+                    />
+                  );
+                }
+                return (
+                  <img
+                    src={mediaUrl || '/placeholder-story.svg'}
+                    alt="Story"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/placeholder-story.svg';
+                    }}
+                    data-testid="story-image"
+                  />
+                );
+              })()}
               
               {/* Header */}
               <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/60 to-transparent">

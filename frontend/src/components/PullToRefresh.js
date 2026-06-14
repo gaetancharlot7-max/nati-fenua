@@ -45,12 +45,17 @@ const PullToRefresh = ({ onRefresh, children, disabled = false }) => {
         return;
       }
       const dy = e.touches[0].clientY - startY.current;
-      if (dy > 0) {
-        // Resistance curve — feels native
-        const resisted = Math.min(MAX_PULL, dy * 0.5);
-        setPull(resisted);
-        if (dy > 5) e.preventDefault();
+      if (dy <= 0) {
+        // Finger moved up — abort pull gesture so the user can scroll normally
+        if (pull > 0) setPull(0);
+        pulling.current = false;
+        return;
       }
+      // Resistance curve — feels native
+      const resisted = Math.min(MAX_PULL, dy * 0.5);
+      setPull(resisted);
+      // Only prevent default once the gesture is clearly a pull (avoid stealing micro-scrolls)
+      if (dy > 20 && e.cancelable) e.preventDefault();
     };
 
     const onTouchEnd = async () => {
