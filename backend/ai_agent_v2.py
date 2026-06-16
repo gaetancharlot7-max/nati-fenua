@@ -16,12 +16,22 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any
 
 import anthropic
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
 
 # Configuration
-CLAUDE_MODEL = "claude-sonnet-4-6"
+DEFAULT_CLAUDE_MODEL = "claude-sonnet-4-6"
+CLAUDE_MODEL = DEFAULT_CLAUDE_MODEL  # mutable: overridable at runtime via DB-backed config
+
+# Available Claude models — UI dropdown source of truth
+AVAILABLE_MODELS = [
+    {"id": "claude-sonnet-4-6", "name": "Claude Sonnet 4.6 (équilibré, défaut)", "tier": "balanced"},
+    {"id": "claude-opus-4-5",   "name": "Claude Opus 4.5 (le + capable, coût élevé)", "tier": "premium"},
+    {"id": "claude-haiku-4-5",  "name": "Claude Haiku 4.5 (rapide, économique)", "tier": "fast"},
+    {"id": "claude-3-5-sonnet-20241022", "name": "Claude 3.5 Sonnet (legacy, stable)", "tier": "legacy"},
+]
+
 MAX_TOKENS_OUT = 16000
 MAX_REACT_LOOPS = 12
 SESSION_WINDOW = 30
@@ -30,6 +40,9 @@ PROJECT_ROOT = os.getenv("PROJECT_ROOT", "/app")
 MONGO_URL = os.getenv("MONGO_URL", "")
 DB_NAME = os.getenv("DB_NAME", "nati_fenua")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+
+# Runtime-mutable extra system prompt (admin can extend the bot's personality / rules)
+EXTRA_SYSTEM_PROMPT: str = ""
 
 FORBIDDEN_COMMANDS = ["rm -rf /", "DROP DATABASE", "DROP TABLE", "format c:", "dd if=/dev/zero"]
 
@@ -156,6 +169,8 @@ PERFORMANCE :
 
 Tu reponds toujours en francais. Direct, precis, professionnel.
 Quand tu modifies du code, fournis le fichier complet.
+
+{("INSTRUCTIONS ADDITIONNELLES DE L'ADMIN :" + chr(10) + EXTRA_SYSTEM_PROMPT.strip()) if EXTRA_SYSTEM_PROMPT.strip() else ""}
 """
 
 
@@ -855,12 +870,14 @@ def get_db():
 @router.post("/chat", response_model=AgentResponse)
 async def chat(req: ChatRequest):
     """Chat avec l'Agent IA V2"""
+    await load_runtime_config()
     return await NatiFenuaAgentV2(get_db()).run(req.message, req.session_id, req.context, req.autonomous_mode)
 
 
 @router.post("/task", response_model=AgentResponse)
 async def execute_task(req: TaskRequest):
     """Executer une tache autonome"""
+    await load_runtime_config()
     msg = f"{'[CONFIRMATION REQUISE] ' if req.confirm_writes else ''}Tache autonome : {req.task}\nCommence par create_plan, puis execute chaque etape."
     return await NatiFenuaAgentV2(get_db()).run(msg, req.session_id, autonomous_mode=True)
 
@@ -1048,3 +1065,80 @@ async def health_check():
         "tools_count": len(AGENT_TOOLS),
         "tools": [t["name"] for t in AGENT_TOOLS]
     }
+
+
+# ============================================
+# RUNTIME CONFIG (admin can change model + extra system prompt without redeploy)
+# ============================================
+
+_config_client = AsyncIOMotorClient(MONGO_URL) if MONGO_URL else None
+_config_db = _config_client[DB_NAME] if _config_client else None
+
+
+async def load_runtime_config():
+    """Load model + extra prompt from MongoDB on demand."""
+    global CLAUDE_MODEL, EXTRA_SYSTEM_PROMPT
+    if _config_db is None:
+        return
+    try:
+        doc = await _config_db.ai_agent_config.find_one({"_id": "main"}, {"_id": 0})
+        if doc:
+            CLAUDE_MODEL = doc.get("model") or DEFAULT_CLAUDE_MODEL
+            EXTRA_SYSTEM_PROMPT = doc.get("extra_system_prompt") or ""
+    except Exception:
+        pass
+
+
+class AgentConfigUpdate(BaseModel):
+    model: Optional[str] = None
+    extra_system_prompt: Optional[str] = None
+
+
+@router.get("/config")
+async def get_agent_config():
+    """Get current model + extra prompt + list of available models."""
+    await load_runtime_config()
+    return {
+        "model": CLAUDE_MODEL,
+        "default_model": DEFAULT_CLAUDE_MODEL,
+        "available_models": AVAILABLE_MODELS,
+        "extra_system_prompt": EXTRA_SYSTEM_PROMPT,
+        "max_tokens": MAX_TOKENS_OUT,
+        "max_react_loops": MAX_REACT_LOOPS,
+    }
+
+
+@router.put("/config")
+async def update_agent_config(payload: AgentConfigUpdate):
+    """Admin: update the agent's model + extra system prompt at runtime.
+    Persists to MongoDB so the change survives restart. No redeploy needed.
+    """
+    global CLAUDE_MODEL, EXTRA_SYSTEM_PROMPT
+    if _config_db is None:
+        raise HTTPException(status_code=503, detail="MongoDB indisponible")
+
+    update_fields = {}
+
+    if payload.model is not None:
+        allowed = {m["id"] for m in AVAILABLE_MODELS}
+        if payload.model not in allowed:
+            raise HTTPException(status_code=400, detail=f"Modèle inconnu. Choix valides : {sorted(allowed)}")
+        CLAUDE_MODEL = payload.model
+        update_fields["model"] = payload.model
+
+    if payload.extra_system_prompt is not None:
+        if len(payload.extra_system_prompt) > 5000:
+            raise HTTPException(status_code=400, detail="Prompt additionnel trop long (max 5000 caractères)")
+        EXTRA_SYSTEM_PROMPT = payload.extra_system_prompt
+        update_fields["extra_system_prompt"] = payload.extra_system_prompt
+
+    if not update_fields:
+        return {"success": True, "message": "Aucune modification", "model": CLAUDE_MODEL}
+
+    update_fields["updated_at"] = datetime.now().isoformat()
+    await _config_db.ai_agent_config.update_one(
+        {"_id": "main"},
+        {"$set": update_fields},
+        upsert=True
+    )
+    return {"success": True, "model": CLAUDE_MODEL, "extra_system_prompt": EXTRA_SYSTEM_PROMPT}

@@ -31,6 +31,11 @@ const AIAgentPage = () => {
   const [activeTab, setActiveTab] = useState('chat');
   const [auditType, setAuditType] = useState('code_quality');
   const [emergentReports, setEmergentReports] = useState([]);
+  const [agentConfig, setAgentConfig] = useState({ model: '', available_models: [], extra_system_prompt: '' });
+  const [showConfig, setShowConfig] = useState(false);
+  const [configModel, setConfigModel] = useState('');
+  const [configPrompt, setConfigPrompt] = useState('');
+  const [configSaving, setConfigSaving] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -44,7 +49,44 @@ const AIAgentPage = () => {
     
     loadSessions();
     loadEmergentReports();
+    loadAgentConfig();
   }, [user]);
+
+  const loadAgentConfig = async () => {
+    try {
+      const res = await fetch(`${API}/api/ai/config`, { headers: getAuthHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setAgentConfig(data);
+        setConfigModel(data.model || '');
+        setConfigPrompt(data.extra_system_prompt || '');
+      }
+    } catch (e) {
+      // silent
+    }
+  };
+
+  const saveAgentConfig = async () => {
+    setConfigSaving(true);
+    try {
+      const res = await fetch(`${API}/api/ai/config`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ model: configModel, extra_system_prompt: configPrompt })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Erreur');
+      }
+      toast.success('Configuration agent mise à jour 🎉');
+      await loadAgentConfig();
+      setShowConfig(false);
+    } catch (e) {
+      toast.error(e.message || 'Échec de la sauvegarde');
+    } finally {
+      setConfigSaving(false);
+    }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -578,11 +620,25 @@ const AIAgentPage = () => {
           </div>
           
           <div className="ml-auto flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            <span className="px-2 sm:px-3 py-1 sm:py-1.5 bg-green-500/20 text-green-400 rounded-full text-xs font-medium flex items-center gap-1.5">
+            <span
+              data-testid="ai-agent-current-model"
+              className="px-2 sm:px-3 py-1 sm:py-1.5 bg-green-500/20 text-green-400 rounded-full text-xs font-medium flex items-center gap-1.5"
+              title={`Modèle actif : ${agentConfig.model || '...'}`}
+            >
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-              <span className="hidden sm:inline">GPT-4o Actif</span>
+              <span className="hidden sm:inline">
+                {agentConfig.model ? agentConfig.model.replace('claude-', '').replace(/-\d+/, m => m).slice(0, 20) : 'Claude'}
+              </span>
               <span className="sm:hidden">Actif</span>
             </span>
+            <button
+              onClick={() => { setConfigModel(agentConfig.model || ''); setConfigPrompt(agentConfig.extra_system_prompt || ''); setShowConfig(true); }}
+              data-testid="ai-agent-config-btn"
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              title="Configurer le modèle / prompt"
+            >
+              <Settings size={18} className="text-white/50" />
+            </button>
             <button
               onClick={loadEmergentReports}
               className="p-2 hover:bg-white/10 rounded-lg transition-colors"
@@ -750,10 +806,122 @@ const AIAgentPage = () => {
             </Button>
           </form>
           <p className="text-xs text-white/30 text-center mt-2 sm:mt-3 hidden sm:block">
-            Agent Master Developer • GPT-4o • Rapports Emergent automatiques
+            Agent Master Developer • {agentConfig.model || 'Claude'} • Rapports Emergent automatiques
           </p>
         </div>
       </div>
+
+      {/* ========================================
+          CONFIG MODAL — change model + extra prompt
+          ======================================== */}
+      <AnimatePresence>
+        {showConfig && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => !configSaving && setShowConfig(false)}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4"
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              data-modal-scroll
+              className="bg-[#0D0D15] border border-white/10 w-full max-w-lg rounded-t-3xl sm:rounded-3xl flex flex-col max-h-[92vh]"
+              data-testid="ai-agent-config-modal"
+            >
+              <div className="p-4 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <Settings size={18} className="text-[#FF6B35]" />
+                  <h2 className="text-base sm:text-lg font-bold text-white">Configurer l&apos;agent</h2>
+                </div>
+                <button
+                  onClick={() => !configSaving && setShowConfig(false)}
+                  className="p-2 hover:bg-white/10 rounded-full text-white/60 hover:text-white"
+                  data-testid="ai-agent-config-close"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-5" style={{ WebkitOverflowScrolling: 'touch' }}>
+                {/* Model dropdown */}
+                <div>
+                  <label className="text-sm font-semibold text-white/80 mb-2 block">
+                    Modèle IA actif
+                  </label>
+                  <select
+                    value={configModel}
+                    onChange={(e) => setConfigModel(e.target.value)}
+                    data-testid="ai-agent-config-model"
+                    className="w-full bg-white/5 border border-white/10 focus:border-[#FF6B35] rounded-xl py-3 px-3 text-white text-sm focus:outline-none"
+                  >
+                    {(agentConfig.available_models || []).map((m) => (
+                      <option key={m.id} value={m.id} className="bg-[#0D0D15] text-white">
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-white/40 mt-2">
+                    Choisis le modèle Claude utilisé pour répondre. Le changement est instantané, aucun redéploiement requis.
+                  </p>
+                </div>
+
+                {/* Extra system prompt */}
+                <div>
+                  <label className="text-sm font-semibold text-white/80 mb-2 block">
+                    Personnalité / instructions additionnelles
+                  </label>
+                  <textarea
+                    value={configPrompt}
+                    onChange={(e) => setConfigPrompt(e.target.value)}
+                    placeholder="Ex : Sois plus chaleureux, signe tes messages avec 🌺, utilise le tutoiement..."
+                    rows={8}
+                    maxLength={5000}
+                    data-testid="ai-agent-config-prompt"
+                    className="w-full bg-white/5 border border-white/10 focus:border-[#FF6B35] rounded-xl py-3 px-3 text-white text-sm focus:outline-none resize-none"
+                  />
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-xs text-white/40">
+                      Ces instructions s&apos;ajoutent au prompt système. Laisse vide pour le comportement par défaut.
+                    </p>
+                    <span className="text-xs text-white/40">{configPrompt.length}/5000</span>
+                  </div>
+                </div>
+
+                {/* Info card */}
+                <div className="rounded-xl bg-[#FF6B35]/10 border border-[#FF6B35]/30 p-3 text-xs text-white/70">
+                  <strong className="text-[#FF6B35]">Modèle actuel :</strong> {agentConfig.model || '...'}
+                  <br />
+                  <strong className="text-[#FF6B35]">Modèle par défaut :</strong> {agentConfig.default_model || '...'}
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-white/10 flex gap-2 flex-shrink-0">
+                <Button
+                  onClick={() => !configSaving && setShowConfig(false)}
+                  disabled={configSaving}
+                  variant="outline"
+                  className="flex-1 rounded-xl bg-transparent border-white/20 text-white hover:bg-white/5"
+                  data-testid="ai-agent-config-cancel"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  onClick={saveAgentConfig}
+                  disabled={configSaving || !configModel}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white"
+                  data-testid="ai-agent-config-save"
+                >
+                  {configSaving ? <Loader2 size={16} className="animate-spin" /> : 'Enregistrer'}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
