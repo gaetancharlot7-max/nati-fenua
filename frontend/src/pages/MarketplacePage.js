@@ -14,7 +14,7 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../lib/api';
 
 // Product Detail Modal Component
-const ProductDetailModal = ({ product, onClose, onReport, onContact, onBoost, currentUserId, onLike, isLiked }) => {
+const ProductDetailModal = ({ product, onClose, onReport, onContact, onBoost, currentUserId, onLike, isLiked, isContacting }) => {
   if (!product) return null;
   
   const isOwner = product.seller?.user_id === currentUserId || product.user_id === currentUserId;
@@ -144,10 +144,16 @@ const ProductDetailModal = ({ product, onClose, onReport, onContact, onBoost, cu
           {/* Single Contact Button */}
           <Button 
             onClick={() => onContact(product.seller)}
+            disabled={isContacting}
+            data-testid="product-contact-btn"
             className="w-full bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:from-[#FF5722] hover:to-[#E91E63] rounded-xl py-6 text-lg"
           >
-            <MessageCircle size={22} className="mr-2" />
-            Contacter le vendeur
+            {isContacting ? (
+              <Loader2 size={22} className="mr-2 animate-spin" />
+            ) : (
+              <MessageCircle size={22} className="mr-2" />
+            )}
+            {isContacting ? 'Ouverture du chat…' : 'Contacter le vendeur'}
           </Button>
         </div>
       </motion.div>
@@ -156,7 +162,7 @@ const ProductDetailModal = ({ product, onClose, onReport, onContact, onBoost, cu
 };
 
 // Service Detail Modal Component
-const ServiceDetailModal = ({ service, onClose, onReport, onContact }) => {
+const ServiceDetailModal = ({ service, onClose, onReport, onContact, isContacting }) => {
   if (!service) return null;
 
   return (
@@ -239,10 +245,16 @@ const ServiceDetailModal = ({ service, onClose, onReport, onContact }) => {
           {/* Single Contact Button */}
           <Button 
             onClick={() => onContact(service.provider)}
+            disabled={isContacting}
+            data-testid="service-contact-btn"
             className="w-full bg-gradient-to-r from-[#00CED1] to-[#006994] hover:from-[#00B5B5] hover:to-[#005580] rounded-xl py-6 text-lg"
           >
-            <MessageCircle size={22} className="mr-2" />
-            Contacter le prestataire
+            {isContacting ? (
+              <Loader2 size={22} className="mr-2 animate-spin" />
+            ) : (
+              <MessageCircle size={22} className="mr-2" />
+            )}
+            {isContacting ? 'Ouverture du chat…' : 'Contacter le prestataire'}
           </Button>
         </div>
       </motion.div>
@@ -398,6 +410,7 @@ const MarketplacePage = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('products');
   const [products, setProducts] = useState(demoProducts);
+  const [contactingSellerId, setContactingSellerId] = useState(null);
   const [services, setServices] = useState(demoServices);
   const [categories, setCategories] = useState({ products: [], services: [] });
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -470,24 +483,39 @@ const MarketplacePage = () => {
       toast.error('Impossible de contacter ce vendeur');
       return;
     }
-    
-    try {
-      // Create or get existing conversation
-      const response = await chatApi.createConversation(seller.user_id);
-      const conversationId = response.data.conversation_id || response.data.id;
-      
-      // Navigate to chat with this conversation
-      navigate(`/chat?conversation=${conversationId}&user=${seller.user_id}`);
-      toast.success(`Conversation avec ${seller.name} ouverte`);
-    } catch (error) {
-      console.error('Error creating conversation:', error);
-      // If API fails, navigate to chat with user param
-      navigate(`/chat?user=${seller.user_id}`);
+
+    // If not authenticated → redirect to /auth with return URL
+    if (!user) {
+      toast.info('Connectez-vous pour contacter le vendeur');
+      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      return;
     }
-    
-    // Close the modal
-    setSelectedProduct(null);
-    setSelectedService(null);
+
+    setContactingSellerId(seller.user_id);
+    try {
+      // chatApi.createConversation already returns axios response.
+      // axios unwraps the JSON body into `.data`, so the conversation object is at response.data.
+      const response = await chatApi.createConversation(seller.user_id);
+      const conv = response.data || {};
+      const conversationId = conv.conversation_id || conv.id;
+
+      if (conversationId) {
+        navigate(`/chat?conversation=${conversationId}&user=${seller.user_id}`);
+        toast.success(`Conversation avec ${seller.name} ouverte`);
+      } else {
+        // API responded OK but without conversation_id → fallback to user query
+        navigate(`/chat?user=${seller.user_id}`);
+      }
+    } catch (error) {
+      // Network or auth error → graceful fallback + visible toast
+      toast.error('Impossible de contacter le vendeur. Réessayez.');
+      navigate(`/chat?user=${seller.user_id}`);
+    } finally {
+      setContactingSellerId(null);
+      // Close the modal
+      setSelectedProduct(null);
+      setSelectedService(null);
+    }
   };
 
   // Handle like product
@@ -962,6 +990,7 @@ const MarketplacePage = () => {
             currentUserId={user?.user_id}
             onLike={handleLikeProduct}
             isLiked={likedProducts.has(selectedProduct.product_id)}
+            isContacting={contactingSellerId === selectedProduct?.seller?.user_id}
           />
         )}
       </AnimatePresence>
@@ -1066,6 +1095,7 @@ const MarketplacePage = () => {
               setReportItem({ ...item, type: 'service' });
             }}
             onContact={handleContactSeller}
+            isContacting={contactingSellerId === selectedService?.provider?.user_id}
           />
         )}
       </AnimatePresence>

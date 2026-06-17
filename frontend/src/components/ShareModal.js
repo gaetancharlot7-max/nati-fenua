@@ -90,7 +90,13 @@ export const ShareModal = ({ isOpen, onClose, url, title, description, postId })
     }
   };
 
+  const [reposting, setReposting] = useState(false);
+
   const handleRepostOnFenua = async () => {
+    if (reposting) return;
+    setReposting(true);
+    // Close the modal immediately to give instant feedback (per UX spec)
+    onClose();
     try {
       await postsApi.create({
         content_type: 'link',
@@ -100,10 +106,11 @@ export const ShareModal = ({ isOpen, onClose, url, title, description, postId })
         caption: `🔗 Partagé depuis Nati Fenua\n\n${shareTitle}`,
         feed_type: 'user'
       });
-      toast.success('Publié sur ton feed Nati Fenua !');
-      onClose();
+      toast.success('✅ Post partagé sur votre profil !', { duration: 3000 });
     } catch (err) {
-      toast.error('Erreur lors de la publication');
+      toast.error('❌ Partage impossible. Réessayez.', { duration: 3500 });
+    } finally {
+      setReposting(false);
     }
   };
 
@@ -179,13 +186,20 @@ export const ShareModal = ({ isOpen, onClose, url, title, description, postId })
                   <button
                     type="button"
                     onClick={handleRepostOnFenua}
+                    disabled={reposting}
                     data-testid="share-repost-btn"
-                    className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-[#FF6B35]/20 bg-gradient-to-br from-[#FF6B35]/5 to-[#FF1493]/5 hover:from-[#FF6B35]/10 hover:to-[#FF1493]/10 transition-colors"
+                    className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-[#FF6B35]/20 bg-gradient-to-br from-[#FF6B35]/5 to-[#FF1493]/5 hover:from-[#FF6B35]/10 hover:to-[#FF1493]/10 transition-colors disabled:opacity-60"
                   >
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FF6B35] to-[#FF1493] flex items-center justify-center">
-                      <img src="/nati-fenua-48.png" alt="" className="w-7 h-7" />
+                      {reposting ? (
+                        <Loader2 size={22} className="text-white animate-spin" />
+                      ) : (
+                        <img src="/nati-fenua-48.png" alt="" className="w-7 h-7" />
+                      )}
                     </div>
-                    <span className="text-xs font-medium text-[#1A1A2E] text-center leading-tight">Sur Nati Fenua</span>
+                    <span className="text-xs font-medium text-[#1A1A2E] text-center leading-tight">
+                      {reposting ? 'Partage…' : 'Sur Nati Fenua'}
+                    </span>
                   </button>
                   <button
                     type="button"

@@ -1063,6 +1063,30 @@ const PulsePage = () => {
   );
 };
 
+// Safe date formatter for Mana markers — handles missing/invalid timestamps gracefully.
+// Backend may omit `created_at` on system-generated markers (webcams, etc.) or return
+// "YYYY-MM-DD HH:MM:SS" instead of strict ISO. Returns "Date inconnue" as fallback.
+const formatMarkerDate = (raw) => {
+  if (!raw) return 'Date inconnue';
+  try {
+    // Normalize "2026-06-17 14:30:00" → "2026-06-17T14:30:00" for Safari/iOS
+    const normalized = typeof raw === 'string' && raw.includes(' ') && !raw.includes('T')
+      ? raw.replace(' ', 'T')
+      : raw;
+    const d = new Date(normalized);
+    if (Number.isNaN(d.getTime())) return 'Date inconnue';
+    return d.toLocaleString('fr-FR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  } catch {
+    return 'Date inconnue';
+  }
+};
+
+// Default Tahiti coordinates for the manual location fallback in the report modal
+const TAHITI_CENTER = { lat: -17.5516, lng: -149.5585 };
+
 // Create Signal Modal
 const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSuccess }) => {
   const [step, setStep] = useState(1);
@@ -1072,6 +1096,9 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
   const [location, setLocation] = useState(userLocation);
   const [loading, setLoading] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [locationMode, setLocationMode] = useState('gps'); // 'gps' | 'manual'
+  const [manualLat, setManualLat] = useState('');
+  const [manualLng, setManualLng] = useState('');
   const [visibility, setVisibility] = useState('public');
   // Carpool-specific fields
   const [carpoolDeparture, setCarpoolDeparture] = useState('');
@@ -1098,13 +1125,30 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
             lng: position.coords.longitude
           });
           setGettingLocation(false);
+          setLocationMode('gps');
         },
         () => {
-          toast.error('Position GPS requise pour signaler');
+          // GPS refused or unavailable → switch to manual mode (no blocking toast)
           setGettingLocation(false);
+          setLocationMode('manual');
+          toast.info('GPS indisponible : saisis ta position manuellement.');
         }
       );
+    } else {
+      setLocationMode('manual');
     }
+  };
+
+  // Default Tahiti coordinates for the manual picker fallback
+  const applyManualLocation = () => {
+    const lat = parseFloat(manualLat);
+    const lng = parseFloat(manualLng);
+    if (Number.isNaN(lat) || Number.isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      toast.error('Coordonnées invalides — vérifie le format (ex: -17.55, -149.56)');
+      return;
+    }
+    setLocation({ lat, lng });
+    toast.success('Position définie manuellement');
   };
 
   const handleSubmit = async () => {
@@ -1230,18 +1274,79 @@ const CreateSignalModal = ({ isOpen, onClose, markerTypes, userLocation, onSucce
                   ) : location ? (
                     <>
                       <Check size={20} className="text-green-500" />
-                      <span className="text-green-700">Position GPS détectée</span>
+                      <span className="text-green-700">
+                        {locationMode === 'manual' ? 'Position saisie manuellement' : 'Position GPS détectée'}
+                      </span>
+                      <button
+                        onClick={() => { setLocation(null); setLocationMode('manual'); }}
+                        className="ml-auto text-xs text-gray-500 underline"
+                        data-testid="signal-location-reset"
+                      >
+                        Modifier
+                      </button>
                     </>
                   ) : (
                     <>
                       <AlertTriangle size={20} className="text-yellow-500" />
-                      <span className="text-yellow-700">Position GPS requise</span>
-                      <button onClick={getLocation} className="ml-auto text-sm text-[#FF6B35] font-medium">
-                        Réessayer
+                      <div className="flex-1">
+                        <p className="text-yellow-700 text-sm font-medium">GPS désactivé</p>
+                        <p className="text-yellow-600 text-xs">Réessaye le GPS ou saisis tes coordonnées.</p>
+                      </div>
+                      <button
+                        onClick={getLocation}
+                        data-testid="signal-retry-gps"
+                        className="text-sm text-[#FF6B35] font-medium"
+                      >
+                        Réessayer GPS
                       </button>
                     </>
                   )}
                 </div>
+
+                {/* Manual coordinate fallback — visible when GPS failed OR user clicked Modifier */}
+                {!location && locationMode === 'manual' && (
+                  <div className="p-3 rounded-xl border-2 border-dashed border-[#FF6B35]/40 bg-[#FF6B35]/5 space-y-2" data-testid="signal-manual-location">
+                    <p className="text-xs text-[#1A1A2E] font-semibold">📍 Saisis ta position manuellement</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        type="number"
+                        step="any"
+                        value={manualLat}
+                        onChange={(e) => setManualLat(e.target.value)}
+                        placeholder="Latitude (ex: -17.55)"
+                        data-testid="signal-manual-lat"
+                        className="rounded-xl text-sm"
+                      />
+                      <Input
+                        type="number"
+                        step="any"
+                        value={manualLng}
+                        onChange={(e) => setManualLng(e.target.value)}
+                        placeholder="Longitude (ex: -149.56)"
+                        data-testid="signal-manual-lng"
+                        className="rounded-xl text-sm"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setManualLat(String(TAHITI_CENTER.lat)); setManualLng(String(TAHITI_CENTER.lng)); }}
+                        className="text-xs text-[#FF6B35] underline"
+                      >
+                        Centre Tahiti
+                      </button>
+                      <button
+                        type="button"
+                        onClick={applyManualLocation}
+                        disabled={!manualLat || !manualLng}
+                        data-testid="signal-manual-apply"
+                        className="ml-auto px-3 py-1.5 rounded-lg bg-[#FF6B35] text-white text-xs font-bold disabled:opacity-50"
+                      >
+                        Valider
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Title */}
                 <div>
@@ -1490,7 +1595,7 @@ const MarkerDetailModal = ({ marker, onClose, onConfirm, onContactVendor, contac
                 <div>
                   <h2 className="font-bold text-lg">{marker.title}</h2>
                   <p className="text-white/80 text-sm">
-                    {new Date(marker.created_at).toLocaleString('fr-FR')}
+                    {formatMarkerDate(marker.created_at)}
                   </p>
                 </div>
               </div>
