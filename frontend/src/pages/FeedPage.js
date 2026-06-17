@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X, ChevronLeft, ChevronRight, Flag, Youtube, Link2, ExternalLink, WifiOff, Languages, Loader2, Download, Smartphone, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X, ChevronLeft, ChevronRight, Flag, Youtube, Link2, ExternalLink, WifiOff, Languages, Loader2, Download, Smartphone, Trash2, Edit3 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
@@ -616,6 +616,26 @@ const FeedPage = () => {
   const [showPostMenu, setShowPostMenu] = useState(null);
   const [reportPost, setReportPost] = useState(null);
   const [blockUser, setBlockUser] = useState(null);
+  const [editingPost, setEditingPost] = useState(null);
+  const [editingCaption, setEditingCaption] = useState('');
+  const [savingCaption, setSavingCaption] = useState(false);
+
+  const handleSaveCaption = async () => {
+    if (!editingPost) return;
+    setSavingCaption(true);
+    try {
+      const res = await postsApi.update(editingPost.post_id, { caption: editingCaption });
+      const updated = res.data;
+      setPosts(prev => prev.map(p => p.post_id === editingPost.post_id ? { ...p, caption: updated.caption } : p));
+      toast.success('Légende mise à jour ✨');
+      setEditingPost(null);
+      setEditingCaption('');
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Erreur lors de la mise à jour');
+    } finally {
+      setSavingCaption(false);
+    }
+  };
   const [savedPosts, setSavedPosts] = useState(new Set());
 
   useEffect(() => {
@@ -902,6 +922,21 @@ const FeedPage = () => {
                         exit={{ opacity: 0, scale: 0.95, y: -10 }}
                         className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 z-20 overflow-hidden"
                       >
+                        {/* Edit caption — own posts only */}
+                        {post.user?.user_id === user?.user_id && (
+                          <button
+                            onClick={() => {
+                              setEditingPost(post);
+                              setEditingCaption(post.caption || '');
+                              setShowPostMenu(null);
+                            }}
+                            data-testid={`edit-caption-btn-${post.post_id}`}
+                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-50 text-blue-700 transition-colors"
+                          >
+                            <Edit3 size={18} />
+                            <span className="font-medium">Modifier la légende</span>
+                          </button>
+                        )}
                         {/* Delete button - only for own posts */}
                         {post.user?.user_id === user?.user_id && (
                           <button
@@ -1126,13 +1161,13 @@ const FeedPage = () => {
                     data-testid={`rss-caption-link-${post.post_id}`}
                     className="block text-[#1A1A2E] text-sm no-underline hover:underline"
                   >
-                    <span className="font-bold">{post.user?.name}</span>{' '}
-                    {post.translatedCaption || post.caption}
+                    <span className="font-bold">{post.user?.name}</span>
+                    {(post.translatedCaption || post.caption) ? <>{' '}{post.translatedCaption || post.caption}</> : null}
                   </a>
                 ) : (
                   <p className="text-[#1A1A2E] text-sm">
-                    <span className="font-bold">{post.user?.name}</span>{' '}
-                    {post.translatedCaption || post.caption}
+                    <span className="font-bold">{post.user?.name}</span>
+                    {(post.translatedCaption || post.caption) ? <>{' '}{post.translatedCaption || post.caption}</> : null}
                   </p>
                 )}
                 
@@ -1252,6 +1287,63 @@ const FeedPage = () => {
         userId={blockUser?.user_id}
         userName={blockUser?.name}
       />
+
+      {/* Edit caption modal */}
+      <AnimatePresence>
+        {editingPost && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => !savingCaption && setEditingPost(null)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          >
+            <motion.div
+              initial={{ y: 40 }}
+              animate={{ y: 0 }}
+              exit={{ y: 40 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 max-h-[85vh] overflow-y-auto"
+              data-testid="edit-caption-modal"
+              data-modal-scroll
+            >
+              <h2 className="text-lg font-bold text-[#1A1A2E] mb-1">Modifier la légende</h2>
+              <p className="text-xs text-gray-500 mb-4">Ajoute ou modifie le texte de ta publication.</p>
+              <textarea
+                value={editingCaption}
+                onChange={(e) => setEditingCaption(e.target.value)}
+                placeholder="Écris ta légende ici…"
+                rows={5}
+                maxLength={1000}
+                data-testid="edit-caption-textarea"
+                className="w-full border-2 border-gray-200 focus:border-[#FF6B35] rounded-2xl p-3 text-sm resize-none focus:outline-none"
+              />
+              <div className="flex items-center justify-between mt-1 mb-4">
+                <span className="text-xs text-gray-400">{editingCaption.length}/1000</span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => !savingCaption && setEditingPost(null)}
+                  disabled={savingCaption}
+                  className="flex-1 rounded-xl"
+                  data-testid="edit-caption-cancel"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  onClick={handleSaveCaption}
+                  disabled={savingCaption}
+                  data-testid="edit-caption-save"
+                  className="flex-1 rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#FF1493]"
+                >
+                  {savingCaption ? <Loader2 size={16} className="animate-spin" /> : 'Enregistrer'}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
     </PullToRefresh>
   );

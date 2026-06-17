@@ -58,6 +58,7 @@ export const postsApi = {
   getNearby: (lat, lng, radiusKm = 50) => api.get(`/posts/nearby?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`),
   getOne: (postId) => api.get(`/posts/${postId}`),
   create: (data) => api.post('/posts', data),
+  update: (postId, data) => api.patch(`/posts/${postId}`, data),
   delete: (postId) => api.delete(`/posts/${postId}`),
   like: (postId) => api.post(`/posts/${postId}/like`),
   react: (postId, reaction) => api.post(`/posts/${postId}/react`, { reaction }),

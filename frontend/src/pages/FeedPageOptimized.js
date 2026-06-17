@@ -469,10 +469,10 @@ const PostCard = ({ post, index, onReaction, onSave, onShare, onReport, onBlock,
           </p>
         </div>
 
-        {/* Caption */}
+        {/* Caption — render only the name if caption is empty/null (avoid trailing space) */}
         <p className="text-[#1A1A2E] text-sm">
-          <span className="font-bold">{post.user?.name}</span>{' '}
-          {post.caption}
+          <span className="font-bold">{post.user?.name}</span>
+          {post.caption ? <>{' '}{post.caption}</> : null}
         </p>
 
         {/* Comments Section */}

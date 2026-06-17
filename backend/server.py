@@ -3315,6 +3315,46 @@ async def save_post(post_id: str, request: Request):
         return {"saved": True}
 
 
+@api_router.patch("/posts/{post_id}")
+async def update_user_post(post_id: str, request: Request):
+    """Update a post (only caption + location editable by owner). 
+    Allows users to fix the bug where they published with an empty caption.
+    """
+    user = await require_auth(request)
+    body = await request.json()
+    
+    post = await db.posts.find_one({"post_id": post_id}, {"_id": 0, "user_id": 1})
+    if not post:
+        raise HTTPException(status_code=404, detail="Publication introuvable")
+    if post.get("user_id") != user.user_id:
+        raise HTTPException(status_code=403, detail="Vous ne pouvez modifier que vos propres publications")
+    
+    updates = {}
+    if "caption" in body:
+        caption = body.get("caption") or ""
+        # Moderation check on new caption
+        if caption:
+            content_check = moderate_text_content(caption)
+            if content_check.blocked:
+                raise HTTPException(status_code=400, detail="Contenu non autorisé: " + ", ".join(content_check.flags))
+            updates["caption"] = sanitize_html(caption)
+        else:
+            updates["caption"] = None
+    if "location" in body:
+        updates["location"] = (body.get("location") or "")[:200]
+    if "privacy" in body and body["privacy"] in ("public", "friends", "private"):
+        updates["privacy"] = body["privacy"]
+    
+    if not updates:
+        return {"success": True, "message": "Aucun changement"}
+    
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.posts.update_one({"post_id": post_id}, {"$set": updates})
+    
+    updated = await db.posts.find_one({"post_id": post_id}, {"_id": 0})
+    return updated
+
+
 @api_router.delete("/posts/{post_id}")
 async def delete_user_post(post_id: str, request: Request):
     """Delete a post (only the owner can delete their own post)"""
