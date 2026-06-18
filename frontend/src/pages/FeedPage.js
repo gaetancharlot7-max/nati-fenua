@@ -260,7 +260,7 @@ const ArticleLinkPreview = ({ url, imageUrl, title, source, onClick }) => {
 };
 
 // Comments Section Component
-const CommentsSection = ({ post, onCommentAdded }) => {
+const CommentsSection = ({ post, onCommentAdded, openExternally, onModalClosed }) => {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
@@ -273,7 +273,7 @@ const CommentsSection = ({ post, onCommentAdded }) => {
       const response = await postsApi.getComments(post.post_id);
       setComments(response.data || []);
     } catch (error) {
-      console.error('Error loading comments:', error);
+      // silent
     } finally {
       setLoading(false);
     }
@@ -310,17 +310,19 @@ const CommentsSection = ({ post, onCommentAdded }) => {
     loadComments();
   };
 
-  // Listen for global "open comments" event dispatched by the MessageCircle action button
+  const handleCloseComments = () => {
+    setShowComments(false);
+    if (typeof onModalClosed === 'function') onModalClosed();
+  };
+
+  // External trigger from the parent MessageCircle button (lifted state pattern,
+  // replaces the previous fragile window event listener that caused mobile touch blocking).
   useEffect(() => {
-    const handler = (e) => {
-      if (e.detail?.post_id === post.post_id) {
-        handleOpenComments();
-      }
-    };
-    window.addEventListener('open-comments', handler);
-    return () => window.removeEventListener('open-comments', handler);
+    if (openExternally) {
+      handleOpenComments();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [post.post_id]);
+  }, [openExternally]);
 
   return (
     <>
@@ -366,7 +368,7 @@ const CommentsSection = ({ post, onCommentAdded }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center justify-center"
-            onClick={() => setShowComments(false)}
+            onClick={handleCloseComments}
           >
             <motion.div
               initial={{ y: '100%' }}
@@ -378,7 +380,7 @@ const CommentsSection = ({ post, onCommentAdded }) => {
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b">
                 <h3 className="font-bold text-lg">Commentaires ({comments.length})</h3>
-                <button onClick={() => setShowComments(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                <button onClick={handleCloseComments} data-testid="comments-modal-close" className="p-2 hover:bg-gray-100 rounded-full">
                   <X size={20} />
                 </button>
               </div>
@@ -614,6 +616,7 @@ const FeedPage = () => {
   const [showReactions, setShowReactions] = useState(null);
   const [sharePost, setSharePost] = useState(null);
   const [showPostMenu, setShowPostMenu] = useState(null);
+  const [activeCommentsPostId, setActiveCommentsPostId] = useState(null);
   const [reportPost, setReportPost] = useState(null);
   const [blockUser, setBlockUser] = useState(null);
   const [editingPost, setEditingPost] = useState(null);
@@ -1097,7 +1100,12 @@ const FeedPage = () => {
                   
                   <button
                     type="button"
-                    onClick={() => window.dispatchEvent(new CustomEvent('open-comments', { detail: { post_id: post.post_id } }))}
+                    onClick={(e) => {
+                      // stopPropagation prevents the touchend from bubbling up to the
+                      // modal backdrop and immediately closing it on mobile devices.
+                      e.stopPropagation();
+                      setActiveCommentsPostId(post.post_id);
+                    }}
                     data-testid={`comment-btn-${post.post_id}`}
                     className="p-2 rounded-xl hover:bg-gray-100 transition-all"
                     aria-label="Ouvrir les commentaires"
@@ -1243,7 +1251,12 @@ const FeedPage = () => {
               </div>
 
               {/* Comments Section */}
-              <CommentsSection post={post} onCommentAdded={handleCommentAdded} />
+              <CommentsSection
+                post={post}
+                onCommentAdded={handleCommentAdded}
+                openExternally={activeCommentsPostId === post.post_id}
+                onModalClosed={() => setActiveCommentsPostId(null)}
+              />
 
               {/* Timestamp */}
               <p className="text-gray-400 text-xs mt-2 uppercase">
