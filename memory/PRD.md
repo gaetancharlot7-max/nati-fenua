@@ -236,3 +236,25 @@ Score prod `nati-fenua.com` : Performance 41 / Accessibility 93 / Best Practices
 - Toutes les `<img>` ont fallback `onerror` global via MutationObserver dans `index.js`
 - `EMERGENT_LLM_KEY` + `STRIPE_API_KEY=sk_test_emergent` déjà en env
 - Service Worker v5 — bump le numéro pour forcer iPhone PWA à clear le cache
+
+## Changelog récent (juin 2026 — Iteration 9)
+### Inbound Resend Webhook + Boîte de réception Admin (juin 2026)
+- **POST `/api/webhook/resend/inbound`** (public, signature optionnelle via `RESEND_WEBHOOK_SECRET`) : accepte les payloads Resend nested `{type, data:{from,to,subject,text,html,attachments}}` et SendGrid flat `{from, to, ...}`. Persiste dans `db.inbound_emails` avec champs `inbound_id, from, to, subject, text, html, headers, attachments, read, archived, created_at`. Notifie tous les admins en in-app (`db.notifications` avec `type=inbound_email`).
+- **3 endpoints admin** (auth: `verify_admin_token`) :
+  - `GET /api/admin/inbox?page=&limit=&filter_read=&q=` → liste paginée + compteur unread
+  - `GET /api/admin/inbox/{inbound_id}` → détail complet (html inclus), auto-marquage lu
+  - `POST /api/admin/inbox/{inbound_id}/read` → toggle read
+  - `DELETE /api/admin/inbox/{inbound_id}` → soft-archive
+- **Page admin `/admin/inbox`** (`AdminInboxPage.js`) : layout deux colonnes (liste 420px + detail), search debounced, 3 filtres (Tous/Non-lus/Lus), bouton Répondre (mailto:), Archiver, Toggle read. Dark theme cohérent avec `/admin/email-stats`.
+- **Sidebar admin** : nouveau lien "Boîte de réception" (icône `Inbox` lucide-react) entre "Stats Emails" et "Insights & Top".
+- **Config Resend** : pour activer la réception réelle, configurer MX records sur `nati-fenua.com` pointant vers Resend Inbound + webhook URL = `https://nati-fenua.com/api/webhook/resend/inbound`.
+
+### Profile : Niveau Mana + auto-refresh (juin 2026)
+- `ProfilePage.js` charge `/api/users/level/{id}` + `/api/users/{id}/statistics` au mount → affiche `<UserLevelBadge level={userLevel} />` à côté du nom (Régulier/Local/Ambassadeur/Mahana) et nouvelle stat column "✨ Mana" avec `mana_points` numériques (data-testid=`profile-mana-score`).
+- **Auto-refresh** : écouteurs `window.focus` + événement custom `mana:updated` ; déclenché depuis `CreatePostPage.js` après publication réussie (avant `navigate('/feed')`).
+- Fix bonus : `EditProfilePage.js` utilise `URL.createObjectURL()` au lieu de `FileReader.readAsDataURL()` pour preview avatar instantané (synchrone, no async delay) + cleanup `URL.revokeObjectURL()` au unmount.
+
+### Testing
+- Backend pytest 12/12 PASS dans `/app/backend/tests/test_inbox_features.py` (créé par testing agent).
+- Frontend e2e 4/4 PASS via Playwright : inbox CRUD, profile badge/mana, avatar blob preview.
+- Aucune régression observée par rapport à iteration 8.
