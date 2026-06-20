@@ -109,6 +109,7 @@ const BetaTestPage = lazy(() => import('./pages/BetaTestPage'));
 const AdminBetaPage = lazy(() => import('./pages/AdminBetaPage'));
 const AdminPaymentsPage = lazy(() => import('./pages/AdminPaymentsPage'));
 const AdminEmailStatsPage = lazy(() => import('./pages/AdminEmailStatsPage'));
+const AdminInboxPage = lazy(() => import('./pages/AdminInboxPage'));
 const AdminAnalyticsInsightsPage = lazy(() => import('./pages/AdminAnalyticsInsightsPage'));
 const RewardsPage = lazy(() => import('./pages/RewardsPage'));
 const PreviewFeedPage = lazy(() => import('./pages/PreviewFeedPage'));
@@ -183,6 +184,7 @@ function AppContent() {
         <Route path="/admin/beta" element={<AdminRoute><AdminBetaPage /></AdminRoute>} />
         <Route path="/admin/payments" element={<AdminRoute><AdminPaymentsPage /></AdminRoute>} />
         <Route path="/admin/email-stats" element={<AdminRoute><AdminEmailStatsPage /></AdminRoute>} />
+        <Route path="/admin/inbox" element={<AdminRoute><AdminInboxPage /></AdminRoute>} />
         <Route path="/admin/insights" element={<AdminRoute><AdminAnalyticsInsightsPage /></AdminRoute>} />
         <Route path="/rewards" element={<ProtectedRoute><MainLayout><RewardsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/admin/ai-agent" element={<AdminRoute><AIAgentPage /></AdminRoute>} />

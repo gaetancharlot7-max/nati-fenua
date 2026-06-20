@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import FriendButton from '../components/FriendButton';
 import PionnierBadge from '../components/PionnierBadge';
+import UserLevelBadge from '../components/UserLevelBadge';
 import { authFetch } from '../lib/api';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -22,6 +23,8 @@ const ProfilePage = () => {
   const [savedPosts, setSavedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('posts');
+  const [userLevel, setUserLevel] = useState(null);
+  const [userStats, setUserStats] = useState(null);
   
   // Friends modal
   const [showFriendsModal, setShowFriendsModal] = useState(false);
@@ -43,6 +46,35 @@ const ProfilePage = () => {
       loadProfile();
     }
   }, [targetUserId, user]);
+
+  // Refresh user level + stats whenever the tab regains focus or when the user
+  // performs an action that affects Mana points (post created/liked elsewhere).
+  useEffect(() => {
+    if (!targetUserId) return;
+    const refreshStats = async () => {
+      try {
+        const [levelRes, statsRes] = await Promise.all([
+          authFetch(`${API}/api/users/level/${targetUserId}`),
+          authFetch(`${API}/api/users/${targetUserId}/statistics`)
+        ]);
+        if (levelRes.ok) setUserLevel(await levelRes.json());
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setUserStats(statsData?.stats || null);
+        }
+      } catch (err) {
+        // Silent fail — stats are non-critical
+      }
+    };
+    const onFocus = () => refreshStats();
+    const onMana = () => refreshStats();
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('mana:updated', onMana);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('mana:updated', onMana);
+    };
+  }, [targetUserId]);
 
   const loadProfile = async () => {
     setLoading(true);
@@ -78,6 +110,24 @@ const ProfilePage = () => {
           const savedData = await savedRes.json();
           setSavedPosts(Array.isArray(savedData) ? savedData : []);
         }
+      }
+
+      // Load user level + Mana points (statistics)
+      try {
+        const [levelRes, statsRes] = await Promise.all([
+          authFetch(`${API}/api/users/level/${targetUserId}`),
+          authFetch(`${API}/api/users/${targetUserId}/statistics`)
+        ]);
+        if (levelRes.ok) {
+          const levelData = await levelRes.json();
+          setUserLevel(levelData);
+        }
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setUserStats(statsData?.stats || null);
+        }
+      } catch (err) {
+        console.warn('Could not load level/stats:', err);
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -260,6 +310,9 @@ const ProfilePage = () => {
               {(displayUser?.badges || []).includes('pionnier') && (
                 <PionnierBadge size="sm" />
               )}
+              {userLevel && (
+                <UserLevelBadge level={userLevel} size="sm" animate />
+              )}
               {isOwnProfile && (
                 <Button
                   variant="ghost"
@@ -286,6 +339,15 @@ const ProfilePage = () => {
                 <p className="font-bold text-[#2F2F31]">{profileUser?.friends_count || displayUser?.friends_count || 0}</p>
                 <p className="text-sm text-gray-500">Amis</p>
               </button>
+              {userStats && (
+                <div className="text-center" data-testid="profile-mana-score">
+                  <p className="font-bold text-[#FF6B35] flex items-center justify-center gap-1">
+                    <span aria-hidden>✨</span>
+                    {userStats.mana_points || 0}
+                  </p>
+                  <p className="text-sm text-gray-500">Mana</p>
+                </div>
+              )}
             </div>
 
             {/* Bio */}

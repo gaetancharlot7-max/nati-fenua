@@ -1,0 +1,72 @@
+{
+  "summary": "Iteration 9 — Inbound Resend Webhook + Admin Inbox UI + Profile Mana/UserLevelBadge + Avatar blob preview. All backend pytest cases PASS (12/12 in /app/backend/tests/test_inbox_features.py) and all 4 frontend criteria PASS. No critical regression. /api/webhook/resend/inbound accepts both nested and flat payloads, persists to Mongo and notifies admins. Admin Inbox UI fully wired (list/filter/search/detail/toggle-read/archive). ProfilePage shows UserLevelBadge (level=2 'Régulier' for demo) + 'Mana' stat column (✨ 0). Avatar preview uses blob: URLs (not data:).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/webhook/resend/inbound", "issue": "RESEND_WEBHOOK_SECRET only logs a warning if signature header missing — never actually verifies signature or rejects the request. Anyone with the URL can flood db.inbound_emails."},
+      {"endpoint": "/api/webhook/resend/inbound", "issue": "No body-size limit / per-IP rate limit on a public unauthenticated endpoint — could be abused for DB bloat."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "ProfilePage / UserLevelBadge", "issues": ["Console warning: Received `true` for non-boolean attribute (UserLevelBadge `animate` prop becomes JSX attr on a styled div). Convert to lowercase string or remove from DOM via styled-component shouldForwardProp."]},
+      {"screen": "AdminInboxPage archive", "issues": ["Uses native window.confirm('Archiver cet email ?') — blocks Playwright tests unless dialog is auto-accepted, and provides poor UX. Replace with a shadcn AlertDialog."]}
+    ]
+  },
+  "passed_tests": [
+    "BE ✅ POST /api/webhook/resend/inbound (nested {type,data:{}}) → 200 {received:true, inbound_id:'in_*'} + Mongo doc created with from/subject/attachments + read:false + archived:false",
+    "BE ✅ POST /api/webhook/resend/inbound (flat payload) → 200, normalised to same Mongo shape",
+    "BE ✅ GET /api/admin/inbox → 200 with items[]/total/unread/page, html+headers+_id stripped from list view",
+    "BE ✅ GET /api/admin/inbox?filter_read=unread → returns only read:false items",
+    "BE ✅ GET /api/admin/inbox?q=TEST_NESTED → search on from/subject/text works (regex i-case)",
+    "BE ✅ GET /api/admin/inbox?page=1&limit=1 → pagination respected",
+    "BE ✅ GET /api/admin/inbox/{id} → returns full doc (incl html) and auto-marks read:true (verified in Mongo)",
+    "BE ✅ POST /api/admin/inbox/{id}/read {read:false} → toggles read state both ways",
+    "BE ✅ DELETE /api/admin/inbox/{id} → archived:true; item disappears from default list",
+    "BE ✅ /api/admin/inbox without Bearer → 401/403",
+    "BE ✅ GET /api/admin/inbox/in_doesnotexist → 404",
+    "FE ✅ /admin/inbox renders [data-testid='admin-inbox-page'] with refresh+search+filter-all/unread/read all visible; freshly-seeded inbound_id item appears, click opens detail (inbox-detail-subject = 'TEST_UI Bonjour Inbox'), toggle-read + archive buttons visible; search 'TEST_UI' keeps the item visible; filter cycling works",
+    "FE ✅ /profile (demo) — [data-testid='profile-mana-score'] visible with '✨ 0 Mana', [data-testid='user-level-badge-2'] visible next to name, third stat column 'Mana' rendered (Publications=3, Amis=0, Mana=0), 'mana:updated' CustomEvent dispatches without error",
+    "FE ✅ /profile/edit — uploading a local PNG produces an <img src='blob:https://...'> (1 blob URL, 0 data: URLs) confirming URL.createObjectURL optimisation"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_inbox_features.py",
+    "/app/test_reports/pytest/pytest_inbox.xml"
+  ],
+  "action_items": [
+    "(Optional, P2) Implement actual signature verification in /api/webhook/resend/inbound (use svix or Resend's HMAC SHA-256) — currently only logs a warning.",
+    "(Optional, P3) Replace AdminInboxPage archive window.confirm with a shadcn AlertDialog for consistency + testability.",
+    "(Optional, P3) Fix React warning on UserLevelBadge `animate` prop leaking to DOM (use a non-boolean prop name or filter via shouldForwardProp)."
+  ],
+  "critical_code_review_comments": [
+    "server.py L2058-2062: RESEND_WEBHOOK_SECRET signature is read but never verified — only a warning log. Anyone hitting /api/webhook/resend/inbound can flood the inbox. Replace with proper HMAC verification + 401 on mismatch.",
+    "server.py L2090-2091: text trimmed to 50k chars / html to 200k. Reasonable, but no overall request body size limit — consider a FastAPI middleware capping content-length (e.g., 5 MB) to prevent DoS.",
+    "AdminInboxPage.js L129: window.confirm() is non-testable & non-i18n-friendly. Migrate to shadcn AlertDialog (the rest of the app already uses it).",
+    "UserLevelBadge: `animate` prop is forwarded to DOM, triggering 'non-boolean attribute' React warning on ProfilePage. Use `data-animate` or filter via styled-component prop config.",
+    "server.py L2065: `data = payload.get('data') if isinstance(payload.get('data'), dict) else payload` — if a sender passes flat data with a `data` key that is not a dict (e.g., a string), falls back to root payload which is correct. But `subject` truncation in notification uses subject[:60] without sanitising — if subject contains \\n it could break message line. Minor."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_inbox_features.py (NEW — 12 pytest cases)"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12 pytest passed)",
+    "frontend": "100% (all required testids present on /admin/inbox, /profile, /profile/edit; blob: URL preview confirmed)"
+  },
+  "test_credentials": {
+    "admin": "admin@natifenua.pf / NatiFenua2025! (POST /api/admin/login → {success, token})",
+    "user_demo": "demo@nati-fenua.com / DemoFenua2026! (POST /api/auth/login → {user, session_token}); user_level=2 (Régulier), mana_points=0"
+  },
+  "seed_data_creation": "Tests created 2 inbound_emails docs (TEST_NESTED + TEST_FLAT) then deleted them in test_cleanup. UI test created 1 additional inbound 'TEST_UI Bonjour Inbox' which is still present in Mongo (admin can archive via UI). Admin notifications of type 'inbound_email' linked to the test inbounds are cleaned by the fixture.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "mocked_apis": {
+    "has_mocked_apis": true,
+    "mocked_apis_list": [
+      "Resend inbound webhook — no real MX records configured locally, so we POST fake payloads directly to /api/webhook/resend/inbound. Both Resend-nested ({type, data:{}}) and SendGrid-flat shapes are validated. In production, configure MX + RESEND_WEBHOOK_SECRET and ACTIVATE signature verification (see action_items)."
+    ]
+  },
+  "context_for_next_testing_agent": "New regression file: /app/backend/tests/test_inbox_features.py — run with REACT_APP_BACKEND_URL + MONGO_URL + DB_NAME exported. The webhook /api/webhook/resend/inbound is mounted on `app` (not api_router); the four /api/admin/inbox/* endpoints require Bearer admin token. Admin UI exposed at /admin/inbox with these testids: admin-inbox-page, inbox-refresh-btn, inbox-search-input, inbox-filter-{all|unread|read}, inbox-item-{id}, inbox-detail-subject, inbox-toggle-read-btn, inbox-archive-btn, inbox-reply-btn. ProfilePage exposes [data-testid='profile-mana-score'] + [data-testid='user-level-badge-{1..5}']. EditProfilePage avatar preview is now blob: (URL.createObjectURL), instant. Outstanding non-blocking items: webhook signature verification, UserLevelBadge animate prop warning, window.confirm in archive flow.",
+  "rca_of_the_issue": "No bug. All 4 review-request features behave as specified."
+}

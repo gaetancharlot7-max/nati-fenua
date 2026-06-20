@@ -2019,6 +2019,190 @@ async def resend_webhook(request: Request):
     return {"received": True}
 
 
+# ==================== RESEND INBOUND EMAILS ====================
+# Receive emails forwarded by Resend (or any compatible inbound provider)
+# to addresses like contact@nati-fenua.com and store them so they appear
+# in the admin "Boîte de réception" dashboard.
+
+@app.post("/api/webhook/resend/inbound")
+async def resend_inbound_webhook(request: Request):
+    """Receive inbound emails from Resend (MX record forwarding).
+
+    Expected payload shape (Resend inbound):
+      {
+        "type": "email.received",
+        "data": {
+          "from": "user@example.com",
+          "to": ["contact@nati-fenua.com"],
+          "subject": "...",
+          "text": "...",
+          "html": "...",
+          "headers": {...},
+          "attachments": [...],
+          "created_at": "ISO..."
+        }
+      }
+    Also accepts a top-level flat payload (compatibility w/ SendGrid Inbound Parse).
+    """
+    try:
+        payload = await request.json()
+    except Exception:
+        # Some providers (SendGrid) post multipart/form-data — try to read form
+        try:
+            form = await request.form()
+            payload = {k: form.get(k) for k in form.keys()}
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid payload")
+
+    # Optional signature verification
+    webhook_secret = os.environ.get("RESEND_WEBHOOK_SECRET")
+    if webhook_secret:
+        signature = request.headers.get("svix-signature") or request.headers.get("resend-signature")
+        if not signature:
+            logger.warning("Inbound email webhook missing signature header")
+
+    # Resend nested vs flat payload normalisation
+    data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
+    from_addr = data.get("from") or data.get("From") or data.get("sender") or ""
+    to_field = data.get("to") or data.get("To") or data.get("recipient") or ""
+    if isinstance(to_field, list):
+        to_field = ", ".join([str(t) for t in to_field])
+    subject = data.get("subject") or data.get("Subject") or "(sans sujet)"
+    text_body = data.get("text") or data.get("plain") or ""
+    html_body = data.get("html") or ""
+    headers = data.get("headers") or {}
+    attachments_in = data.get("attachments") or []
+    attachments_meta = []
+    if isinstance(attachments_in, list):
+        for a in attachments_in:
+            if isinstance(a, dict):
+                attachments_meta.append({
+                    "filename": a.get("filename") or a.get("name"),
+                    "content_type": a.get("content_type") or a.get("type"),
+                    "size": a.get("size"),
+                })
+
+    inbound_doc = {
+        "inbound_id": f"in_{uuid.uuid4().hex[:14]}",
+        "from": from_addr,
+        "to": to_field,
+        "subject": subject,
+        "text": text_body[:50000] if text_body else "",
+        "html": html_body[:200000] if html_body else "",
+        "headers": headers if isinstance(headers, dict) else {},
+        "attachments": attachments_meta,
+        "read": False,
+        "archived": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.inbound_emails.insert_one(inbound_doc)
+
+    # Notify all admins in-app
+    try:
+        admins = await db.users.find({"is_admin": True}, {"_id": 0, "user_id": 1}).to_list(50)
+        for adm in admins:
+            await db.notifications.insert_one({
+                "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                "user_id": adm["user_id"],
+                "type": "inbound_email",
+                "title": "📬 Nouvel email reçu",
+                "message": f"{from_addr} — {subject[:60]}",
+                "data": {"inbound_id": inbound_doc["inbound_id"]},
+                "read": False,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
+    except Exception as e:
+        logger.warning(f"Could not notify admins of inbound email: {e}")
+
+    return {"received": True, "inbound_id": inbound_doc["inbound_id"]}
+
+
+@api_router.get("/admin/inbox")
+async def admin_inbox_list(request: Request, page: int = 1, limit: int = 25,
+                           filter_read: Optional[str] = None, q: Optional[str] = None):
+    """Admin: list received inbound emails (paginated, with optional search + filter)."""
+    await verify_admin_token(request)
+    page = max(1, page)
+    limit = max(1, min(100, limit))
+    skip = (page - 1) * limit
+
+    query: dict = {"archived": {"$ne": True}}
+    if filter_read == "unread":
+        query["read"] = False
+    elif filter_read == "read":
+        query["read"] = True
+    if q:
+        query["$or"] = [
+            {"from": {"$regex": q, "$options": "i"}},
+            {"subject": {"$regex": q, "$options": "i"}},
+            {"text": {"$regex": q, "$options": "i"}},
+        ]
+
+    total = await db.inbound_emails.count_documents(query)
+    unread = await db.inbound_emails.count_documents({"archived": {"$ne": True}, "read": False})
+
+    items = await db.inbound_emails.find(
+        query,
+        {"_id": 0, "html": 0, "headers": 0}  # strip heavy fields for list
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+
+    return {
+        "items": items,
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "unread": unread,
+        "has_more": (skip + len(items)) < total
+    }
+
+
+@api_router.get("/admin/inbox/{inbound_id}")
+async def admin_inbox_get(inbound_id: str, request: Request):
+    """Admin: fetch a single inbound email with full body."""
+    await verify_admin_token(request)
+    doc = await db.inbound_emails.find_one({"inbound_id": inbound_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Email introuvable")
+    # Auto-mark as read
+    if not doc.get("read"):
+        await db.inbound_emails.update_one({"inbound_id": inbound_id}, {"$set": {"read": True}})
+        doc["read"] = True
+    return doc
+
+
+@api_router.post("/admin/inbox/{inbound_id}/read")
+async def admin_inbox_mark_read(inbound_id: str, request: Request):
+    """Admin: toggle read/unread status."""
+    await verify_admin_token(request)
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+    read_value = body.get("read", True)
+    res = await db.inbound_emails.update_one(
+        {"inbound_id": inbound_id},
+        {"$set": {"read": bool(read_value)}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Email introuvable")
+    return {"success": True, "read": bool(read_value)}
+
+
+@api_router.delete("/admin/inbox/{inbound_id}")
+async def admin_inbox_archive(inbound_id: str, request: Request):
+    """Admin: archive (soft-delete) an inbound email."""
+    await verify_admin_token(request)
+    res = await db.inbound_emails.update_one(
+        {"inbound_id": inbound_id},
+        {"$set": {"archived": True, "archived_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Email introuvable")
+    return {"success": True}
+
+
+
 @api_router.get("/admin/email/stats")
 async def admin_email_stats(request: Request, days: int = 30):
     """Admin: aggregated email statistics from Resend webhook events."""

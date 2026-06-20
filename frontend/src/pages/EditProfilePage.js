@@ -73,13 +73,24 @@ const EditProfilePage = () => {
         return;
       }
       setSelectedFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result);
-      };
-      reader.readAsDataURL(file);
+      // Instant local preview via URL.createObjectURL (synchronous, no async FileReader delay)
+      const objectUrl = URL.createObjectURL(file);
+      // Revoke the previous object URL to avoid memory leaks
+      if (previewImage && previewImage.startsWith('blob:')) {
+        URL.revokeObjectURL(previewImage);
+      }
+      setPreviewImage(objectUrl);
     }
   };
+
+  // Clean up any blob URL when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (previewImage && previewImage.startsWith('blob:')) {
+        URL.revokeObjectURL(previewImage);
+      }
+    };
+  }, [previewImage]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

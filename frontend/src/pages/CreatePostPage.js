@@ -329,6 +329,8 @@ const CreatePostPage = () => {
         });
         toast.success('Publication créée ! Vos amis seront notifiés.');
       }
+      // Notify other pages (ProfilePage) to refresh Mana points / stats
+      try { window.dispatchEvent(new CustomEvent('mana:updated')); } catch (_) {}
       navigate('/feed');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Erreur lors de la publication');

@@ -1,36 +1,25 @@
-# Test Credentials
+# Test Credentials — Nati Fenua
 
-## Backend Admin
-- Email: `admin@natifenua.pf` (in `/app/backend/.env` ADMIN_EMAIL)
-- Password: see `/app/backend/.env` ADMIN_PASSWORD
+## Production Admin (sandbox + prod)
+- **Admin**: `admin@natifenua.pf` / `NatiFenua2025!`
+  - Login: `POST /api/admin/login` → returns `{success, token}` (use as `Authorization: Bearer <token>`)
 
-## Sandbox Test Users
+## Demo User Account (Apple App Review compliant)
+- **Demo**: `demo@nati-fenua.com` / `DemoFenua2026!`
+  - Used for Apple App Review (Guideline 2.1) and Google Play store listing
+  - `is_demo=true`, `is_email_verified=true`
+  - Pre-seeded with 3 posts (Bora Bora, Heiva, Moorea Belvédère)
+  - `referral_code=32ZTFSAR`
 
-### Mobile Test User (créé fév 2026)
-- Email: `mobiletest@nati.local`
-- Password: `TestPass123!`
-- **Promu admin** (fév 2026) + badge `pionnier` attribué
-- Pour tester le drawer hamburger mobile, le badge Pionnier sur profil, les endpoints admin `/api/admin/beta/*` et les flows authentifiés en local
+## 10 Beta Tester Accounts (generated Feb 2026)
+All with password: `Test1234@`
+- teiva.mauri@gmail.com
+- (9 others — created by `/tmp/create_test_accounts.py`)
 
-### Demo Account (auto-seedé au démarrage backend, pour Apple/Google reviewers)
-- Email: `demo@nati-fenua.com`
-- Password: `DemoFenua2026!`
-- Identité publique : "Demo Fenua" — bio "Compte démo officiel — réservé aux reviewers Apple & Google"
-- 3 posts d'exemple (Bora Bora, Heiva, Moorea) auto-seedés
-- `is_demo: true` flag pour filtres futurs
-- À fournir dans la fiche App Store Connect → Test Information
+## Mobile drawer test account
+- `mobiletest@nati.local` / `TestPass123!`
 
-## Demo / Test Users (auto-created via /api/auth/register)
-- Any test user can be created via `POST /api/auth/register` with `{email, password, name}`
-- Minimum password: 8 chars
-
-## RSS / Bot Accounts (auto-created at startup)
-- `tahiti_infos`, `radio1_tahiti_podcast`, `gnews_tahiti`, `gnews_moorea`, etc.
-- All flagged `is_bot=True` — excluded from friend search/discovery
-
-## Seed Vendor
-- `fenua_artisans` — vitrine des 18 produits marketplace
-
-## Online Status (dynamic, no credentials needed)
-- `GET /api/users/online-status?user_ids=id1,id2` → `{"online":[...]}`
-- Based on WebSocket `chat_manager.active_connections`
+## Notes
+- Admin auth uses `verify_admin_token(request)` reading `Authorization: Bearer <admin_token>`
+- User auth uses `require_auth(request)` reading session cookie or `Authorization: Bearer <session_token>`
+- Two different token types — do NOT mix them
