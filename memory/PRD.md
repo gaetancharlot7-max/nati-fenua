@@ -258,3 +258,17 @@ Score prod `nati-fenua.com` : Performance 41 / Accessibility 93 / Best Practices
 - Backend pytest 12/12 PASS dans `/app/backend/tests/test_inbox_features.py` (créé par testing agent).
 - Frontend e2e 4/4 PASS via Playwright : inbox CRUD, profile badge/mana, avatar blob preview.
 - Aucune régression observée par rapport à iteration 8.
+
+### Auto-reply IA Claude (juin 2026 — iteration 10)
+- **2 endpoints admin** (auth: `verify_admin_token`) :
+  - `POST /api/admin/inbox/{inbound_id}/draft-reply` body=`{tone:"friendly|formal|apologetic", instructions?:""}` → appelle Claude Sonnet 4.6 via `emergentintegrations` avec un prompt système strict (réponse FR uniquement, 100-250 mots, signature "L'équipe Nati Fenua 🌺", détection SPAM auto = renvoie `[SPAM]`). Persiste le brouillon dans `inbound_emails.ai_draft`.
+  - `POST /api/admin/inbox/{inbound_id}/send-reply` body=`{text, subject?, to?}` → envoie via Resend (`resend.Emails.send`) ou mock si `RESEND_API_KEY` absent. Persiste `replied_at`, `reply_email_id`.
+- **UI Admin Inbox étendue** (`AdminInboxPage.js`) : section "✨ Brouillon de réponse IA" sous le contenu de l'email avec :
+  - Selector ton (😊 Amical / 👔 Formel / 🙏 Désolé)
+  - Bouton "Générer" → appel Claude (loader animé, timeout 45s)
+  - Textarea éditable (le brouillon est éditable avant envoi)
+  - Compteur caractères + mots en temps réel
+  - Bouton "Copier" (vers presse-papier) + Bouton "Envoyer la réponse" (gradient emerald→cyan)
+  - Badge "✓ Réponse envoyée le …" persistant si déjà répondu (avec indicateur mode test)
+- **Modèle utilisé** : `claude-sonnet-4-6` via `emergentintegrations.llm.chat.LlmChat` + `EMERGENT_LLM_KEY` (déjà en .env).
+- **Coût estimé** : ~$0.001 par brouillon généré (Claude Sonnet est très efficient sur ces prompts courts).

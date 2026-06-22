@@ -2202,6 +2202,171 @@ async def admin_inbox_archive(inbound_id: str, request: Request):
     return {"success": True}
 
 
+@api_router.post("/admin/inbox/{inbound_id}/draft-reply")
+async def admin_inbox_ai_draft(inbound_id: str, request: Request):
+    """Admin: generate an AI reply draft for an inbound email using Claude Sonnet.
+
+    The admin opens an email, clicks "Brouillon IA" → backend calls Claude with the
+    email subject/body + Nati Fenua context → returns a polished French reply draft
+    that the admin can edit and send.
+
+    Body (optional): {"tone": "friendly|formal|apologetic", "instructions": "..."}
+    """
+    await verify_admin_token(request)
+    doc = await db.inbound_emails.find_one({"inbound_id": inbound_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Email introuvable")
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    tone = (body.get("tone") or "friendly").lower()
+    extra_instructions = (body.get("instructions") or "").strip()
+
+    api_key = os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="LLM non configuré (EMERGENT_LLM_KEY manquant)")
+
+    tone_hints = {
+        "friendly": "ton chaleureux, amical et accessible avec une touche polynésienne (un emoji 🌺 ou 🌴 ok si pertinent)",
+        "formal":   "ton professionnel et formel, vouvoiement, pas d'emoji",
+        "apologetic": "ton compatissant et désolé, vouvoiement, reconnaître la frustration de l'utilisateur",
+    }.get(tone, "ton chaleureux et amical")
+
+    system_msg = (
+        "Tu es l'assistant administratif de Nati Fenua, le réseau social et marketplace de la Polynésie française. "
+        "Ta mission : rédiger un BROUILLON de réponse à un email reçu sur contact@nati-fenua.com. "
+        "Règles strictes :\n"
+        "1. Réponds UNIQUEMENT en français (français de Polynésie autorisé : 'ia ora na', 'māuruuru', 'fenua').\n"
+        "2. Le brouillon doit être prêt-à-envoyer : commence par 'Ia ora na [Prénom],' ou 'Bonjour [Prénom],' (ou 'Bonjour,' si pas de prénom détecté), termine par 'Māuruuru,\\nL'équipe Nati Fenua 🌺'.\n"
+        "3. Reste concis : 100-250 mots maximum.\n"
+        "4. Ne PROMETS RIEN que l'app ne fait pas réellement.\n"
+        "5. Si la demande est urgente/légale/délicate, propose une escalade ('Je transmets votre demande à notre équipe').\n"
+        "6. Si l'email est un spam évident, retourne le mot exact : `[SPAM]` et rien d'autre.\n"
+        "7. Ne te présente PAS comme une IA. Tu es 'L'équipe Nati Fenua'.\n"
+        f"Ton requis : {tone_hints}.\n"
+        + (f"Instructions spéciales de l'admin : {extra_instructions}\n" if extra_instructions else "")
+    )
+
+    user_text_body = (doc.get("text") or "").strip()
+    if not user_text_body and doc.get("html"):
+        # Strip HTML tags as a basic fallback
+        import re as _re
+        user_text_body = _re.sub(r"<[^>]+>", " ", doc.get("html") or "")
+        user_text_body = _re.sub(r"\s+", " ", user_text_body).strip()
+    user_text_body = user_text_body[:6000]  # token safety
+
+    from_field = doc.get("from") or "(expéditeur inconnu)"
+    subject = doc.get("subject") or "(sans sujet)"
+
+    prompt = (
+        f"Email reçu à traiter :\n\n"
+        f"De : {from_field}\n"
+        f"Objet : {subject}\n"
+        f"Contenu :\n```\n{user_text_body or '(corps vide)'}\n```\n\n"
+        f"Rédige le brouillon de réponse maintenant, sans préambule, sans 'Voici le brouillon :', "
+        f"juste le texte de l'email prêt à copier-coller."
+    )
+
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage as _UserMessage
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"inbox_draft_{inbound_id}",
+            system_message=system_msg
+        ).with_model("anthropic", "claude-sonnet-4-6")
+        response = await chat.send_message(_UserMessage(text=prompt))
+        draft = (response or "").strip()
+    except Exception as e:
+        logger.error(f"AI draft generation failed for {inbound_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Erreur génération IA : {str(e)[:200]}")
+
+    # Persist the last draft so admin can reload it
+    await db.inbound_emails.update_one(
+        {"inbound_id": inbound_id},
+        {"$set": {
+            "ai_draft": draft,
+            "ai_draft_tone": tone,
+            "ai_draft_at": datetime.now(timezone.utc).isoformat(),
+        }}
+    )
+
+    return {
+        "success": True,
+        "draft": draft,
+        "tone": tone,
+        "is_spam": draft.strip().upper() == "[SPAM]",
+    }
+
+
+@api_router.post("/admin/inbox/{inbound_id}/send-reply")
+async def admin_inbox_send_reply(inbound_id: str, request: Request):
+    """Admin: send the reply (Resend) — body must include {to, subject, text}."""
+    await verify_admin_token(request)
+    doc = await db.inbound_emails.find_one({"inbound_id": inbound_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Email introuvable")
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Body JSON requis")
+
+    to_addr = (body.get("to") or doc.get("from") or "").strip()
+    subject = (body.get("subject") or f"Re: {doc.get('subject', '')}").strip()
+    text_body = (body.get("text") or "").strip()
+    if not to_addr or not text_body:
+        raise HTTPException(status_code=400, detail="Champs 'to' et 'text' requis")
+    # Strip "Name <email>" → "email"
+    import re as _re
+    email_match = _re.search(r"<([^>]+)>", to_addr)
+    if email_match:
+        to_addr = email_match.group(1).strip()
+
+    resend_api_key = os.environ.get("RESEND_API_KEY")
+    if not resend_api_key:
+        # In sandbox: log only, no real send
+        logger.info(f"[MOCK SEND] to={to_addr} subject={subject} body={text_body[:120]}...")
+        await db.inbound_emails.update_one(
+            {"inbound_id": inbound_id},
+            {"$set": {"replied_at": datetime.now(timezone.utc).isoformat(),
+                      "reply_text": text_body, "reply_mocked": True}}
+        )
+        return {"success": True, "mocked": True, "detail": "RESEND_API_KEY non configuré — réponse loggée seulement"}
+
+    try:
+        resend.api_key = resend_api_key
+        sender_email = os.environ.get("SENDER_EMAIL", "contact@nati-fenua.com")
+        # Plain-text → html with line breaks
+        html_body = "<p>" + text_body.replace("\n\n", "</p><p>").replace("\n", "<br>") + "</p>"
+        params = {
+            "from": f"Nati Fenua <{sender_email}>",
+            "to": [to_addr],
+            "subject": subject,
+            "text": text_body,
+            "html": html_body,
+            "reply_to": sender_email,
+        }
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(None, lambda: resend.Emails.send(params))
+        email_id = result.get("id") if isinstance(result, dict) else None
+        await db.inbound_emails.update_one(
+            {"inbound_id": inbound_id},
+            {"$set": {
+                "replied_at": datetime.now(timezone.utc).isoformat(),
+                "reply_text": text_body,
+                "reply_email_id": email_id,
+            }}
+        )
+        return {"success": True, "email_id": email_id}
+    except Exception as e:
+        logger.error(f"Failed to send reply for {inbound_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Resend error: {str(e)[:200]}")
+
+
+
+
 
 @api_router.get("/admin/email/stats")
 async def admin_email_stats(request: Request, days: int = 30):

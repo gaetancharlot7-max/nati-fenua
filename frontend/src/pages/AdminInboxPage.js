@@ -3,10 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Inbox, RefreshCw, Search, X, Mail, MailOpen,
-  Trash2, Filter, Paperclip, ExternalLink
+  Trash2, Paperclip, ExternalLink, Sparkles, Send, Copy, Check
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -43,6 +44,11 @@ const AdminInboxPage = () => {
   const [hasMore, setHasMore] = useState(false);
   const [selected, setSelected] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [draftText, setDraftText] = useState('');
+  const [draftLoading, setDraftLoading] = useState(false);
+  const [draftTone, setDraftTone] = useState('friendly');
+  const [sending, setSending] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const getAuth = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem('admin_token')}` }
@@ -89,12 +95,19 @@ const AdminInboxPage = () => {
   const openEmail = async (item) => {
     setDetailLoading(true);
     setSelected(item); // optimistic show
+    setDraftText(''); // reset draft when opening another email
+    setCopied(false);
     try {
       const res = await axios.get(
         `${API_URL}/api/admin/inbox/${item.inbound_id}`,
         getAuth()
       );
       setSelected(res.data);
+      // Restore last AI draft if any
+      if (res.data?.ai_draft) {
+        setDraftText(res.data.ai_draft);
+        if (res.data.ai_draft_tone) setDraftTone(res.data.ai_draft_tone);
+      }
       // Update list (mark as read locally)
       setItems(prev => prev.map(i => i.inbound_id === item.inbound_id ? { ...i, read: true } : i));
       setUnread(u => Math.max(0, u - (item.read ? 0 : 1)));
@@ -102,6 +115,66 @@ const AdminInboxPage = () => {
       toast.error('Impossible de charger l\'email');
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const generateDraft = async () => {
+    if (!selected) return;
+    setDraftLoading(true);
+    try {
+      const res = await axios.post(
+        `${API_URL}/api/admin/inbox/${selected.inbound_id}/draft-reply`,
+        { tone: draftTone },
+        { ...getAuth(), timeout: 45000 }
+      );
+      if (res.data?.is_spam) {
+        toast.warning('⚠️ L\'IA détecte cet email comme du SPAM');
+        setDraftText('[Cet email semble être du spam — vérifiez avant de répondre]');
+      } else {
+        setDraftText(res.data?.draft || '');
+        toast.success('✨ Brouillon généré');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erreur génération IA');
+    } finally {
+      setDraftLoading(false);
+    }
+  };
+
+  const sendReply = async () => {
+    if (!selected || !draftText.trim()) {
+      toast.error('Le brouillon est vide');
+      return;
+    }
+    if (!window.confirm(`Envoyer la réponse à ${selected.from} ?`)) return;
+    setSending(true);
+    try {
+      const res = await axios.post(
+        `${API_URL}/api/admin/inbox/${selected.inbound_id}/send-reply`,
+        { text: draftText, subject: `Re: ${selected.subject || ''}` },
+        { ...getAuth(), timeout: 30000 }
+      );
+      if (res.data?.mocked) {
+        toast.warning('⚠️ Réponse simulée (RESEND_API_KEY absent en sandbox)');
+      } else {
+        toast.success('📤 Réponse envoyée !');
+      }
+      setDraftText('');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erreur envoi');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const copyDraft = async () => {
+    if (!draftText) return;
+    try {
+      await navigator.clipboard.writeText(draftText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch (_) {
+      toast.error('Copie impossible');
     }
   };
 
@@ -376,6 +449,88 @@ const AdminInboxPage = () => {
                       {selected.text || '(contenu vide)'}
                     </pre>
                   )}
+
+                  {/* AI Draft Reply section */}
+                  <div className="mt-6 pt-5 border-t border-white/10" data-testid="ai-draft-section">
+                    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                      <h3 className="text-sm font-bold flex items-center gap-2 text-[#FF6B35]">
+                        <Sparkles size={16} />
+                        Brouillon de réponse IA
+                      </h3>
+                      <div className="flex gap-1.5 items-center">
+                        <select
+                          value={draftTone}
+                          onChange={(e) => setDraftTone(e.target.value)}
+                          className="bg-white/5 border border-white/15 text-white text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-[#FF6B35]"
+                          data-testid="ai-draft-tone"
+                        >
+                          <option value="friendly">😊 Amical</option>
+                          <option value="formal">👔 Formel</option>
+                          <option value="apologetic">🙏 Désolé</option>
+                        </select>
+                        <Button
+                          onClick={generateDraft}
+                          disabled={draftLoading}
+                          size="sm"
+                          className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white hover:opacity-90 disabled:opacity-50"
+                          data-testid="ai-draft-generate-btn"
+                        >
+                          {draftLoading ? (
+                            <><RefreshCw size={12} className="animate-spin mr-1" /> Génération…</>
+                          ) : (
+                            <><Sparkles size={12} className="mr-1" /> Générer</>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <Textarea
+                      value={draftText}
+                      onChange={(e) => setDraftText(e.target.value)}
+                      placeholder="Cliquez sur 'Générer' pour créer un brouillon IA, ou rédigez votre réponse manuellement ici…"
+                      className="min-h-[180px] bg-white/5 border-white/15 text-white placeholder-white/30 font-mono text-sm leading-relaxed focus:border-[#FF6B35]"
+                      data-testid="ai-draft-textarea"
+                    />
+
+                    <div className="flex justify-between items-center mt-3 flex-wrap gap-2">
+                      <span className="text-xs text-white/40">
+                        {draftText.length} caractères · ~{Math.ceil(draftText.split(/\s+/).filter(Boolean).length)} mots
+                      </span>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={copyDraft}
+                          disabled={!draftText}
+                          variant="outline"
+                          size="sm"
+                          className="bg-white/5 border-white/20 text-white hover:bg-white/10 disabled:opacity-30"
+                          data-testid="ai-draft-copy-btn"
+                        >
+                          {copied ? <><Check size={12} className="mr-1 text-green-400" /> Copié</>
+                                  : <><Copy size={12} className="mr-1" /> Copier</>}
+                        </Button>
+                        <Button
+                          onClick={sendReply}
+                          disabled={!draftText.trim() || sending}
+                          size="sm"
+                          className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:opacity-90 disabled:opacity-50"
+                          data-testid="ai-draft-send-btn"
+                        >
+                          {sending ? (
+                            <><RefreshCw size={12} className="animate-spin mr-1" /> Envoi…</>
+                          ) : (
+                            <><Send size={12} className="mr-1" /> Envoyer la réponse</>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {selected.replied_at && (
+                      <p className="text-xs text-emerald-400 mt-2" data-testid="reply-sent-badge">
+                        ✓ Réponse envoyée le {formatDate(selected.replied_at)}
+                        {selected.reply_mocked && ' (mode test — RESEND_API_KEY absent)'}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             ) : (
