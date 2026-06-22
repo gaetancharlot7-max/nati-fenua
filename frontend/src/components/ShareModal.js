@@ -59,24 +59,59 @@ export const ShareModal = ({ isOpen, onClose, url, title, description, postId })
       color: '#E4405F',
       gradient: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)',
       action: async () => {
-        try {
-          await navigator.clipboard.writeText(`${shareTitle}\n${shareUrl}`);
+        const ok = await copyToClipboard(`${shareTitle}\n${shareUrl}`);
+        if (ok) {
           toast.success('Lien copié — collez-le dans Instagram', { duration: 4000 });
-        } catch {
-          toast.error('Impossible de copier');
+        } else {
+          toast.error('Copie automatique impossible — utilisez Cmd/Ctrl+C', { duration: 5000 });
+          try { window.prompt('Copiez ce lien :', `${shareTitle}\n${shareUrl}`); } catch (_) {}
         }
       }
     },
   ];
 
-  const handleCopyLink = async () => {
+  // Robust clipboard copy with fallback for non-HTTPS / iframe / restricted contexts
+  const copyToClipboard = async (text) => {
+    // Modern API (requires HTTPS + secure context + user gesture)
+    if (typeof navigator !== 'undefined' && navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (_) {
+        // fall through to legacy method
+      }
+    }
+    // Legacy fallback (works in HTTP, iframes, all browsers)
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-9999px';
+      ta.style.left = '-9999px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch (_) {
+      return false;
+    }
+  };
+
+  const handleCopyLink = async () => {
+    const ok = await copyToClipboard(shareUrl);
+    if (ok) {
       setCopied(true);
       toast.success('Lien copié !');
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error('Erreur lors de la copie');
+    } else {
+      // Last-resort: prompt() lets user see + copy manually
+      toast.error('Copie automatique impossible — utilisez Cmd/Ctrl+C', { duration: 5000 });
+      try { window.prompt('Copiez ce lien :', shareUrl); } catch (_) {}
     }
   };
 
