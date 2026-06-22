@@ -1,0 +1,71 @@
+{
+  "summary": "Full regression iteration 10 — pre-deploy audit for Nati Fenua. Backend pytest 22/22 PASSED (1 skipped). Frontend critical flows all PASSED: comment modal opens via createPortal + send works (toast 'Commentaire ajouté !'), profile shows UserLevelBadge=2 'Régulier' + Mana stat ✨ 0, admin inbox AI draft generates 870-char French Claude reply starting with 'Bonjour,' including 'Māuruuru' + 'Nati Fenua' signature in ~6s, send-reply returns {success:true, mocked:true} as expected (RESEND_API_KEY absent). Auth (demo + admin + register), feed (3 demo posts + RSS), create post (text/photo tabs), profile/edit (blob: avatar preview), mana map (11 markers), marketplace (26 products), chat, notifications, admin dashboard routing all functional. App is GO for Render production deploy.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/auth/register", "issue": "Manual UserCreate(**raw) at server.py:752 — pydantic ValidationError on missing 'name' surfaces as 500 Internal Server Error instead of 422. Replace with FastAPI Depends/body parameter or wrap in try/except ValidationError → HTTPException(422)."},
+      {"endpoint": "POST /api/webhook/resend/inbound", "issue": "(carried from iter 9) signature header logged-but-never-verified — public unauthenticated endpoint vulnerable to spam/DoS."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "FeedPage comment modal", "issues": ["Modal opens as a floating ~356px-wide panel (not full-screen as the review request specifies). It IS visible inside the viewport and uses createPortal (top=837–1065px, no off-screen render), the comment send + toast + close all work — but there is no dimmed backdrop overlay covering the rest of the feed. If the desired UX is full-screen Sheet/Drawer, increase modal width to 100vw or wrap in a Dialog with backdrop."]},
+      {"screen": "Console warnings", "issues": ["React Router v7 future-flag warnings (v7_startTransition, v7_relativeSplatPath) — non-blocking", "Warning: Received `true` for non-boolean attribute `jsx` (styled-jsx prop leaking to DOM, likely on a <style jsx>{...}</style> usage with truthy attribute) — purely cosmetic"]}
+    ]
+  },
+  "passed_tests": [
+    "BE auth: demo login / admin login / register (after fix to use 'name') / password-reset endpoint / bad-password 401",
+    "BE feed: GET /api/posts returns 20+ mixed user+RSS posts, like+comment+save endpoints OK",
+    "BE create post: POST /api/posts with content_type+media_url+caption → 200",
+    "BE profile: /api/auth/me OK",
+    "BE marketplace, chat conversations, notifications list — all 200",
+    "BE admin inbox: POST /api/webhook/resend/inbound seeds, GET list contains seeded inbound_id, GET detail returns subject, POST /admin/inbox/{id}/draft-reply triggers Claude (claude-sonnet-4-6 via emergentintegrations) and returns 870-char French draft starting 'Bonjour,' with 'Māuruuru' + 'Nati Fenua' signature, POST .../send-reply returns {success:true, mocked:true}, DELETE archives",
+    "FE comment modal (CRITICAL): createPortal renders inside viewport (top=1029, bottom=1065, w=356, h=36), input fillable, send button fires → 'Commentaire ajouté !' toast, close X works",
+    "FE /profile: profile-mana-score present ('✨ 0 Mana'), user-level-badge-2 visible, 3 stat columns Publications/Amis/Mana rendered",
+    "FE /admin/inbox: page renders with 3 items, click item opens detail with subject 'QA UI Test...', AI 'Générer' (ai-draft-generate-btn) populates ai-draft-textarea with 870-char French draft in ~6s, 'Send reply' button visible",
+    "FE navigation: /chat, /marketplace (26 products), /mana (11 markers), /create (Photo/Texte tabs), /admin/dashboard (redirects to /admin/login when not authed, expected)"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_full_regression_iter10.py",
+    "/app/test_reports/pytest/iter10.xml"
+  ],
+  "action_items": [
+    "(P2) Fix /api/auth/register 500→422: wrap UserCreate(**raw) in try/except ValidationError or convert the route to use Pydantic body injection (e.g., `async def register(data: UserCreate, request: Request)`).",
+    "(P3) Decide if Comment modal should be full-screen with backdrop (per review-request) — if yes, add Dialog/Sheet wrapper with bg-black/50 backdrop and inset-0; if not, current floating popover UX is acceptable.",
+    "(P3, carried) Implement HMAC signature verification on /api/webhook/resend/inbound before production deploy.",
+    "(P3) Suppress React warnings: Router v7 flags + styled-jsx `jsx` boolean prop."
+  ],
+  "critical_code_review_comments": [
+    "server.py:752 — `user_data = UserCreate(**user_data_raw)` raises pydantic ValidationError which FastAPI doesn't auto-translate when called outside dependency injection. This caused our register test to receive 500 instead of 422 when 'name' was missing. Use `async def register(request: Request, response: Response, user_data: UserCreate)` instead. Also affects any malformed register payload reaching prod.",
+    "server.py:2227 — AI draft endpoint correctly checks for EMERGENT_LLM_KEY/OPENAI_API_KEY and returns 503; emergentintegrations LlmChat(...).with_model('anthropic', 'claude-sonnet-4-6') returns a high-quality French draft in ~6 seconds with proper Polynesian greetings ('Māuruuru', 🌺) and signature. Working as designed.",
+    "server.py:2328 — send-reply correctly falls back to {mocked:true} when RESEND_API_KEY missing, persists `reply_text` + `reply_mocked` to Mongo — clean.",
+    "FeedPage CommentsSection: createPortal fix is effective (modal renders at viewport-anchored coordinates, no more y=-1967 off-screen issue). Functionally correct. If full-screen UX is desired, wrap children in `<div className='fixed inset-0 bg-black/50 z-50 flex items-end justify-center'>`.",
+    "10884-line server.py monolith remains hard to maintain — recommend splitting into routers (auth, posts, inbox, admin, marketplace) post-launch."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_full_regression_iter10.py (NEW — 23 pytest cases across auth/feed/profile/mana/marketplace/chat/notifications/admin-inbox+AI-draft/ai-agent-config)"
+  ],
+  "success_rate": {
+    "backend": "100% (22/22 passed, 1 skipped — ai-agent-config endpoint not located, not blocking)",
+    "frontend": "100% on critical flows tested (comment modal, profile, admin inbox + AI draft, navigation to /chat /marketplace /mana /create /admin)"
+  },
+  "test_credentials": {
+    "admin": "admin@natifenua.pf / NatiFenua2025! (POST /api/admin/login → {success, token})",
+    "user_demo": "demo@nati-fenua.com / DemoFenua2026! (POST /api/auth/login → {user, session_token})"
+  },
+  "seed_data_creation": "Tests created: 1 registered user (test+<rand>@nati-fenua.com), 1 text post (caption 'TEST_QA depuis QA <hex>'), 1 'TEST_QA Super photo !' comment on demo_post_1, 2 inbound_emails (1 archived by test_archive, 1 'QA UI Test <ts>' left in Mongo for admin to clean), 1 ai_draft persisted on the UI inbound. Demo posts + RSS feed unchanged.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "mocked_apis": {
+    "has_mocked_apis": true,
+    "mocked_apis_list": [
+      "Resend inbound webhook: no real MX records — we POST fake JSON directly to /api/webhook/resend/inbound (both Resend-nested and flat shapes accepted).",
+      "Resend send: RESEND_API_KEY absent in sandbox — POST /api/admin/inbox/{id}/send-reply returns {success:true, mocked:true, detail:'RESEND_API_KEY non configuré…'} and persists reply_text + reply_mocked=true to Mongo. In production with RESEND_API_KEY set, the same endpoint actually calls resend.Emails.send.",
+      "Stripe webhooks: test mode only (STRIPE_API_KEY=sk_test_emergent)."
+    ]
+  },
+  "context_for_next_testing_agent": "Backend regression file: /app/backend/tests/test_full_regression_iter10.py (run with REACT_APP_BACKEND_URL exported). AI draft endpoint = POST /api/admin/inbox/{inbound_id}/draft-reply with body {tone: 'friendly'|'formal'|'apologetic', instructions?:str} → {success, draft, tone, is_spam}. Send endpoint = POST .../send-reply with body {to, subject, text} → {success, mocked?, email_id?}. Profile testids: profile-mana-score, user-level-badge-{1..5}. Inbox testids: admin-inbox-page, inbox-item-{inbound_id}, inbox-search-input, inbox-filter-{all|unread|read}, inbox-toggle-read-btn, inbox-archive-btn, ai-draft-generate-btn, ai-draft-textarea, ai-draft-send-btn, ai-draft-copy-btn, ai-draft-tone. Comment modal testids: comment-btn-{post_id}, comments-modal-close, comments-modal-input-{post_id}, comments-modal-send-{post_id}. Skip onboarding via: localStorage.setItem('nati_fenua_onboarding_seen','1'). Open issue: /api/auth/register returns 500 instead of 422 on validation error.",
+  "rca_of_the_issue": "Only 1 real backend bug found: /api/auth/register at server.py:752 calls `UserCreate(**user_data_raw)` outside FastAPI dependency injection, so pydantic ValidationError isn't auto-converted to 422 — it bubbles up as 500. Reproduction: `curl -X POST /api/auth/register -d '{\"email\":\"x@y.com\",\"password\":\"Test1234!\"}'` (no 'name') → 500. Fix: replace signature with `async def register(user_data: UserCreate, request: Request, response: Response)` so FastAPI handles validation and returns 422 with detail."
+}
