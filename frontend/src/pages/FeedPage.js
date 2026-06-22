@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Play, MapPin, Plus, Flame, ThumbsUp, Laugh, Sparkles, Send, X, ChevronLeft, ChevronRight, Flag, Youtube, Link2, ExternalLink, WifiOff, Languages, Loader2, Download, Smartphone, Trash2, Edit3 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -360,87 +361,91 @@ const CommentsSection = ({ post, onCommentAdded, openExternally, onModalClosed }
         </button>
       </form>
 
-      {/* Comments Modal */}
-      <AnimatePresence>
-        {showComments && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center justify-center"
-            onClick={handleCloseComments}
-          >
+      {/* Comments Modal — rendered via Portal to escape parent's framer-motion transforms */}
+      {createPortal(
+        <AnimatePresence>
+          {showComments && (
             <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white w-full lg:w-[500px] lg:rounded-3xl rounded-t-3xl max-h-[80vh] overflow-hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-[100] flex items-end lg:items-center justify-center"
+              onClick={handleCloseComments}
             >
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b">
-                <h3 className="font-bold text-lg">Commentaires ({comments.length})</h3>
-                <button onClick={handleCloseComments} data-testid="comments-modal-close" className="p-2 hover:bg-gray-100 rounded-full">
-                  <X size={20} />
-                </button>
-              </div>
+              <motion.div
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white w-full lg:w-[500px] lg:rounded-3xl rounded-t-3xl max-h-[80vh] overflow-hidden flex flex-col"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
+                  <h3 className="font-bold text-lg">Commentaires ({comments.length})</h3>
+                  <button onClick={handleCloseComments} data-testid="comments-modal-close" className="p-2 hover:bg-gray-100 rounded-full">
+                    <X size={20} />
+                  </button>
+                </div>
 
-              {/* Comments List */}
-              <div className="overflow-y-auto max-h-[50vh] p-4 space-y-4">
-                {loading ? (
-                  <div className="flex justify-center py-8">
-                    <div className="w-8 h-8 border-4 border-[#FF6B35] border-t-transparent rounded-full animate-spin"></div>
-                  </div>
-                ) : comments.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">Aucun commentaire. Soyez le premier !</p>
-                ) : (
-                  comments.map((comment) => (
-                    <div key={comment.comment_id} className="flex gap-3">
-                      <Avatar className="w-10 h-10 rounded-xl">
-                        <AvatarImage src={comment.user?.picture} className="rounded-xl" />
-                        <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl">
-                          {comment.user?.name?.[0] || comment.user?.username?.[0] || '?'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <p className="text-sm">
-                          <span className="font-bold">{comment.user?.name || comment.user?.username || 'Utilisateur'}</span>{' '}
-                          {comment.content}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {new Date(comment.created_at).toLocaleDateString('fr-FR', { 
-                            day: 'numeric', 
-                            month: 'short',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
-                      </div>
+                {/* Comments List */}
+                <div className="overflow-y-auto flex-1 p-4 space-y-4">
+                  {loading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="w-8 h-8 border-4 border-[#FF6B35] border-t-transparent rounded-full animate-spin"></div>
                     </div>
-                  ))
-                )}
-              </div>
+                  ) : comments.length === 0 ? (
+                    <p className="text-center text-gray-500 py-8">Aucun commentaire. Soyez le premier !</p>
+                  ) : (
+                    comments.map((comment) => (
+                      <div key={comment.comment_id} className="flex gap-3">
+                        <Avatar className="w-10 h-10 rounded-xl">
+                          <AvatarImage src={comment.user?.picture} className="rounded-xl" />
+                          <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl">
+                            {comment.user?.name?.[0] || comment.user?.username?.[0] || '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <p className="text-sm">
+                            <span className="font-bold">{comment.user?.name || comment.user?.username || 'Utilisateur'}</span>{' '}
+                            {comment.content}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(comment.created_at).toLocaleDateString('fr-FR', {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
 
-              {/* Comment Input */}
-              <form onSubmit={handleSubmitComment} className="p-4 border-t flex items-center gap-3">
-                <Avatar className="w-10 h-10 rounded-xl">
-                  <AvatarImage src={user?.picture} className="rounded-xl" />
-                  <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl">{user?.name?.[0]}</AvatarFallback>
-                </Avatar>
-                <Input
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Ajouter un commentaire..."
-                  className="flex-1 rounded-full"
-                />
-                <Button type="submit" disabled={!newComment.trim()} className="rounded-full bg-[#FF6B35] hover:bg-[#FF5722]">
-                  <Send size={18} />
-                </Button>
-              </form>
+                {/* Comment Input */}
+                <form onSubmit={handleSubmitComment} className="p-4 border-t flex items-center gap-3 flex-shrink-0 safe-bottom">
+                  <Avatar className="w-10 h-10 rounded-xl">
+                    <AvatarImage src={user?.picture} className="rounded-xl" />
+                    <AvatarFallback className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-xl">{user?.name?.[0]}</AvatarFallback>
+                  </Avatar>
+                  <Input
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Ajouter un commentaire..."
+                    className="flex-1 rounded-full"
+                    data-testid={`comments-modal-input-${post.post_id}`}
+                  />
+                  <Button type="submit" disabled={!newComment.trim()} className="rounded-full bg-[#FF6B35] hover:bg-[#FF5722]" data-testid={`comments-modal-send-${post.post_id}`}>
+                    <Send size={18} />
+                  </Button>
+                </form>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 };

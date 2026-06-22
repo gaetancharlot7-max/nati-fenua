@@ -272,3 +272,14 @@ Score prod `nati-fenua.com` : Performance 41 / Accessibility 93 / Best Practices
   - Badge "✓ Réponse envoyée le …" persistant si déjà répondu (avec indicateur mode test)
 - **Modèle utilisé** : `claude-sonnet-4-6` via `emergentintegrations.llm.chat.LlmChat` + `EMERGENT_LLM_KEY` (déjà en .env).
 - **Coût estimé** : ~$0.001 par brouillon généré (Claude Sonnet est très efficient sur ces prompts courts).
+
+### 🔥 BUG FIX CRITIQUE — Bulle de commentaires sous les posts (juin 2026 — iter 11)
+**Root cause définitive identifiée** (après plusieurs sessions de fausses pistes) :
+- Le modal `<motion.div className="fixed inset-0 ...">` était rendu **à l'intérieur de `<motion.article>`** (la carte post avec framer-motion).
+- **CSS spec** : quand un ancestor a `transform`, `filter` ou `perspective`, il devient un **containing block** pour `position: fixed`. Le modal devenait donc relatif à l'article (pas au viewport).
+- **Preuve** : `getBoundingClientRect()` retournait `{x:288, y:-1967, w:1344, h:16545px}` au lieu de plein viewport — modal littéralement positionné HORS écran, hauteur 16× le viewport.
+- **Fix** : `ReactDOM.createPortal(modal, document.body)` dans `CommentsSection` de `FeedPage.js` → le modal est maintenant directement enfant de `<body>` et `fixed inset-0` fonctionne correctement.
+- **Bonus** : `z-index` passé de `z-50` → `z-[100]` (au-dessus du bottom nav), ajout `data-testid="comments-modal-input-{post_id}"` + `comments-modal-send-{post_id}` pour testing, `safe-bottom` ajouté à l'input (iOS notch).
+- **Test e2e PASS** : ouverture → frappe → soumission → toast "Commentaire ajouté !" → compteur (0)→(1) → fermeture propre.
+
+**Note pour l'utilisateur** : ce bug existait sur le sandbox **ET** sur Render. Les sessions précédentes pensaient avoir corrigé via "lifted state" — c'était nécessaire mais insuffisant. La cause profonde était le containing block CSS. Maintenant le code dans `/app` est définitivement correct.
