@@ -390,7 +390,14 @@ const EditProfilePage = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setShowDeleteConfirm(true)}
+                  onClick={() => {
+                    setShowDeleteConfirm(true);
+                    // Ensure the expanded confirmation block is visible (not "hors champs" on mobile)
+                    setTimeout(() => {
+                      const el = document.querySelector('[data-testid="delete-confirm-panel"]');
+                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 100);
+                  }}
                   data-testid="delete-account-btn"
                   className="border-red-300 text-red-600 hover:bg-red-100"
                 >
@@ -398,7 +405,7 @@ const EditProfilePage = () => {
                   Supprimer mon compte
                 </Button>
               ) : (
-                <div className="bg-white rounded-xl p-4 border border-red-300">
+                <div className="bg-white rounded-xl p-4 border border-red-300" data-testid="delete-confirm-panel">
                   <div className="flex items-center gap-2 text-red-600 mb-3">
                     <AlertTriangle size={20} />
                     <span className="font-medium">Êtes-vous sûr ?</span>

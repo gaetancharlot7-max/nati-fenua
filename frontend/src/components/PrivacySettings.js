@@ -37,6 +37,7 @@ export const PrivacySelector = ({ value = 'public', onChange }) => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
+        data-testid="privacy-selector-trigger"
         className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
       >
         <Icon size={18} className="text-gray-600" />
@@ -65,6 +66,7 @@ export const PrivacySelector = ({ value = 'public', onChange }) => {
                       onChange(option.value);
                       setIsOpen(false);
                     }}
+                    data-testid={`privacy-option-${option.value}`}
                     className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${
                       value === option.value ? 'bg-[#FFF5F0]' : ''
                     }`}

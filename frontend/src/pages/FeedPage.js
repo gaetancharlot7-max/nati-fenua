@@ -478,16 +478,17 @@ const StoryItem = ({ storyGroup, currentUser, onDelete }) => {
         </div>
       </button>
       
-      {/* Story Viewer Modal */}
-      <AnimatePresence>
-        {showViewer && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black flex items-center justify-center"
-            onClick={() => setShowViewer(false)}
-          >
+      {/* Story Viewer Modal — rendered via Portal to escape any parent's transforms */}
+      {createPortal(
+        <AnimatePresence>
+          {showViewer && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] bg-black flex items-center justify-center"
+              onClick={() => setShowViewer(false)}
+            >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -575,6 +576,7 @@ const StoryItem = ({ storyGroup, currentUser, onDelete }) => {
                     )}
                     <button
                       onClick={() => setShowViewer(false)}
+                      data-testid="story-viewer-close"
                       className="p-2 rounded-full bg-white/20 text-white hover:bg-white/30"
                     >
                       <X size={20} />
@@ -592,7 +594,9 @@ const StoryItem = ({ storyGroup, currentUser, onDelete }) => {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 };

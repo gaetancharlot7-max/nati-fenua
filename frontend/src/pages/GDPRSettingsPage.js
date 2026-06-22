@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { 
   Shield, Download, Trash2, Bell, Cookie, FileText, 
@@ -273,13 +274,15 @@ const GDPRSettingsPage = () => {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
+      {/* Delete Confirmation Modal — Portal to escape any parent transforms */}
+      {createPortal(
+        showDeleteModal ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
           onClick={() => setShowDeleteModal(false)}
+          data-testid="delete-account-modal"
         >
           <motion.div
             initial={{ scale: 0.9 }}
@@ -338,12 +341,15 @@ const GDPRSettingsPage = () => {
               <Button
                 onClick={handleRequestDeletion}
                 className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                data-testid="confirm-delete-account-btn"
               >
                 Confirmer la suppression
               </Button>
             </div>
           </motion.div>
         </motion.div>
+        ) : null,
+        document.body
       )}
     </div>
   );
