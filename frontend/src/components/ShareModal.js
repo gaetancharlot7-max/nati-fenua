@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Share2, X, Copy, Check, Send, Search, Loader2, ChevronLeft } from 'lucide-react';
 import {
@@ -151,13 +152,13 @@ export const ShareModal = ({ isOpen, onClose, url, title, description, postId })
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center justify-center"
+        className="fixed inset-0 bg-black/50 z-[100] flex items-end lg:items-center justify-center"
         onClick={onClose}
         data-testid="share-modal-backdrop"
       >
@@ -305,7 +306,8 @@ export const ShareModal = ({ isOpen, onClose, url, title, description, postId })
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

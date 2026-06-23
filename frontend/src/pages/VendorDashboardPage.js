@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Truck, MapPin, Clock, Phone, CreditCard, Camera, Plus, X,
@@ -787,11 +788,11 @@ const CreateVendorProfileModal = ({ isOpen, onClose, cuisineTypes, paymentMethod
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
       onClick={onClose}
     >
       <motion.div
@@ -894,7 +895,8 @@ const CreateVendorProfileModal = ({ isOpen, onClose, cuisineTypes, paymentMethod
           </Button>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 };
 
@@ -954,11 +956,11 @@ const AddMenuItemModal = ({ isOpen, onClose, onSuccess }) => {
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center justify-center"
+      className="fixed inset-0 bg-black/50 z-[100] flex items-end lg:items-center justify-center"
       onClick={onClose}
     >
       <motion.div
@@ -1059,7 +1061,8 @@ const AddMenuItemModal = ({ isOpen, onClose, onSuccess }) => {
           </Button>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 };
 
@@ -1129,11 +1132,11 @@ const EditMenuItemModal = ({ isOpen, item, onClose, onSuccess }) => {
 
   if (!isOpen || !item) return null;
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center justify-center"
+      className="fixed inset-0 bg-black/50 z-[100] flex items-end lg:items-center justify-center"
       onClick={onClose}
     >
       <motion.div
@@ -1248,7 +1251,8 @@ const EditMenuItemModal = ({ isOpen, item, onClose, onSuccess }) => {
           </Button>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 };
 

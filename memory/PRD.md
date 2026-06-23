@@ -283,3 +283,13 @@ Score prod `nati-fenua.com` : Performance 41 / Accessibility 93 / Best Practices
 - **Test e2e PASS** : ouverture → frappe → soumission → toast "Commentaire ajouté !" → compteur (0)→(1) → fermeture propre.
 
 **Note pour l'utilisateur** : ce bug existait sur le sandbox **ET** sur Render. Les sessions précédentes pensaient avoir corrigé via "lifted state" — c'était nécessaire mais insuffisant. La cause profonde était le containing block CSS. Maintenant le code dans `/app` est définitivement correct.
+
+### Session juin 23 (iteration 13) — Fix Share Modal + Vendor Menu modals
+- **ShareModal** : ajout `createPortal(document.body)` + z-[100] → écran noir corrigé sur clic Partager (même root cause que comments/stories : containing block dû au transform du parent motion.article)
+- **VendorDashboardPage** : 3 modals (profil vendeur + add menu item + edit menu item) tous wrappés dans `createPortal` → photos par plat enfin uploadables sans bug d'affichage
+- **Feature Ma Roulotte** : photo upload par plat était déjà implémenté en backend (`photo_url` accepté par add_menu_item + update_menu_item) ET en frontend (handleImageUpload via cloudinaryApi.uploadImage('menu_items')). Le seul bug était l'affichage des modals — fixé.
+
+### Notes pour déploiement
+- Toutes les modifications de cette session nécessitent un push GitHub puis redéploiement Render Frontend
+- ⚠️ Le push doit créer un commit visible sur main (vérifier avec `git log` sur GitHub avant Render redeploy)
+- Service Worker v6 est déjà actif → les utilisateurs verront automatiquement la bannière "Mise à jour disponible" au prochain déploiement
