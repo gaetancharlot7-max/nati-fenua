@@ -120,6 +120,7 @@ import CookieBanner from './components/CookieBanner';
 import MainLayout from './components/layout/MainLayout';
 import NotificationBanner from './components/NotificationBanner';
 import OfflineIndicator from './components/OfflineIndicator';
+import UpdateBanner from './components/UpdateBanner';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -157,6 +158,7 @@ function AppContent() {
 
   return (
     <>
+      <UpdateBanner />
       <OfflineIndicator />
       <Suspense fallback={<PageLoader />}>
         <Routes>
