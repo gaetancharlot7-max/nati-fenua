@@ -12,72 +12,155 @@ const PWAInstallBanner = ({ onClose }) => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showBanner, setShowBanner] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [browserName, setBrowserName] = useState('');
   const [showInstructions, setShowInstructions] = useState(false);
+  const [promptStatus, setPromptStatus] = useState('idle'); // idle | prompting | accepted | dismissed
 
   useEffect(() => {
     // Vérifier si déjà installé
-    const installed = window.matchMedia('(display-mode: standalone)').matches;
-    if (installed) {
-      return;
-    }
-    
+    const installed = window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true; // iOS Safari
+    if (installed) return;
+
     // Vérifier si dismissé récemment (24h)
     try {
       const dismissedAt = localStorage.getItem('pwa_banner_dismissed_at');
       if (dismissedAt) {
         const age = Date.now() - parseInt(dismissedAt, 10);
-        if (age < 24 * 60 * 60 * 1000) {
-          return; // ne pas réafficher pendant 24h
-        }
+        if (age < 24 * 60 * 60 * 1000) return;
       }
-    } catch {}
+    } catch (_) {}
 
-    // Détecter iOS
-    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    // Détection appareil + navigateur
+    const ua = navigator.userAgent;
+    const iOS = /iPad|iPhone|iPod/.test(ua);
+    const android = /Android/i.test(ua);
+    const mobile = iOS || android || /Mobile/i.test(ua);
     setIsIOS(iOS);
+    setIsAndroid(android);
+    setIsMobile(mobile);
 
-    // Afficher la bannière (sauf si déjà installé ou dismissée)
+    if (/CriOS/i.test(ua)) setBrowserName('Chrome iOS');
+    else if (/FxiOS/i.test(ua)) setBrowserName('Firefox iOS');
+    else if (/EdgiOS/i.test(ua)) setBrowserName('Edge iOS');
+    else if (iOS) setBrowserName('Safari');
+    else if (/Edg/i.test(ua)) setBrowserName('Edge');
+    else if (/Chrome/i.test(ua)) setBrowserName('Chrome');
+    else if (/Firefox/i.test(ua)) setBrowserName('Firefox');
+    else if (/Safari/i.test(ua)) setBrowserName('Safari');
+    else setBrowserName('Navigateur');
+
+    // Afficher la bannière
     setShowBanner(true);
 
-    if (!iOS) {
-      const handler = (e) => {
-        e.preventDefault();
-        setDeferredPrompt(e);
-      };
-      window.addEventListener('beforeinstallprompt', handler);
-      return () => window.removeEventListener('beforeinstallprompt', handler);
-    }
+    // Capturer l'événement beforeinstallprompt (Chrome/Edge/Brave Android + Desktop)
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+
+    // Détecter l'installation réussie pour fermer la bannière
+    const installedHandler = () => {
+      setShowBanner(false);
+      try { localStorage.setItem('pwa_installed', 'true'); } catch (_) {}
+    };
+    window.addEventListener('appinstalled', installedHandler);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', installedHandler);
+    };
   }, []);
 
   const handleInstall = async () => {
+    // Cas 1 : prompt natif disponible → l'utiliser directement
     if (deferredPrompt) {
-      // Prompt natif disponible (Chrome, Edge, Android)
-      deferredPrompt.prompt();
+      setPromptStatus('prompting');
       try {
+        deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         if (outcome === 'accepted') {
+          setPromptStatus('accepted');
           setShowBanner(false);
-          localStorage.setItem('pwa_installed', 'true');
+          try { localStorage.setItem('pwa_installed', 'true'); } catch (_) {}
+        } else {
+          setPromptStatus('dismissed');
         }
-      } catch {}
+      } catch (e) {
+        setPromptStatus('idle');
+      }
       setDeferredPrompt(null);
-    } else {
-      // Pas de prompt natif : afficher les instructions manuelles
-      setShowInstructions(true);
+      return;
     }
+
+    // Cas 2 : pas de prompt natif → instructions adaptées au device
+    setShowInstructions(true);
   };
 
   const handleDismiss = () => {
     setShowBanner(false);
-    try {
-      localStorage.setItem('pwa_banner_dismissed_at', String(Date.now()));
-    } catch {}
+    try { localStorage.setItem('pwa_banner_dismissed_at', String(Date.now())); } catch (_) {}
   };
 
   if (!showBanner) return null;
 
-  // Instructions manuelles pour Chrome/Edge/Firefox desktop
+  // Instructions manuelles adaptées au device détecté
   if (showInstructions) {
+    // Détermine la procédure exacte selon le device + navigateur
+    const renderSteps = () => {
+      if (isIOS) {
+        return (
+          <div className="space-y-3">
+            <div className="bg-white/5 rounded-xl p-3 border border-white/10">
+              <p className="text-white font-bold text-sm mb-2">📱 Sur iPhone / iPad</p>
+              <ol className="text-white/80 text-sm space-y-1.5 list-decimal pl-5">
+                <li>Touchez <span className="inline-block px-2 py-0.5 bg-white/10 rounded">Partager ⬆️</span> en bas de Safari</li>
+                <li>Faites défiler et touchez <span className="inline-block px-2 py-0.5 bg-white/10 rounded">Sur l'écran d'accueil ➕</span></li>
+                <li>Touchez <span className="inline-block px-2 py-0.5 bg-[#FF6B35] text-white rounded">Ajouter</span> en haut à droite</li>
+                <li>🎉 L'icône Nati Fenua apparaît sur votre écran !</li>
+              </ol>
+              {browserName !== 'Safari' && (
+                <p className="text-yellow-300 text-xs mt-2">
+                  ⚠️ Sur iOS, l'installation n'est possible que dans <strong>Safari</strong> (pas dans {browserName}).
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      }
+      if (isAndroid) {
+        return (
+          <div className="space-y-3">
+            <div className="bg-white/5 rounded-xl p-3 border border-white/10">
+              <p className="text-white font-bold text-sm mb-2">📱 Sur Android ({browserName})</p>
+              <ol className="text-white/80 text-sm space-y-1.5 list-decimal pl-5">
+                <li>Touchez le menu <span className="inline-block px-2 py-0.5 bg-white/10 rounded">⋮</span> en haut à droite</li>
+                <li>Touchez <span className="inline-block px-2 py-0.5 bg-white/10 rounded">Installer l'application</span> ou <span className="inline-block px-2 py-0.5 bg-white/10 rounded">Ajouter à l'écran d'accueil</span></li>
+                <li>Confirmez <span className="inline-block px-2 py-0.5 bg-[#FF6B35] text-white rounded">Installer</span></li>
+                <li>🎉 Nati Fenua est installé !</li>
+              </ol>
+            </div>
+          </div>
+        );
+      }
+      // Desktop
+      return (
+        <div className="space-y-3">
+          <div className="bg-white/5 rounded-xl p-3 border border-white/10">
+            <p className="text-white font-bold text-sm mb-2">💻 Sur Desktop</p>
+            <div className="text-white/80 text-sm space-y-2">
+              <p><strong>Chrome / Edge / Brave :</strong> cherchez l'icône d'installation 📥 dans la barre d'adresse (à droite de l'URL), OU Menu (⋮) → "Installer Nati Fenua"</p>
+              <p><strong>Firefox :</strong> l'installation PWA n'est pas supportée — utilisez Nati Fenua dans l'onglet normal</p>
+              <p><strong>Safari Mac :</strong> File → "Add to Dock"</p>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     return (
       <AnimatePresence>
         <motion.div
@@ -85,42 +168,42 @@ const PWAInstallBanner = ({ onClose }) => {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           className="fixed bottom-0 left-0 right-0 z-50 p-4 safe-area-bottom"
+          data-testid="pwa-install-instructions"
         >
-          <div className="max-w-lg mx-auto bg-gradient-to-r from-[#1A1A2E] to-[#16213E] rounded-2xl shadow-2xl border border-white/10 p-5">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0">
-                <img 
-                  src="/icons/nati-fenua-192.png" 
-                  alt="Nati Fenua" 
-                  className="w-16 h-16 rounded-2xl shadow-lg border-2 border-white/20"
-                />
-              </div>
+          <div className="max-w-lg mx-auto bg-gradient-to-br from-[#1A1A2E] to-[#16213E] rounded-2xl shadow-2xl border border-white/10 p-5">
+            <div className="flex items-start gap-3 mb-3">
+              <img
+                src="/icons/nati-fenua-192.png"
+                alt="Nati Fenua"
+                className="w-14 h-14 rounded-2xl shadow-lg border-2 border-white/20 flex-shrink-0"
+              />
               <div className="flex-1 min-w-0">
-                <h3 className="text-white font-bold text-lg mb-2 flex items-center gap-2">
-                  <Download size={20} className="text-[#FF6B35]" />
-                  Comment installer ?
+                <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                  <Download size={18} className="text-[#FF6B35]" />
+                  Installer Nati Fenua
                 </h3>
-                <div className="text-white/70 text-sm space-y-2 mb-3">
-                  <p><strong>Chrome/Edge :</strong> Menu (⋮) → "Installer Nati Fenua"</p>
-                  <p><strong>Firefox :</strong> Barre d'adresse → icône maison (+)</p>
-                  <p><strong>Safari :</strong> Partager → "Sur l'écran d'accueil"</p>
-                </div>
-                <Button
-                  onClick={() => setShowInstructions(false)}
-                  variant="ghost"
-                  className="text-white/70 hover:text-white hover:bg-white/10 px-4 py-2 rounded-full text-sm"
-                >
-                  Compris !
-                </Button>
+                <p className="text-white/60 text-xs">Accès direct depuis votre écran d'accueil</p>
               </div>
               <button
-                onClick={handleDismiss}
+                onClick={() => { setShowInstructions(false); }}
                 data-testid="pwa-instructions-close"
                 aria-label="Fermer"
                 className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"
               >
                 <X size={18} />
               </button>
+            </div>
+
+            {renderSteps()}
+
+            <div className="flex gap-2 mt-4">
+              <Button
+                onClick={() => setShowInstructions(false)}
+                className="flex-1 bg-gradient-to-r from-[#FF6B35] to-[#FF1493] text-white rounded-full font-bold"
+                data-testid="pwa-instructions-ok"
+              >
+                Compris !
+              </Button>
             </div>
           </div>
         </motion.div>
@@ -151,26 +234,23 @@ const PWAInstallBanner = ({ onClose }) => {
                 Installer Nati Fenua
               </h3>
               <p className="text-white/70 text-sm mb-3">
-                {isIOS 
-                  ? "Appuyez sur le bouton Partager ⬆️ puis 'Sur l'écran d'accueil'"
-                  : "Accès rapide depuis votre écran d'accueil + notifications"
+                {isIOS
+                  ? "Accès direct depuis votre écran d'accueil — touchez 'Installer' pour voir comment"
+                  : isMobile
+                    ? "Accès direct depuis votre écran d'accueil + notifications push"
+                    : "Lancez Nati Fenua comme une vraie app depuis votre bureau"
                 }
               </p>
-              <div className="flex gap-2">
-                {!isIOS ? (
-                  <Button
-                    onClick={handleInstall}
-                    data-testid="pwa-install-button"
-                    className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:opacity-90 text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-lg"
-                  >
-                    <Download size={18} className="mr-2" />
-                    Installer maintenant
-                  </Button>
-                ) : (
-                  <div className="bg-white/10 rounded-xl px-4 py-2 text-white/80 text-xs">
-                    <strong>iPhone :</strong> Partager → Sur l'écran d'accueil
-                  </div>
-                )}
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  onClick={handleInstall}
+                  data-testid="pwa-install-button"
+                  disabled={promptStatus === 'prompting'}
+                  className="bg-gradient-to-r from-[#FF6B35] to-[#FF1493] hover:opacity-90 text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-lg disabled:opacity-60"
+                >
+                  <Download size={18} className="mr-2" />
+                  {promptStatus === 'prompting' ? 'Installation…' : (deferredPrompt ? 'Installer maintenant' : 'Installer')}
+                </Button>
                 <Button
                   onClick={handleDismiss}
                   variant="ghost"
