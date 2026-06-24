@@ -71,18 +71,54 @@ const NotificationsPage = () => {
   };
 
   const getNotifLink = (n) => {
+    const d = n.data || {};
     switch (n.type) {
+      // Post-related
       case 'new_post':
       case 'like':
       case 'comment':
-        return n.data?.post_id ? `/post/${n.data.post_id}` : '/feed';
-      case 'new_reel': return '/reels';
+      case 'new_comment':
+      case 'reaction':
+      case 'tag':
+      case 'mention':
+      case 'post_sponsorise':
+      case 'boost':
+      case 'event_spotlight':
+      case 'story_ad':
+        return d.post_id ? `/post/${d.post_id}` : '/feed';
+      case 'new_reel':
+        return d.post_id ? `/post/${d.post_id}` : '/reels';
+      case 'live':
+        return d.live_id ? `/live/${d.live_id}` : '/live';
       case 'follow':
       case 'friend_accepted':
-        return n.from_user?.user_id ? `/profile/${n.from_user.user_id}` : '/feed';
-      case 'friend_request': return '/friends';
-      case 'live': return '/live';
-      default: return '/feed';
+      case 'compte_promu':
+        return n.from_user?.user_id ? `/profile/${n.from_user.user_id}`
+             : d.from_user_id ? `/profile/${d.from_user_id}` : '/friends';
+      case 'friend_request':
+        return '/friends';
+      case 'message':
+      case 'new_message':
+      case 'direct':
+        return d.conversation_id ? `/chat/${d.conversation_id}` : '/chat';
+      case 'marketplace_boost':
+      case 'product_boost':
+        return d.product_id ? `/marketplace?product=${d.product_id}` : '/marketplace';
+      case 'roulotte_open':
+      case 'roulotte_pack':
+        return d.vendor_id ? `/vendor/${d.vendor_id}` : '/marketplace';
+      case 'badge':
+      case 'reward_unlocked':
+      case 'ambassadeur_unlocked':
+      case 'new_referral':
+      case 'mana_alert':
+        return '/profile?tab=rewards';
+      case 'marker_boost':
+        return d.marker_id ? `/mana?marker=${d.marker_id}` : '/mana';
+      case 'inbound_email':
+        return '/admin/inbox';
+      default:
+        return d.url || d.link || '/feed';
     }
   };
 

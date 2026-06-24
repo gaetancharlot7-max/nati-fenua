@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Heart, MessageCircle, UserPlus, Film, Image, Radio, X, Settings } from 'lucide-react';
+import { Bell, Heart, MessageCircle, UserPlus, Film, Image, Radio, X, Settings, ShoppingBag, Gift, Mail, MapPin, Award, Megaphone, AtSign } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { notificationsApi } from '../lib/api';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
@@ -100,29 +100,120 @@ const NotificationBell = () => {
     switch (type) {
       case 'new_post': return <Image size={16} className="text-[#FF6B35]" />;
       case 'new_reel': return <Film size={16} className="text-[#FF1493]" />;
-      case 'like': return <Heart size={16} className="text-red-500 fill-red-500" />;
-      case 'comment': return <MessageCircle size={16} className="text-blue-500" />;
+      case 'like':
+      case 'reaction':
+        return <Heart size={16} className="text-red-500 fill-red-500" />;
+      case 'comment':
+      case 'new_comment':
+        return <MessageCircle size={16} className="text-blue-500" />;
+      case 'mention':
+      case 'tag':
+        return <AtSign size={16} className="text-purple-500" />;
+      case 'message':
+      case 'new_message':
+      case 'direct':
+        return <MessageCircle size={16} className="text-blue-500" />;
       case 'follow':
       case 'friend_request':
       case 'friend_accepted':
+      case 'compte_promu':
         return <UserPlus size={16} className="text-[#FF6B35]" />;
       case 'live': return <Radio size={16} className="text-purple-500" />;
+      case 'marketplace_boost':
+      case 'product_boost':
+      case 'roulotte_open':
+      case 'roulotte_pack':
+        return <ShoppingBag size={16} className="text-emerald-500" />;
+      case 'badge':
+      case 'reward_unlocked':
+      case 'ambassadeur_unlocked':
+      case 'new_referral':
+        return <Award size={16} className="text-yellow-500" />;
+      case 'mana_alert':
+        return <Gift size={16} className="text-pink-500" />;
+      case 'marker_boost':
+        return <MapPin size={16} className="text-orange-500" />;
+      case 'inbound_email':
+        return <Mail size={16} className="text-blue-600" />;
+      case 'post_sponsorise':
+      case 'boost':
+      case 'event_spotlight':
+      case 'story_ad':
+        return <Megaphone size={16} className="text-amber-500" />;
       default: return <Bell size={16} className="text-gray-500" />;
     }
   };
 
   const getLink = (n) => {
+    const d = n.data || {};
     switch (n.type) {
+      // Post-related
       case 'new_post':
       case 'like':
       case 'comment':
-        return n.data?.post_id ? `/post/${n.data.post_id}` : '/feed';
-      case 'new_reel': return '/reels';
-      case 'follow': return n.from_user?.user_id ? `/profile/${n.from_user.user_id}` : '/feed';
-      case 'friend_request': return '/friends';
-      case 'friend_accepted': return n.from_user?.user_id ? `/profile/${n.from_user.user_id}` : '/feed';
-      case 'live': return '/live';
-      default: return '/feed';
+      case 'new_comment':
+      case 'reaction':
+      case 'tag':
+      case 'mention':
+      case 'post_sponsorise':
+      case 'boost':
+      case 'event_spotlight':
+      case 'story_ad':
+        return d.post_id ? `/post/${d.post_id}` : '/feed';
+
+      // Reels / videos
+      case 'new_reel':
+        return d.post_id ? `/post/${d.post_id}` : '/reels';
+
+      // Live streams
+      case 'live':
+        return d.live_id ? `/live/${d.live_id}` : '/live';
+
+      // Profile / social
+      case 'follow':
+      case 'friend_accepted':
+      case 'compte_promu':
+        return n.from_user?.user_id ? `/profile/${n.from_user.user_id}`
+             : d.from_user_id ? `/profile/${d.from_user_id}` : '/friends';
+      case 'friend_request':
+        return '/friends';
+
+      // Messages
+      case 'message':
+      case 'new_message':
+      case 'direct':
+        return d.conversation_id ? `/chat/${d.conversation_id}` : '/chat';
+
+      // Marketplace
+      case 'marketplace_boost':
+      case 'product_boost':
+        return d.product_id ? `/marketplace?product=${d.product_id}` : '/marketplace';
+      case 'roulotte_open':
+      case 'roulotte_pack':
+        return d.vendor_id ? `/vendor/${d.vendor_id}` : '/marketplace';
+
+      // Gamification / rewards
+      case 'badge':
+      case 'reward_unlocked':
+      case 'ambassadeur_unlocked':
+      case 'new_referral':
+      case 'mana_alert':
+        return '/profile?tab=rewards';
+
+      // Map alerts
+      case 'marker_boost':
+        return d.marker_id ? `/mana?marker=${d.marker_id}` : '/mana';
+
+      // Admin
+      case 'inbound_email':
+        return d.inbound_id ? `/admin/inbox` : '/admin/inbox';
+
+      // Generic info / status
+      case 'info':
+      case 'status':
+      default:
+        // Last-resort: use data.url or data.link if backend provided one
+        return d.url || d.link || '/notifications';
     }
   };
 
