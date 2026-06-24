@@ -467,7 +467,7 @@ class PostBase(BaseModel):
     post_id: str = Field(default_factory=lambda: f"post_{uuid.uuid4().hex[:12]}")
     user_id: str
     content_type: str  # photo, video, reel, live_replay, link
-    media_url: str
+    media_url: Optional[str] = ""  # Optional — link/repost cards don't have direct media
     thumbnail_url: Optional[str] = None
     caption: Optional[str] = None
     location: Optional[str] = None
@@ -486,13 +486,15 @@ class PostBase(BaseModel):
 
 class PostCreate(BaseModel):
     content_type: str
-    media_url: str
+    media_url: Optional[str] = ""  # Optional for content_type='link' (repost/article share)
     thumbnail_url: Optional[str] = None
     caption: Optional[str] = None
     location: Optional[str] = None
     coordinates: Optional[dict] = None  # {"lat": float, "lng": float}
     external_link: Optional[str] = None  # YouTube, article URLs
     link_type: Optional[str] = None  # youtube, article, tiktok, etc.
+    link_title: Optional[str] = None  # Title of the shared link (for repost cards)
+    feed_type: Optional[str] = "user"  # user | story (kept for FE compat)
     tagged_users: List[str] = Field(default_factory=list)  # List of user_ids to tag
     privacy: Optional[str] = "public"  # public | friends | private
 

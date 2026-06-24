@@ -230,7 +230,7 @@ export const ShareModal = ({ isOpen, onClose, url, title, description, postId })
                       {reposting ? (
                         <Loader2 size={22} className="text-white animate-spin" />
                       ) : (
-                        <img src="/nati-fenua-48.png" alt="" className="w-7 h-7" />
+                        <img src="/icons/nati-fenua-128.png" alt="" className="w-7 h-7" />
                       )}
                     </div>
                     <span className="text-xs font-medium text-[#1A1A2E] text-center leading-tight">
